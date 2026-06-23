@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { supabase } from './supabase'
 
 const RED   = "#C8102E"
 const GREEN = "#007A3D"
@@ -69,6 +70,60 @@ const CATEGORY_COLORS = {
 const CITIES     = ["Toutes", "Paris", "Lyon", "Marseille", "Bordeaux", "Lille", "Toulouse"]
 const CATEGORIES = ["Toutes", "Soirée", "Culture", "Gastronomie", "Sport", "Religion", "Autre"]
 
+/* ── Données vidéos initiales ────────────────────── */
+const initialVideos = [
+  {
+    id: 1,
+    type: "aftermovie",
+    title: "After-movie — Repas Communautaire Lyon 2025",
+    youtubeUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
+    eventName: "Repas Communautaire Malgache",
+    eventDate: "2025-03-10",
+    isTeaser: false,
+    date: "2025-03-15",
+    description: "Le recap du repas communautaire de mars à Lyon. Merci à tous d'avoir été là !",
+    likes: 48,
+  },
+  {
+    id: 2,
+    type: "communaute",
+    title: "Hira Gasy — Répétition générale",
+    youtubeUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400",
+    eventName: "Hira Gasy Île-de-France",
+    eventDate: "2026-07-20",
+    isTeaser: true,
+    date: "2026-06-01",
+    description: "En coulisses avant le grand jour — un aperçu de la préparation.",
+    likes: 23,
+  },
+  {
+    id: 3,
+    type: "communaute",
+    title: "Recette de Romazava par Tantie Noro",
+    youtubeUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    thumbnail: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
+    eventName: "",
+    eventDate: null,
+    isTeaser: false,
+    date: "2026-03-05",
+    description: "La recette traditionnelle du romazava, transmise de génération en génération.",
+    likes: 61,
+  },
+]
+
+const EMPTY_VIDEO_FORM = {
+  type: "aftermovie",
+  title: "",
+  youtubeUrl: "",
+  thumbnail: "",
+  eventName: "",
+  isTeaser: false,
+  date: "",
+  description: "",
+}
+
 const EMPTY_FORM = {
   title: "", date: "", location: "", city: "Paris",
   category: "Soirée", price: "", organizer: "", ticketUrl: "",
@@ -83,7 +138,7 @@ const formatDate = (d) =>
   new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
 
 /* ── Page de détail ──────────────────────────────── */
-function EventDetail({ event, onClose, isAdmin }) {
+function EventDetail({ event, onClose, isAdmin, user, onAuthRequired }) {
   const [copied, setCopied]   = useState(false)
   const [selected, setSelected] = useState(null)
   const cat = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.Autre
@@ -199,6 +254,9 @@ function EventDetail({ event, onClose, isAdmin }) {
               </div>
             </div>
           )}
+
+          {/* Commentaires */}
+          <CommentSection eventId={event.id} user={user} onAuthRequired={onAuthRequired} />
 
           {/* Boutons action */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -351,9 +409,558 @@ function EventCard({ event, past, onOpen }) {
   )
 }
 
+/* ── Carte vidéo ─────────────────────────────────── */
+function VideoCard({ video, onPlay, onLike, liked }) {
+  return (
+    <div style={{ background: WHITE, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.09)", cursor: "pointer" }}
+      onClick={() => onPlay(video)}>
+      <div style={{ position: "relative" }}>
+        <img src={video.thumbnail} alt={video.title}
+          style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+            ▶
+          </div>
+        </div>
+        <span style={{ position: "absolute", top: 10, left: 10, background: video.isTeaser ? "#f0a500" : video.type === "aftermovie" ? RED : GREEN, color: WHITE, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+          {video.isTeaser ? "🎬 Teaser" : video.type === "aftermovie" ? "After-movie" : "Communauté"}
+        </span>
+      </div>
+      <div style={{ padding: 14 }}>
+        <h4 style={{ fontWeight: 700, fontSize: 14, color: "#111", margin: "0 0 6px", lineHeight: 1.3 }}>{video.title}</h4>
+        {video.eventName && <p style={{ fontSize: 12, color: GREEN, fontWeight: 600, margin: "0 0 4px" }}>🎪 {video.eventName}</p>}
+        <p style={{ fontSize: 12, color: "#999", margin: "0 0 10px" }}>{new Date(video.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <p style={{ fontSize: 12, color: "#666", margin: "0 0 12px", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {video.description}
+        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={e => { e.stopPropagation(); onLike(video.id) }}
+            style={{ background: liked ? "#fde8ec" : "#f5f5f5", color: liked ? RED : "#888", border: "none", borderRadius: 99, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            ❤️ {video.likes + (liked ? 1 : 0)}
+          </button>
+          <span style={{ fontSize: 11, color: "#bbb" }}>Cliquer pour regarder</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Lecteur vidéo (lightbox) ────────────────────── */
+function VideoPlayer({ video, onClose, user, onAuthRequired }) {
+  const embedUrl = video.youtubeUrl.includes("embed") ? video.youtubeUrl : video.youtubeUrl.replace("watch?v=", "embed/")
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 70, padding: 16, overflowY: "auto" }}>
+      <div style={{ width: "100%", maxWidth: 720, background: "#1a1a1a", borderRadius: 20, overflow: "hidden" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
+          <div>
+            <h3 style={{ color: WHITE, fontWeight: 700, fontSize: 15, margin: 0 }}>{video.title}</h3>
+            {video.eventName && (
+              <p style={{ color: video.isTeaser ? "#f0a500" : GREEN, fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>
+                {video.isTeaser ? "🎬 Teaser — " : "🎪 After-movie — "}{video.eventName}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: WHITE, fontSize: 18, cursor: "pointer", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        {/* Vidéo */}
+        <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+          <iframe src={embedUrl + "?autoplay=1"} title={video.title}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen />
+        </div>
+        {/* Description */}
+        {video.description && (
+          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, margin: "12px 20px", lineHeight: 1.5 }}>{video.description}</p>
+        )}
+        {/* Commentaires */}
+        <div style={{ background: WHITE, margin: 16, borderRadius: 16, padding: 16 }}>
+          <CommentSection mediaId={video.id} user={user} onAuthRequired={onAuthRequired} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Section Vidéos ──────────────────────────────── */
+function VideoSection({ videos, setVideos, isAdmin, user, onAuthRequired }) {
+  const [tab, setTab]               = useState("aftermovie")
+  const [playingVideo, setPlaying]  = useState(null)
+  const [likedIds, setLikedIds]     = useState([])
+  const [showAddVideo, setShowAdd]  = useState(false)
+  const [vForm, setVForm]           = useState(EMPTY_VIDEO_FORM)
+
+  const filtered = videos.filter(v => v.type === tab)
+
+  const handleLike = (id) => {
+    if (likedIds.includes(id)) return
+    setLikedIds([...likedIds, id])
+  }
+
+  const handleAddVideo = (e) => {
+    e.preventDefault()
+    setVideos([...videos, { ...vForm, id: Date.now(), likes: 0 }])
+    setVForm(EMPTY_VIDEO_FORM)
+    setShowAdd(false)
+  }
+
+  const inputStyle = { width: "100%", border: "1.5px solid #e5e5e5", borderRadius: 12, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: "#444", display: "block", marginBottom: 6 }
+
+  return (
+    <div style={{ background: "#111", padding: "48px 24px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+
+        {/* Header section */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+          <div>
+            <h2 style={{ color: WHITE, fontWeight: 800, fontSize: 24, margin: "0 0 4px" }}>🎬 Vidéos</h2>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, margin: 0 }}>After-movies & contenus de la communauté</p>
+          </div>
+          {isAdmin && (
+            <button onClick={() => setShowAdd(true)}
+              style={{ background: RED, color: WHITE, fontWeight: 700, fontSize: 13, padding: "10px 18px", borderRadius: 12, border: "none", cursor: "pointer" }}>
+              + Ajouter une vidéo
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {[["aftermovie", "🎥 After-movies"], ["communaute", "🌍 Communauté"]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)}
+              style={{ padding: "8px 20px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none",
+                background: tab === key ? WHITE : "rgba(255,255,255,0.1)",
+                color: tab === key ? "#111" : "rgba(255,255,255,0.6)" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Grille vidéos */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "48px 0", color: "rgba(255,255,255,0.4)" }}>
+            <p style={{ fontSize: 40, marginBottom: 8 }}>🎬</p>
+            <p style={{ fontSize: 14 }}>Aucune vidéo dans cette catégorie</p>
+            {isAdmin && <p style={{ fontSize: 12, marginTop: 4 }}>Clique sur "+ Ajouter une vidéo" pour commencer</p>}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
+            {filtered.map(v => (
+              <VideoCard key={v.id} video={v} onPlay={setPlaying} onLike={handleLike} liked={likedIds.includes(v.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lecteur */}
+      {playingVideo && <VideoPlayer video={playingVideo} onClose={() => setPlaying(null)} user={user} onAuthRequired={onAuthRequired} />}
+
+      {/* Modal ajout vidéo (admin) */}
+      {showAddVideo && (
+        <div onClick={e => e.target === e.currentTarget && setShowAdd(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 80, padding: 16 }}>
+          <div style={{ background: WHITE, borderRadius: 20, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontWeight: 800, fontSize: 18, margin: 0 }}>Ajouter une vidéo</h2>
+              <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "none", fontSize: 22, color: "#999", cursor: "pointer" }}>×</button>
+            </div>
+            <form onSubmit={handleAddVideo} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={labelStyle}>Type</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[["aftermovie", "🎥 After-movie"], ["communaute", "🌍 Communauté"]].map(([val, label]) => (
+                    <button key={val} type="button" onClick={() => setVForm({ ...vForm, type: val })}
+                      style={{ flex: 1, padding: "8px 0", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                        background: vForm.type === val ? RED : "#f0f0f0", color: vForm.type === val ? WHITE : "#555" }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Titre *</label>
+                <input required value={vForm.title} onChange={e => setVForm({ ...vForm, title: e.target.value })}
+                  placeholder="Ex: After-movie soirée novembre" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Lien YouTube *</label>
+                <input required value={vForm.youtubeUrl} onChange={e => setVForm({ ...vForm, youtubeUrl: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=..." style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Image miniature (URL)</label>
+                <input value={vForm.thumbnail} onChange={e => setVForm({ ...vForm, thumbnail: e.target.value })}
+                  placeholder="https://... (optionnel)" style={inputStyle} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={labelStyle}>Événement lié</label>
+                  <input value={vForm.eventName} onChange={e => setVForm({ ...vForm, eventName: e.target.value })}
+                    placeholder="Nom de l'event" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Date</label>
+                  <input type="date" value={vForm.date} onChange={e => setVForm({ ...vForm, date: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea value={vForm.description} onChange={e => setVForm({ ...vForm, description: e.target.value })}
+                  placeholder="Décris la vidéo..." rows={2}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "system-ui, sans-serif" }} />
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                <button type="button" onClick={() => setShowAdd(false)}
+                  style={{ flex: 1, background: "#f0f0f0", color: "#555", fontWeight: 700, fontSize: 14, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer" }}>
+                  Annuler
+                </button>
+                <button type="submit"
+                  style={{ flex: 2, background: RED, color: WHITE, fontWeight: 700, fontSize: 14, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer" }}>
+                  Publier la vidéo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Modal Auth (connexion / inscription) ────────── */
+function AuthModal({ onClose, onSuccess }) {
+  const [tab, setTab]       = useState("login")
+  const [email, setEmail]   = useState("")
+  const [pw, setPw]         = useState("")
+  const [username, setUsername] = useState("")
+  const [error, setError]   = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(""); setLoading(true)
+    if (tab === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pw })
+      if (error) setError("Email ou mot de passe incorrect")
+      else { onSuccess(); onClose() }
+    } else {
+      const { data, error } = await supabase.auth.signUp({ email, password: pw })
+      if (error) {
+        setError(error?.message || "Erreur lors de la création du compte")
+      } else if (data?.user) {
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          username: username || data.user.email.split('@')[0],
+        })
+        onSuccess(); onClose()
+      } else {
+        setError("✅ Compte créé ! Connecte-toi maintenant.")
+      }
+    }
+    setLoading(false)
+  }
+
+  const inputStyle = { width: "100%", border: "1.5px solid #e5e5e5", borderRadius: 12, padding: "10px 14px", fontSize: 14, outline: "none", boxSizing: "border-box" }
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 90, padding: 16 }}>
+      <div style={{ background: WHITE, borderRadius: 24, width: "100%", maxWidth: 380, padding: 32, boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <p style={{ fontSize: 36, margin: "0 0 8px" }}>🇲🇬</p>
+          <h2 style={{ fontWeight: 800, fontSize: 20, color: "#111", margin: 0 }}>Rejoindre la communauté</h2>
+        </div>
+        {/* Tabs */}
+        <div style={{ display: "flex", background: "#f5f5f5", borderRadius: 12, padding: 4, marginBottom: 24 }}>
+          {[["login", "Connexion"], ["signup", "Inscription"]].map(([key, label]) => (
+            <button key={key} onClick={() => { setTab(key); setError("") }}
+              style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                background: tab === key ? WHITE : "transparent", color: tab === key ? "#111" : "#999",
+                boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.1)" : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {tab === "signup" && (
+            <input value={username} onChange={e => setUsername(e.target.value)}
+              placeholder="Pseudo (ex: Niry_Mada)" style={inputStyle} />
+          )}
+          <input required type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="Email" style={inputStyle} />
+          <input required type="password" value={pw} onChange={e => setPw(e.target.value)}
+            placeholder="Mot de passe" style={inputStyle} />
+          {error && <p style={{ fontSize: 12, color: error.startsWith("✅") ? GREEN : RED, textAlign: "center", margin: 0 }}>{error}</p>}
+          <button type="submit" disabled={loading}
+            style={{ background: RED, color: WHITE, fontWeight: 700, fontSize: 14, padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer", marginTop: 4, opacity: loading ? 0.7 : 1 }}>
+            {loading ? "..." : tab === "login" ? "Se connecter" : "Créer mon compte"}
+          </button>
+        </form>
+        <button onClick={onClose} style={{ width: "100%", background: "none", border: "none", color: "#aaa", fontSize: 13, cursor: "pointer", marginTop: 12 }}>
+          Annuler
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Section Commentaires ────────────────────────── */
+function CommentSection({ eventId, mediaId, user, onAuthRequired }) {
+  const [comments, setComments] = useState([])
+  const [text, setText]         = useState("")
+  const [loading, setLoading]   = useState(false)
+
+  useEffect(() => {
+    fetchComments()
+  }, [eventId, mediaId])
+
+  const fetchComments = async () => {
+    let query = supabase.from('comments').select('*, profiles(username, is_member)').order('created_at', { ascending: true })
+    if (mediaId) query = query.eq('media_id', mediaId)
+    else if (eventId) query = query.eq('event_id', eventId)
+    const { data } = await query
+    setComments(data || [])
+  }
+
+  const handlePost = async (e) => {
+    e.preventDefault()
+    if (!user) { onAuthRequired(); return }
+    if (!text.trim()) return
+    setLoading(true)
+    await supabase.from('comments').insert({
+      content: text.trim(),
+      user_id: user.id,
+      ...(mediaId ? { media_id: mediaId } : { event_id: eventId }),
+    })
+    setText("")
+    await fetchComments()
+    setLoading(false)
+  }
+
+  const timeAgo = (dateStr) => {
+    const diff = Date.now() - new Date(dateStr)
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return "à l'instant"
+    if (m < 60) return `il y a ${m} min`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `il y a ${h}h`
+    return `il y a ${Math.floor(h / 24)}j`
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+        💬 Commentaires ({comments.length})
+      </p>
+      {/* Liste */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16, maxHeight: 220, overflowY: "auto" }}>
+        {comments.length === 0 && <p style={{ fontSize: 13, color: "#bbb", textAlign: "center", padding: "16px 0" }}>Sois le premier à commenter !</p>}
+        {comments.map(c => (
+          <div key={c.id} style={{ display: "flex", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: RED, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+              {(c.profiles?.username || "?")[0].toUpperCase()}
+            </div>
+            <div style={{ background: "#f5f5f5", borderRadius: 12, padding: "8px 12px", flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                <span style={{ fontWeight: 700, fontSize: 12, color: "#111" }}>{c.profiles?.username || "Anonyme"}</span>
+                {c.profiles?.is_member && <span style={{ background: GREEN, color: WHITE, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99 }}>MEMBRE</span>}
+                <span style={{ fontSize: 11, color: "#bbb", marginLeft: "auto" }}>{timeAgo(c.created_at)}</span>
+              </div>
+              <p style={{ fontSize: 13, color: "#444", margin: 0, lineHeight: 1.4 }}>{c.content}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Formulaire */}
+      <form onSubmit={handlePost} style={{ display: "flex", gap: 8 }}>
+        <input value={text} onChange={e => setText(e.target.value)}
+          placeholder={user ? "Ton commentaire..." : "Connecte-toi pour commenter"}
+          onClick={() => !user && onAuthRequired()}
+          readOnly={!user}
+          style={{ flex: 1, border: "1.5px solid #e5e5e5", borderRadius: 12, padding: "9px 14px", fontSize: 13, outline: "none", cursor: user ? "text" : "pointer", background: user ? WHITE : "#f9f9f9" }}
+        />
+        {user && (
+          <button type="submit" disabled={loading || !text.trim()}
+            style={{ background: RED, color: WHITE, border: "none", borderRadius: 12, padding: "0 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!text.trim() || loading) ? 0.5 : 1 }}>
+            ↩
+          </button>
+        )}
+      </form>
+    </div>
+  )
+}
+
+/* ── Modal Profil / Paramètres ───────────────────── */
+function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
+  const [tab, setTab]           = useState("profil")
+  const [username, setUsername] = useState(userProfile?.username || "")
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar_url || "")
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    const { error } = await supabase.from('profiles')
+      .update({ username, avatar_url: avatarUrl })
+      .eq('id', user.id)
+    if (!error) {
+      setSaved(true)
+      onUpdate({ ...userProfile, username, avatar_url: avatarUrl })
+      setTimeout(() => setSaved(false), 2000)
+    }
+    setSaving(false)
+  }
+
+  const initiale = (userProfile?.username || user?.email || "?")[0].toUpperCase()
+
+  const inputStyle = { width: "100%", border: "1.5px solid #e5e5e5", borderRadius: 12, padding: "10px 14px", fontSize: 13, outline: "none", boxSizing: "border-box" }
+  const labelStyle = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }
+
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 90, padding: 16 }}>
+      <div style={{ background: WHITE, borderRadius: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.25)" }}>
+
+        {/* Header profil */}
+        <div style={{ background: RED, borderRadius: "24px 24px 0 0", padding: "28px 24px 20px", textAlign: "center" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: WHITE, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", border: "3px solid rgba(255,255,255,0.3)" }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span style={{ fontSize: 28, fontWeight: 800, color: RED }}>{initiale}</span>
+            )}
+          </div>
+          <h2 style={{ color: WHITE, fontWeight: 800, fontSize: 18, margin: "0 0 4px" }}>{userProfile?.username || user?.email?.split("@")[0]}</h2>
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, margin: 0 }}>{user?.email}</p>
+          {userProfile?.is_member && (
+            <span style={{ background: GREEN, color: WHITE, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, display: "inline-block", marginTop: 8 }}>
+              ✓ Membre 2,50€/mois
+            </span>
+          )}
+        </div>
+
+        {/* Bande tricolore */}
+        <div style={{ display: "flex", height: 4 }}>
+          <div style={{ flex: 1, background: "#eee" }} />
+          <div style={{ flex: 2, background: RED }} />
+          <div style={{ flex: 2, background: GREEN }} />
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", padding: "16px 24px 0" }}>
+          {[["profil", "👤 Mon profil"], ["compte", "⚙️ Compte"]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)}
+              style={{ flex: 1, padding: "8px 0", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: "none",
+                color: tab === key ? RED : "#aaa",
+                borderBottom: tab === key ? `2px solid ${RED}` : "2px solid transparent" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding: 24 }}>
+          {tab === "profil" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Pseudo</label>
+                <input value={username} onChange={e => setUsername(e.target.value)}
+                  placeholder="Ton pseudo" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Photo de profil (URL)</label>
+                <input value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)}
+                  placeholder="https://... (lien vers une image)" style={inputStyle} />
+                {avatarUrl && (
+                  <img src={avatarUrl} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", marginTop: 8 }} />
+                )}
+              </div>
+              <div style={{ background: "#f8f8f8", borderRadius: 12, padding: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: "0 0 4px" }}>Email</p>
+                <p style={{ fontSize: 14, color: "#555", margin: 0 }}>{user?.email}</p>
+              </div>
+              <div style={{ background: "#f8f8f8", borderRadius: 12, padding: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: "0 0 4px" }}>Membre depuis</p>
+                <p style={{ fontSize: 14, color: "#555", margin: 0 }}>
+                  {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+                </p>
+              </div>
+              <button onClick={handleSave} disabled={saving}
+                style={{ background: saved ? GREEN : RED, color: WHITE, fontWeight: 700, fontSize: 14, padding: "12px 0", borderRadius: 14, border: "none", cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
+                {saved ? "✓ Sauvegardé !" : saving ? "..." : "Sauvegarder les modifications"}
+              </button>
+            </div>
+          )}
+
+          {tab === "compte" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ background: "#f8f8f8", borderRadius: 14, padding: 16 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: "0 0 8px" }}>Plan actuel</p>
+                {userProfile?.is_member ? (
+                  <>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: GREEN, margin: "0 0 4px" }}>✓ Plan Membre — 2,50€/mois</p>
+                    <p style={{ fontSize: 12, color: "#999", margin: 0 }}>Accès prioritaire, badge, contenu exclusif</p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "#555", margin: "0 0 8px" }}>Plan Gratuit</p>
+                    <button style={{ background: RED, color: WHITE, fontWeight: 700, fontSize: 13, padding: "10px 0", borderRadius: 12, border: "none", cursor: "pointer", width: "100%" }}>
+                      Passer à 2,50€/mois →
+                    </button>
+                    <p style={{ fontSize: 11, color: "#bbb", textAlign: "center", marginTop: 6 }}>Badge membre, accès prioritaire, contenu exclusif</p>
+                  </>
+                )}
+              </div>
+
+              <div style={{ background: "#f8f8f8", borderRadius: 14, padding: 16 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: "0 0 8px" }}>Sécurité</p>
+                <p style={{ fontSize: 13, color: "#555", margin: 0 }}>Mot de passe géré via Supabase Auth</p>
+              </div>
+
+              <button onClick={() => { onSignOut(); onClose() }}
+                style={{ background: "#f5f5f5", color: "#e53935", fontWeight: 700, fontSize: 14, padding: "12px 0", borderRadius: 14, border: "none", cursor: "pointer", marginTop: 8 }}>
+                Se déconnecter
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── App principale ──────────────────────────────── */
 export default function App() {
   const [events, setEvents]                 = useState(initialEvents)
+  const [videos, setVideos]                 = useState(initialVideos)
+  const [user, setUser]                     = useState(null)
+  const [userProfile, setUserProfile]       = useState(null)
+  const [showAuth, setShowAuth]             = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) fetchProfile(session.user.id)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) fetchProfile(session.user.id)
+      else setUserProfile(null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const fetchProfile = async (userId) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    setUserProfile(data)
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null); setUserProfile(null)
+  }
   const [cityFilter, setCityFilter]         = useState("Toutes")
   const [categoryFilter, setCategoryFilter] = useState("Toutes")
   const [showForm, setShowForm]             = useState(false)
@@ -367,6 +974,7 @@ export default function App() {
   const [pwError, setPwError]               = useState(false)
   const [logoClicks, setLogoClicks]         = useState(0)
   const [selectedEvent, setSelectedEvent]   = useState(null)
+  const [showProfile, setShowProfile]       = useState(false)
 
   const handleLogoClick = () => {
     const next = logoClicks + 1
@@ -442,7 +1050,28 @@ export default function App() {
             )}
             {isAdmin && (
               <button onClick={() => setIsAdmin(false)} style={{ background: "rgba(255,255,255,0.15)", color: WHITE, fontWeight: 600, fontSize: 12, padding: "9px 14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
-                Déconnexion
+                Déconnexion admin
+              </button>
+            )}
+            {user ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div onClick={() => setShowProfile(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", borderRadius: 99, padding: "6px 12px 6px 6px", cursor: "pointer" }}>
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    {userProfile?.avatar_url
+                      ? <img src={userProfile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ color: RED, fontWeight: 800, fontSize: 12 }}>{(userProfile?.username || user.email)[0].toUpperCase()}</span>}
+                  </div>
+                  <span style={{ color: WHITE, fontSize: 12, fontWeight: 600 }}>{userProfile?.username || user.email.split("@")[0]}</span>
+                  {userProfile?.is_member && <span style={{ background: GREEN, color: WHITE, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 99 }}>MEMBRE</span>}
+                  <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>⚙️</span>
+                </div>
+                <button onClick={handleSignOut} style={{ background: "rgba(255,255,255,0.15)", color: WHITE, fontWeight: 600, fontSize: 12, padding: "6px 12px", borderRadius: 99, border: "none", cursor: "pointer" }}>
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAuth(true)} style={{ background: WHITE, color: RED, fontWeight: 700, fontSize: 13, padding: "8px 16px", borderRadius: 99, border: "none", cursor: "pointer" }}>
+                Se connecter
               </button>
             )}
           </div>
@@ -530,9 +1159,13 @@ export default function App() {
 
       <div style={{ height: 60 }} />
 
+      {/* ── SECTION VIDÉOS ── */}
+      <VideoSection videos={videos} setVideos={setVideos} isAdmin={isAdmin} user={user} onAuthRequired={() => setShowAuth(true)} />
+
+
       {/* ── MODAL DÉTAIL ── */}
       {selectedEvent && (
-        <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} isAdmin={isAdmin} />
+        <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} isAdmin={isAdmin} user={user} onAuthRequired={() => { setSelectedEvent(null); setShowAuth(true) }} />
       )}
 
       {/* ── MODAL AJOUT ── */}
@@ -651,6 +1284,9 @@ export default function App() {
         </div>
       )}
 
+      {/* ── MODAL AUTH ── */}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />}
+
       {/* ── MODAL LOGIN ADMIN ── */}
       {showLogin && (
         <div onClick={(e) => e.target === e.currentTarget && setShowLogin(false)}
@@ -677,6 +1313,17 @@ export default function App() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── MODAL PROFIL ── */}
+      {showProfile && user && (
+        <ProfileModal
+          user={user}
+          userProfile={userProfile}
+          onClose={() => setShowProfile(false)}
+          onSignOut={handleSignOut}
+          onUpdate={(updated) => setUserProfile(updated)}
+        />
       )}
 
       {/* ── FOOTER ── */}
