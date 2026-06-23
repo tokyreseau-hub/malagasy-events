@@ -21,6 +21,7 @@ const initialEvents = [
     price: "15€",
     organizer: "Mafana Vibes",
     ticketUrl: "https://helloasso.com",
+    description: "Une soirée inoubliable au cœur de Paris pour célébrer la culture malgache. DJ, danses traditionnelles, cocktails et ambiance chaleureuse garantis !",
     mediaUrls: [],
   },
   {
@@ -34,6 +35,7 @@ const initialEvents = [
     price: "10€",
     organizer: "Association Soa",
     ticketUrl: "",
+    description: "Le Hira Gasy est l'art oratoire traditionnel de Madagascar. Venez découvrir chants, poésies et sagesses ancestrales portés par des artistes passionnés.",
     mediaUrls: [],
   },
   {
@@ -47,6 +49,7 @@ const initialEvents = [
     price: "Gratuit",
     organizer: "Malagasy Lyon",
     ticketUrl: "",
+    description: "Retrouvez la communauté malgache de Lyon autour de plats traditionnels : romazava, ravitoto, lasopy... Un moment de partage et de convivialité.",
     mediaUrls: [
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400",
@@ -69,39 +72,175 @@ const CATEGORIES = ["Toutes", "Soirée", "Culture", "Gastronomie", "Sport", "Rel
 const EMPTY_FORM = {
   title: "", date: "", location: "", city: "Paris",
   category: "Soirée", price: "", organizer: "", ticketUrl: "",
+  description: "",
   image: "https://images.unsplash.com/photo-1533317480453-7a4b6ad0a174?w=400",
   mediaUrls: [],
 }
 
 const isPast = (dateStr) => new Date(dateStr) < today
 
-/* ── Galerie média ───────────────────────────────── */
-function MediaGallery({ urls }) {
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+
+/* ── Page de détail ──────────────────────────────── */
+function EventDetail({ event, onClose, isAdmin }) {
+  const [copied, setCopied]   = useState(false)
   const [selected, setSelected] = useState(null)
-  if (!urls || urls.length === 0) return null
+  const cat = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.Autre
+
+  const shareUrl = `${window.location.origin}${window.location.pathname}#event-${event.id}`
+  const shareText = `🇲🇬 ${event.title} — ${formatDate(event.date)} à ${event.location}\n${shareUrl}`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank")
+  }
 
   const isVideo = (url) => url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("youtube") || url.includes("youtu.be")
 
+  const mapQuery = encodeURIComponent(event.location + ", France")
+
   return (
-    <div style={{ marginTop: 12 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-        📸 Photos & vidéos
-      </p>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {urls.map((url, i) => (
-          <div key={i} onClick={() => setSelected(url)} style={{ cursor: "pointer", width: 64, height: 64, borderRadius: 10, overflow: "hidden", position: "relative" }}>
-            {isVideo(url) ? (
-              <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 22 }}>▶</div>
-            ) : (
-              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    <div onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 16 }}>
+      <div style={{ background: WHITE, borderRadius: 24, width: "100%", maxWidth: 620, maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.35)" }}>
+
+        {/* Image hero */}
+        <div style={{ position: "relative" }}>
+          <img src={event.image} alt={event.title} style={{ width: "100%", height: 240, objectFit: "cover", display: "block", borderRadius: "24px 24px 0 0" }} />
+          <button onClick={onClose}
+            style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.5)", border: "none", color: WHITE, fontSize: 20, width: 36, height: 36, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ×
+          </button>
+          <span style={{ position: "absolute", bottom: 12, left: 12, background: cat.bg, color: cat.color, fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 99 }}>
+            {event.category}
+          </span>
+          <span style={{ position: "absolute", bottom: 12, right: 12, background: WHITE, color: RED, fontSize: 14, fontWeight: 800, padding: "4px 12px", borderRadius: 99 }}>
+            {event.price}
+          </span>
+        </div>
+
+        {/* Bande tricolore */}
+        <div style={{ display: "flex", height: 4 }}>
+          <div style={{ flex: 1, background: WHITE, borderBottom: "1px solid #eee" }} />
+          <div style={{ flex: 2, background: RED }} />
+          <div style={{ flex: 2, background: GREEN }} />
+        </div>
+
+        <div style={{ padding: 24 }}>
+          <h2 style={{ fontWeight: 800, fontSize: 22, color: "#111", margin: "0 0 16px", lineHeight: 1.2 }}>{event.title}</h2>
+
+          {/* Infos pratiques */}
+          <div style={{ background: "#f8f8f8", borderRadius: 16, padding: 16, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 20 }}>📅</span>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: 0 }}>Date</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: "2px 0 0" }}>{formatDate(event.date)}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 20 }}>📍</span>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: 0 }}>Lieu</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: "2px 0 0" }}>{event.location}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <span style={{ fontSize: 20 }}>🎤</span>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", margin: 0 }}>Organisateur</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: "2px 0 0" }}>{event.organizer}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          {event.description && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>À propos</p>
+              <p style={{ fontSize: 14, color: "#444", lineHeight: 1.6, margin: 0 }}>{event.description}</p>
+            </div>
+          )}
+
+          {/* Plan Google Maps */}
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>📍 Plan</p>
+            <iframe
+              title="map"
+              width="100%"
+              height="200"
+              style={{ border: "none", borderRadius: 16 }}
+              src={`https://maps.google.com/maps?q=${mapQuery}&output=embed`}
+              loading="lazy"
+            />
+          </div>
+
+          {/* Galerie média */}
+          {event.mediaUrls && event.mediaUrls.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>📸 Photos & vidéos</p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {event.mediaUrls.map((url, i) => (
+                  <div key={i} onClick={() => setSelected(url)}
+                    style={{ cursor: "pointer", width: 80, height: 80, borderRadius: 12, overflow: "hidden" }}>
+                    {isVideo(url) ? (
+                      <div style={{ width: "100%", height: "100%", background: "#111", display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 24 }}>▶</div>
+                    ) : (
+                      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Boutons action */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {!isPast(event.date) && (
+              event.ticketUrl ? (
+                <a href={event.ticketUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ background: RED, color: WHITE, fontWeight: 700, fontSize: 15, padding: "14px 0", borderRadius: 14, textAlign: "center", textDecoration: "none", display: "block" }}>
+                  🎟 Voir les billets
+                </a>
+              ) : (
+                <div style={{ background: "#f0f0f0", color: "#aaa", fontWeight: 600, fontSize: 14, padding: "14px 0", borderRadius: 14, textAlign: "center" }}>
+                  Billets bientôt disponibles
+                </div>
+              )
+            )}
+
+            {/* Boutons partage — admin seulement */}
+            {isAdmin && (
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 4 }}>
+                  🔓 Partager (admin)
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={handleWhatsApp}
+                    style={{ flex: 1, background: "#25D366", color: WHITE, fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer" }}>
+                    WhatsApp
+                  </button>
+                  <button onClick={handleCopy}
+                    style={{ flex: 1, background: copied ? GREEN : "#f0f0f0", color: copied ? WHITE : "#555", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer", transition: "all .2s" }}>
+                    {copied ? "✓ Copié !" : "🔗 Copier le lien"}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox média */}
       {selected && (
-        <div onClick={() => setSelected(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
+        <div onClick={() => setSelected(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 }}>
           {isVideo(selected) ? (
             selected.includes("youtube") || selected.includes("youtu.be") ? (
               <iframe src={selected.replace("watch?v=", "embed/")} width="800" height="450" style={{ maxWidth: "100%", borderRadius: 12, border: "none" }} allowFullScreen />
@@ -119,25 +258,26 @@ function MediaGallery({ urls }) {
 }
 
 /* ── Carte événement ─────────────────────────────── */
-function EventCard({ event, past }) {
-  const [reminded, setReminded]   = useState(false)
-  const [toast, setToast]         = useState(false)
-  const [expanded, setExpanded]   = useState(false)
+function EventCard({ event, past, onOpen }) {
+  const [reminded, setReminded] = useState(false)
+  const [toast, setToast]       = useState(false)
   const cat = CATEGORY_COLORS[event.category] || CATEGORY_COLORS.Autre
 
-  const formatDate = (d) =>
-    new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-
-  const handleRemind = () => {
+  const handleRemind = (e) => {
+    e.stopPropagation()
     if (!reminded) { setToast(true); setTimeout(() => setToast(false), 2500) }
     setReminded(!reminded)
   }
 
+  const handleTicket = (e) => {
+    e.stopPropagation()
+  }
+
   return (
-    <div style={{
+    <div onClick={() => onOpen(event)} style={{
       background: WHITE, borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column",
       boxShadow: past ? "0 1px 6px rgba(0,0,0,0.06)" : "0 2px 12px rgba(0,0,0,0.09)",
-      opacity: past ? 0.75 : 1,
+      opacity: past ? 0.75 : 1, cursor: "pointer",
       transition: "transform .2s, box-shadow .2s"
     }}
       onMouseEnter={e => { if (!past) { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.14)" } }}
@@ -170,27 +310,19 @@ function EventCard({ event, past }) {
 
         <h3 style={{ fontWeight: 800, fontSize: 15, color: "#111", marginBottom: 8, lineHeight: 1.3 }}>{event.title}</h3>
         <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>📅 {formatDate(event.date)}</p>
-        <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>📍 {event.location}</p>
-        <p style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Par {event.organizer}</p>
+        <p style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>📍 {event.location}</p>
 
-        {/* Galerie média */}
-        {event.mediaUrls && event.mediaUrls.length > 0 && (
-          <div>
-            <button onClick={() => setExpanded(!expanded)}
-              style={{ background: "none", border: "none", color: GREEN, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, marginBottom: 4 }}>
-              {expanded ? "▲ Masquer les photos" : `📸 Voir les photos (${event.mediaUrls.length})`}
-            </button>
-            {expanded && <MediaGallery urls={event.mediaUrls} />}
-          </div>
-        )}
+        <p style={{ fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {event.description}
+        </p>
 
         {/* Boutons */}
         {!past && (
-          <div style={{ display: "flex", gap: 8, marginTop: "auto", paddingTop: 12 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
             {event.ticketUrl ? (
-              <a href={event.ticketUrl} target="_blank" rel="noopener noreferrer"
+              <a href={event.ticketUrl} target="_blank" rel="noopener noreferrer" onClick={handleTicket}
                 style={{ flex: 1, background: RED, color: WHITE, fontWeight: 700, fontSize: 13, padding: "9px 0", borderRadius: 12, textAlign: "center", textDecoration: "none" }}>
-                🎟 Voir les billets
+                🎟 Billets
               </a>
             ) : (
               <span style={{ flex: 1, background: "#f0f0f0", color: "#aaa", fontWeight: 600, fontSize: 13, padding: "9px 0", borderRadius: 12, textAlign: "center" }}>
@@ -209,6 +341,10 @@ function EventCard({ event, past }) {
               )}
             </div>
           </div>
+        )}
+
+        {!past && (
+          <p style={{ fontSize: 11, color: "#bbb", textAlign: "center", marginTop: 8, marginBottom: 0 }}>Clique pour voir les détails →</p>
         )}
       </div>
     </div>
@@ -230,6 +366,7 @@ export default function App() {
   const [pwInput, setPwInput]               = useState("")
   const [pwError, setPwError]               = useState(false)
   const [logoClicks, setLogoClicks]         = useState(0)
+  const [selectedEvent, setSelectedEvent]   = useState(null)
 
   const handleLogoClick = () => {
     const next = logoClicks + 1
@@ -297,16 +434,12 @@ export default function App() {
             <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, margin: "2px 0 0" }}>Tous les événements malgaches en France</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {isAdmin && <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 600 }}>🔓 Admin</span>}
             {isAdmin && (
-              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 600 }}>
-                🔓 Admin
-              </span>
-            )}
-            {isAdmin ? (
               <button onClick={() => setShowForm(true)} style={{ background: WHITE, color: RED, fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 12, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
                 + Ajouter un événement
               </button>
-            ) : null}
+            )}
             {isAdmin && (
               <button onClick={() => setIsAdmin(false)} style={{ background: "rgba(255,255,255,0.15)", color: WHITE, fontWeight: 600, fontSize: 12, padding: "9px 14px", borderRadius: 12, border: "none", cursor: "pointer" }}>
                 Déconnexion
@@ -363,7 +496,6 @@ export default function App() {
           Prochains événements
           <span style={{ fontWeight: 400, fontSize: 14, color: "#999", marginLeft: 8 }}>({upcoming.length})</span>
         </h3>
-
         {upcoming.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 0", color: "#999" }}>
             <p style={{ fontSize: 40, marginBottom: 12 }}>📭</p>
@@ -371,7 +503,7 @@ export default function App() {
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 24 }}>
-            {upcoming.map(event => <EventCard key={event.id} event={event} past={false} />)}
+            {upcoming.map(event => <EventCard key={event.id} event={event} past={false} onOpen={setSelectedEvent} />)}
           </div>
         )}
       </main>
@@ -381,24 +513,27 @@ export default function App() {
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <h3 style={{ fontWeight: 800, fontSize: 18, color: "#888", margin: 0 }}>
-              Événements passés
-              <span style={{ fontWeight: 400, fontSize: 14, marginLeft: 8 }}>({past.length})</span>
+              Événements passés <span style={{ fontWeight: 400, fontSize: 14 }}>({past.length})</span>
             </h3>
             <button onClick={() => setShowPast(!showPast)}
               style={{ background: "#eee", border: "none", borderRadius: 99, fontSize: 12, fontWeight: 600, color: "#666", padding: "4px 12px", cursor: "pointer" }}>
               {showPast ? "Masquer" : "Afficher"}
             </button>
           </div>
-
           {showPast && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 24 }}>
-              {past.map(event => <EventCard key={event.id} event={event} past={true} />)}
+              {past.map(event => <EventCard key={event.id} event={event} past={true} onOpen={setSelectedEvent} />)}
             </div>
           )}
         </div>
       )}
 
       <div style={{ height: 60 }} />
+
+      {/* ── MODAL DÉTAIL ── */}
+      {selectedEvent && (
+        <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} isAdmin={isAdmin} />
+      )}
 
       {/* ── MODAL AJOUT ── */}
       {showForm && (
@@ -460,12 +595,19 @@ export default function App() {
               </div>
 
               <div>
+                <label style={labelStyle}>Description</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Décris l'événement, l'ambiance, ce qui est inclus..."
+                  rows={3}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "system-ui, sans-serif" }} />
+              </div>
+
+              <div>
                 <label style={labelStyle}>Lien billetterie</label>
                 <input type="url" value={form.ticketUrl} onChange={e => setForm({ ...form, ticketUrl: e.target.value })}
                   placeholder="https://helloasso.com/..." style={inputStyle} />
               </div>
 
-              {/* Médias */}
               <div>
                 <label style={labelStyle}>📸 Photos & vidéos (liens URL)</label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -483,10 +625,9 @@ export default function App() {
                   <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {form.mediaUrls.map((url, i) => (
                       <div key={i} style={{ position: "relative", width: 56, height: 56 }}>
-                        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }}
-                          onError={e => { e.target.style.background = "#eee"; e.target.style.display = "flex" }} />
+                        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} />
                         <button type="button" onClick={() => removeMedia(i)}
-                          style={{ position: "absolute", top: -4, right: -4, background: RED, color: WHITE, border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                          style={{ position: "absolute", top: -4, right: -4, background: RED, color: WHITE, border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", padding: 0 }}>
                           ×
                         </button>
                       </div>
@@ -521,10 +662,7 @@ export default function App() {
               <p style={{ fontSize: 13, color: "#999", marginTop: 4 }}>Réservé à l'équipe Malagasy Events</p>
             </div>
             <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <input
-                type="password"
-                autoFocus
-                value={pwInput}
+              <input type="password" autoFocus value={pwInput}
                 onChange={e => { setPwInput(e.target.value); setPwError(false) }}
                 placeholder="Mot de passe"
                 style={{ border: `1.5px solid ${pwError ? RED : "#e5e5e5"}`, borderRadius: 12, padding: "11px 14px", fontSize: 14, outline: "none", textAlign: "center" }}
