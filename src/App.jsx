@@ -185,12 +185,23 @@ function AuthModal({ onClose, onSuccess }) {
       if (error) setError("Email ou mot de passe incorrect")
       else { onSuccess(); onClose() }
     } else {
-      const {data,error} = await supabase.auth.signUp({email,password:pw})
+      const {data,error} = await supabase.auth.signUp({
+        email, password:pw,
+        options:{ data:{ username: username||email.split('@')[0], code_postal: codePostal||null } }
+      })
       if (error) { setError(error?.message||"Erreur lors de la création du compte") }
-      else if (data?.user) {
-        await supabase.from('profiles').insert({id:data.user.id,username:username||data.user.email.split('@')[0],code_postal:codePostal||null})
+      else {
+        // Le trigger Supabase crée le profil automatiquement
+        // On tente aussi un upsert au cas où (session dispo = confirmation désactivée)
+        if (data?.user) {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            username: username||email.split('@')[0],
+            code_postal: codePostal||null
+          }, { onConflict:'id' })
+        }
         onSuccess(); onClose()
-      } else { setError("✅ Vérifie ta boîte mail pour confirmer ton compte.") }
+      }
     }
     setLoading(false)
   }
