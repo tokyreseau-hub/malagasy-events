@@ -641,13 +641,9 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
     setMembers(data||[]); setMembersLoading(false)
   }
 
-  const searchMembers = async val => {
-    setMemberSearch(val)
-    if (!val.trim()) { fetchMembers(); return }
-    setMembersLoading(true)
-    const {data} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal').ilike('username',`%${val}%`).limit(50)
-    setMembers(data||[]); setMembersLoading(false)
-  }
+  const filteredMembers = memberSearch.trim()
+    ? members.filter(m => (m.username||"").toLowerCase().includes(memberSearch.toLowerCase()))
+    : members
 
   const fetchSuggested = async () => {
     const {data:follows} = await supabase.from('follows').select('following_id').eq('follower_id',user.id)
@@ -685,15 +681,15 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
           <div>
             <div style={{position:"relative",marginBottom:16}}>
               <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#aaa"}}>🔍</span>
-              <input value={memberSearch} onChange={e=>searchMembers(e.target.value)} placeholder="Chercher par pseudo..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
+              <input value={memberSearch} onChange={e=>setMemberSearch(e.target.value)} placeholder="Chercher par pseudo..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
             </div>
             {membersLoading ? (
               <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Chargement...</div>
-            ) : members.length===0 ? (
+            ) : filteredMembers.length===0 ? (
               <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Aucun membre trouvé</div>
             ) : (
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {members.map(m=>(
+                {filteredMembers.map(m=>(
                   <div key={m.id} style={{background:WHITE,borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:12}}>
                     <div onClick={()=>onProfileClick&&onProfileClick(m.id,m.username)} style={{width:48,height:48,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0,cursor:"pointer"}}>
                       {m.avatar_url ? <img src={m.avatar_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span style={{color:WHITE,fontWeight:800,fontSize:18}}>{(m.username||"?")[0].toUpperCase()}</span>}
