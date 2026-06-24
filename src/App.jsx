@@ -596,11 +596,17 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
   const [imageUrl,setImageUrl]   = useState("")
   const [loading,setLoading]     = useState(false)
   const [posting,setPosting]     = useState(false)
-  const [feedMode,setFeedMode]   = useState("all") // "all" | "following"
+  const [feedMode,setFeedMode]   = useState("all") // "all" | "following" | "members"
   const [suggested,setSuggested] = useState([])
+  const [members,setMembers]     = useState([])
+  const [memberSearch,setMemberSearch] = useState("")
+  const [membersLoading,setMembersLoading] = useState(false)
   const isMobile                 = useIsMobile()
 
-  useEffect(()=>{ fetchPosts() },[feedMode, user])
+  useEffect(()=>{
+    if (feedMode==="members") fetchMembers()
+    else fetchPosts()
+  },[feedMode, user])
   useEffect(()=>{ if(user) fetchSuggested() },[user])
 
   const fetchPosts = async () => {
@@ -616,6 +622,20 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
       setPosts(data||[])
     }
     setLoading(false)
+  }
+
+  const fetchMembers = async () => {
+    setMembersLoading(true)
+    const {data} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at').order('created_at',{ascending:false}).limit(100)
+    setMembers(data||[]); setMembersLoading(false)
+  }
+
+  const searchMembers = async val => {
+    setMemberSearch(val)
+    if (!val.trim()) { fetchMembers(); return }
+    setMembersLoading(true)
+    const {data} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal').ilike('username',`%${val}%`).limit(50)
+    setMembers(data||[]); setMembersLoading(false)
   }
 
   const fetchSuggested = async () => {
@@ -642,15 +662,52 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
       <div style={{flex:1,minWidth:0}}>
         {/* Feed mode tabs */}
         <div style={{display:"flex",gap:4,marginBottom:16,background:WHITE,borderRadius:14,padding:4,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
-          {[["all","🌍 Tous"],["following","👥 Abonnements"]].map(([k,l])=>(
+          {[["all","🌍 Tous"],["following","👥 Abonnements"],["members","🔍 Membres"]].map(([k,l])=>(
             <button key={k} onClick={()=>setFeedMode(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:feedMode===k?RED:"transparent",color:feedMode===k?WHITE:"#888"}}>
               {l}
             </button>
           ))}
         </div>
 
+        {/* Onglet Membres */}
+        {feedMode==="members" && (
+          <div>
+            <div style={{position:"relative",marginBottom:16}}>
+              <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#aaa"}}>🔍</span>
+              <input value={memberSearch} onChange={e=>searchMembers(e.target.value)} placeholder="Chercher par pseudo..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
+            </div>
+            {membersLoading ? (
+              <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Chargement...</div>
+            ) : members.length===0 ? (
+              <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Aucun membre trouvé</div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {members.map(m=>(
+                  <div key={m.id} style={{background:WHITE,borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:12}}>
+                    <div onClick={()=>onProfileClick&&onProfileClick(m.id,m.username)} style={{width:48,height:48,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0,cursor:"pointer"}}>
+                      {m.avatar_url ? <img src={m.avatar_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span style={{color:WHITE,fontWeight:800,fontSize:18}}>{(m.username||"?")[0].toUpperCase()}</span>}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span onClick={()=>onProfileClick&&onProfileClick(m.id,m.username)} style={{fontWeight:700,fontSize:14,color:isOfficial(m.username)?RED:"#111",cursor:"pointer"}}>{m.username||"Anonyme"}</span>
+                        {isOfficial(m.username) && <span style={{background:RED,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>✓ OFFICIEL</span>}
+                        {!isOfficial(m.username) && m.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
+                      </div>
+                      {m.code_postal && <p style={{fontSize:12,color:"#999",margin:0}}>📍 {m.code_postal}</p>}
+                    </div>
+                    <div style={{display:"flex",gap:8,flexShrink:0}}>
+                      <button onClick={()=>onMessage&&onMessage(m.id,m.username)} style={{background:"#f5f5f5",color:"#555",fontWeight:700,fontSize:12,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✉️</button>
+                      <FollowButton targetUserId={m.id} currentUser={user} onAuthRequired={onAuthRequired} small/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Compose */}
-        {user ? (
+        {feedMode!=="members" && (user ? (
           <div style={{background:WHITE,borderRadius:20,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",padding:20,marginBottom:16}}>
             <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
               <div style={{width:44,height:44,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
@@ -671,10 +728,10 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
           <div onClick={onAuthRequired} style={{background:WHITE,borderRadius:20,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",padding:20,marginBottom:16,cursor:"pointer",textAlign:"center",border:"2px dashed #eee"}}>
             <p style={{fontSize:14,color:"#999",margin:0}}>Connecte-toi pour partager avec la communauté 🇲🇬</p>
           </div>
-        )}
+        ))}
 
         {/* Feed */}
-        {loading ? (
+        {feedMode!=="members" && (loading ? (
           <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Chargement...</div>
         ) : posts.length===0 ? (
           <div style={{textAlign:"center",padding:60,background:WHITE,borderRadius:20}}>
@@ -684,7 +741,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
           </div>
         ) : (
           posts.map(p=><PostCard key={p.id} post={p} user={user} onAuthRequired={onAuthRequired} onMessage={onMessage} onProfileClick={onProfileClick}/>)
-        )}
+        ))}
       </div>
 
       {/* Sidebar suggestions (desktop only) */}
