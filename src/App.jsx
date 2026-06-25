@@ -77,6 +77,123 @@ const initialVideos = [
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
 const CITIES     = ["Toutes","Paris","Lyon","Marseille","Bordeaux","Lille","Toulouse"]
 const CATEGORIES = ["Toutes","Soirée","Culture","Gastronomie","Sport","Religion","Autre"]
+const CAT_ICONS  = {Soirée:"🎉",Culture:"🎭",Gastronomie:"🍽️",Sport:"⚽",Religion:"🙏",Autre:"✨"}
+
+/* ── InterestOnboarding ──────────────────────────── */
+function InterestOnboarding({ user, userProfile, onSave, onSkip }) {
+  const CATS = ["Soirée","Culture","Gastronomie","Sport","Religion","Autre"]
+  const [selected,setSelected] = useState(userProfile?.categories||[])
+  const [saving,setSaving]     = useState(false)
+
+  const toggle = cat => setSelected(s=>s.includes(cat)?s.filter(c=>c!==cat):[...s,cat])
+
+  const save = async () => {
+    setSaving(true)
+    await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
+    onSave(selected)
+    setSaving(false)
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+      <div style={{background:WHITE,borderRadius:28,width:"100%",maxWidth:420,padding:32,boxShadow:"0 32px 80px rgba(0,0,0,0.35)"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <p style={{fontSize:44,margin:"0 0 12px"}}>🇲🇬</p>
+          <h2 style={{fontWeight:900,fontSize:22,color:"#111",margin:"0 0 10px"}}>Personnalise ton expérience</h2>
+          <p style={{fontSize:14,color:"#888",margin:0,lineHeight:1.5}}>Choisis tes centres d'intérêt — les événements et contenus qui te correspondent seront mis en avant</p>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+          {CATS.map(cat=>{
+            const active = selected.includes(cat)
+            return (
+              <button key={cat} onClick={()=>toggle(cat)} style={{background:active?RED:"#f5f5f5",color:active?WHITE:"#555",fontWeight:700,fontSize:14,padding:"16px 12px",borderRadius:14,border:`2px solid ${active?RED:"transparent"}`,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6,transition:"all .15s"}}>
+                <span style={{fontSize:26}}>{CAT_ICONS[cat]}</span>
+                {cat}
+                {active && <span style={{fontSize:10,opacity:.8}}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+        <button onClick={save} disabled={saving||selected.length===0} style={{width:"100%",background:selected.length?RED:"#ddd",color:WHITE,fontWeight:700,fontSize:15,padding:"14px 0",borderRadius:14,border:"none",cursor:selected.length?"pointer":"not-allowed",marginBottom:10,transition:"background .2s"}}>
+          {saving?"...":selected.length?`Continuer (${selected.length} sélectionné${selected.length>1?"s":""})`:"Sélectionne au moins une catégorie"}
+        </button>
+        <button onClick={onSkip} style={{width:"100%",background:"none",border:"none",color:"#bbb",fontSize:13,cursor:"pointer",padding:"6px 0"}}>Passer cette étape</button>
+      </div>
+    </div>
+  )
+}
+
+/* ── LoginIntentModal ────────────────────────────── */
+function LoginIntentModal({ userProfile, onSelect, onSkip }) {
+  const CATS = ["Soirée","Culture","Gastronomie","Sport","Religion","Autre"]
+  const [selected,setSelected] = useState([])
+  const toggle = cat => setSelected(s=>s.includes(cat)?s.filter(c=>c!==cat):[...s,cat])
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:400,padding:28,boxShadow:"0 24px 80px rgba(0,0,0,0.3)"}}>
+        <div style={{textAlign:"center",marginBottom:22}}>
+          <p style={{fontSize:36,margin:"0 0 8px"}}>👋</p>
+          <h2 style={{fontWeight:900,fontSize:20,color:"#111",margin:"0 0 6px"}}>Que cherches-tu aujourd'hui ?</h2>
+          <p style={{fontSize:13,color:"#999",margin:0}}>Sélectionne pour filtrer les événements</p>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
+          {CATS.map(cat=>{
+            const active = selected.includes(cat)
+            return (
+              <button key={cat} onClick={()=>toggle(cat)} style={{background:active?RED:"#f5f5f5",color:active?WHITE:"#555",fontWeight:700,fontSize:13,padding:"12px 10px",borderRadius:12,border:`2px solid ${active?RED:"transparent"}`,cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
+                <span style={{fontSize:18}}>{CAT_ICONS[cat]}</span>{cat}
+                {active && <span style={{marginLeft:"auto",fontSize:11}}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+        <button onClick={()=>onSelect(selected)} disabled={selected.length===0} style={{width:"100%",background:selected.length?RED:"#ddd",color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:selected.length?"pointer":"not-allowed",marginBottom:8}}>
+          {selected.length ? `Voir les events (${selected.length} catégorie${selected.length>1?"s":""})` : "Sélectionne une catégorie"}
+        </button>
+        <button onClick={onSkip} style={{width:"100%",background:"none",border:"none",color:"#bbb",fontSize:13,cursor:"pointer",padding:"6px 0"}}>Tout voir</button>
+      </div>
+    </div>
+  )
+}
+
+/* ── InterestTabContent ───────────────────────────── */
+function InterestTabContent({ user, userProfile, onUpdate }) {
+  const CATS = ["Soirée","Culture","Gastronomie","Sport","Religion","Autre"]
+  const [selected,setSelected] = useState(userProfile?.categories||[])
+  const [saving,setSaving]     = useState(false)
+  const [saved,setSaved]       = useState(false)
+
+  const toggle = cat => setSelected(s=>s.includes(cat)?s.filter(c=>c!==cat):[...s,cat])
+
+  const save = async () => {
+    setSaving(true)
+    await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
+    onUpdate({...userProfile,categories:selected})
+    setSaved(true); setSaving(false)
+    setTimeout(()=>setSaved(false),2000)
+  }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <p style={{fontSize:13,color:"#888",margin:0}}>Ces catégories déterminent ce qui sera mis en avant pour toi (événements, contenus).</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {CATS.map(cat=>{
+          const active = selected.includes(cat)
+          return (
+            <button key={cat} onClick={()=>toggle(cat)} style={{background:active?RED:"#f5f5f5",color:active?WHITE:"#555",fontWeight:700,fontSize:13,padding:"12px 10px",borderRadius:12,border:`2px solid ${active?RED:"transparent"}`,cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}>
+              <span style={{fontSize:20}}>{CAT_ICONS[cat]}</span>
+              {cat}
+              {active && <span style={{marginLeft:"auto",fontSize:12}}>✓</span>}
+            </button>
+          )
+        })}
+      </div>
+      <button onClick={save} disabled={saving} style={{background:saved?GREEN:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer",opacity:saving?.7:1}}>
+        {saved?"✓ Sauvegardé !":saving?"...":"Sauvegarder mes intérêts"}
+      </button>
+    </div>
+  )
+}
 
 /* ── ProfileModal ─────────────────────────────────── */
 function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
@@ -112,7 +229,7 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
         </div>
         <div style={{display:"flex",height:4}}><div style={{flex:1,background:"#eee"}}/><div style={{flex:2,background:RED}}/><div style={{flex:2,background:GREEN}}/></div>
         <div style={{display:"flex",padding:"16px 24px 0"}}>
-          {[["profil","👤 Mon profil"],["compte","⚙️ Compte"]].map(([k,l])=>(
+          {[["profil","👤 Mon profil"],["interets","🎯 Intérêts"],["compte","⚙️ Compte"]].map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"8px 0",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:"none",color:tab===k?RED:"#aaa",borderBottom:tab===k?`2px solid ${RED}`:"2px solid transparent"}}>{l}</button>
           ))}
         </div>
@@ -146,6 +263,9 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
                 {saved?"✓ Sauvegardé !":saving?"...":"Sauvegarder"}
               </button>
             </div>
+          )}
+          {tab==="interets" && (
+            <InterestTabContent user={user} userProfile={userProfile} onUpdate={onUpdate}/>
           )}
           {tab==="compte" && (
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -183,7 +303,7 @@ function AuthModal({ onClose, onSuccess }) {
     if (tab==="login") {
       const {error} = await supabase.auth.signInWithPassword({email,password:pw})
       if (error) setError("Email ou mot de passe incorrect")
-      else { onSuccess(); onClose() }
+      else { onSuccess(false); onClose() }
     } else {
       const {data,error} = await supabase.auth.signUp({
         email, password:pw,
@@ -200,7 +320,7 @@ function AuthModal({ onClose, onSuccess }) {
             code_postal: codePostal||null
           }, { onConflict:'id' })
         }
-        onSuccess(); onClose()
+        onSuccess(true); onClose()
       }
     }
     setLoading(false)
@@ -489,7 +609,7 @@ function UserProfileModal({ profileId, currentUser, onAuthRequired, onClose, onM
 }
 
 /* ── PostCard ─────────────────────────────────────── */
-function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick }) {
+function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDelete }) {
   const [liked,setLiked]           = useState(false)
   const [likesCount,setLikesCount] = useState(0)
   const [showCmts,setShowCmts]     = useState(false)
@@ -642,7 +762,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
   }
 
   const filteredMembers = memberSearch.trim()
-    ? members.filter(m => (m.username||"").toLowerCase().includes(memberSearch.toLowerCase()))
+    ? members.filter(m => (m.username||"").toLowerCase().replace(/_/g," ").includes(memberSearch.toLowerCase().replace(/_/g," ")))
     : members
 
   const fetchSuggested = async () => {
@@ -1578,6 +1698,9 @@ export default function App() {
   const [logoClicks,setLogoClicks]     = useState(0)
   const [selectedEvent,setSelectedEvent] = useState(null)
   const [showOnboarding,setOnboarding] = useState(!localStorage.getItem('mev_visited'))
+  const [showInterestOnboarding,setShowInterestOnboarding] = useState(false)
+  const [showLoginIntent,setShowLoginIntent]               = useState(false)
+  const [sessionCats,setSessionCats]                       = useState([]) // filtre temporaire de session
   const [showAdmin,setShowAdmin]       = useState(false)
   const [viewingProfile,setViewingProfile] = useState(null) // {id, name}
   const isMobile                       = useIsMobile()
@@ -1591,7 +1714,11 @@ export default function App() {
 
   useEffect(()=>{ if(user) fetchUnread() },[user])
 
-  const fetchProfile = async id => { const {data}=await supabase.from('profiles').select('*').eq('id',id).single(); setUserProfile(data) }
+  const fetchProfile = async id => {
+    const {data} = await supabase.from('profiles').select('*').eq('id',id).single()
+    setUserProfile(data)
+    return data
+  }
   const fetchStats = async () => {
     const [{count:members},{count:evCount}] = await Promise.all([
       supabase.from('profiles').select('*',{count:'exact',head:true}),
@@ -1610,9 +1737,17 @@ export default function App() {
   const handleLogoClick = () => { const n=logoClicks+1; setLogoClicks(n); if(n>=3){setShowLogin(true);setLogoClicks(0)} }
   const handleLogin = e => { e.preventDefault(); if(pwInput===ADMIN_PASSWORD){setIsAdmin(true);setShowLogin(false);setPwInput("");setPwError(false)}else{setPwError(true);setPwInput("")} }
 
+  const userCats = userProfile?.categories||[]
+
   const applyFilters = list => {
     const q = search.toLowerCase()
-    return list.filter(e=>(cityFilter==="Toutes"||e.city===cityFilter)&&(catFilter==="Toutes"||e.category===catFilter)&&(!q||e.title.toLowerCase().includes(q)||e.location.toLowerCase().includes(q)||e.organizer.toLowerCase().includes(q)))
+    const activeCats = catFilter==="PourToi" ? (sessionCats.length>0 ? sessionCats : userCats) : null
+    return list.filter(e=>{
+      const cityOk = cityFilter==="Toutes"||e.city===cityFilter
+      const catOk  = activeCats ? activeCats.includes(e.category) : (catFilter==="Toutes"||e.category===catFilter)
+      const qOk    = !q||e.title.toLowerCase().includes(q)||e.location.toLowerCase().includes(q)||(e.organizer||"").toLowerCase().includes(q)
+      return cityOk&&catOk&&qOk
+    })
   }
 
   const upcoming = applyFilters(events.filter(e=>!isPast(e.date))).sort((a,b)=>new Date(a.date)-new Date(b.date))
@@ -1793,6 +1928,9 @@ export default function App() {
             <div>
               <p style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Catégorie</p>
               <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>
+                {userCats.length>0 && (
+                  <FilterBtn label="🎯 Pour toi" active={catFilter==="PourToi"} onClick={()=>setCatFilter("PourToi")}/>
+                )}
                 {CATEGORIES.map(c=><FilterBtn key={c} label={c} active={catFilter===c} onClick={()=>setCatFilter(c)}/>)}
               </div>
             </div>
@@ -1850,7 +1988,34 @@ export default function App() {
         <EventDetail event={selectedEvent} onClose={()=>setSelectedEvent(null)} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin}/>
       )}
 
-      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={()=>{}}/>}
+      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={async(isNew)=>{
+        // Attendre que fetchProfile soit appelé via onAuthStateChange, puis décider
+        if (isNew) setShowInterestOnboarding(true)
+        else setShowLoginIntent(true)
+      }}/>}
+
+      {showInterestOnboarding && user && (
+        <InterestOnboarding
+          user={user}
+          userProfile={userProfile}
+          onSave={cats => { setUserProfile(p=>({...p,categories:cats})); setShowInterestOnboarding(false) }}
+          onSkip={() => setShowInterestOnboarding(false)}
+        />
+      )}
+
+      {showLoginIntent && user && !showInterestOnboarding && (
+        <LoginIntentModal
+          userProfile={userProfile}
+          onSelect={cats => {
+            // Applique le filtre pour cette session uniquement (pas sauvegardé en DB)
+            setSessionCats(cats)
+            if (cats.length===1) setCatFilter(cats[0])
+            else setCatFilter("PourToi")
+            setShowLoginIntent(false)
+          }}
+          onSkip={() => setShowLoginIntent(false)}
+        />
+      )}
 
       {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} onClose={()=>setShowAdmin(false)}/>}
 
