@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Arial Black, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a0508"/>
+      <stop offset="0.5" stop-color="#7a0d1b"/>
+      <stop offset="1" stop-color="#C8102E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.75" cy="0.25" r="0.7">
+      <stop offset="0" stop-color="#ff9d4d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff9d4d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#ff6b35"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect width="800" height="500" fill="url(#glow)"/>
+  <circle cx="620" cy="150" r="95" fill="url(#sun)" opacity="0.9"/>
+  <g stroke="#0d0304" stroke-width="7" opacity="0.85" fill="none">
+    <path d="M560 260 Q580 190 545 130 M575 265 Q610 200 600 125 M590 268 Q640 215 655 150 M600 272 Q660 235 700 195"/>
+  </g>
+  <g fill="#ffffff" opacity="0.12">
+    <circle cx="90" cy="420" r="3"/><circle cx="150" cy="380" r="2"/><circle cx="220" cy="440" r="3"/>
+    <circle cx="700" cy="400" r="3"/><circle cx="740" cy="340" r="2"/><circle cx="60" cy="90" r="2"/>
+    <circle cx="130" cy="60" r="3"/><circle cx="330" cy="70" r="2"/><circle cx="760" cy="80" r="2"/>
+  </g>
+  <text x="52" y="150" fill="#ffd166" font-size="30" letter-spacing="6" font-weight="900">SOIRÉE 🔥</text>
+  <text x="48" y="235" fill="#ffffff" font-size="82" font-weight="900" letter-spacing="-2">QUE CALOR</text>
+  <text x="52" y="290" fill="#ffe8ec" font-size="30" font-weight="700">206 Vibes • Kosmo • Midnight 261 • Falfa</text>
+  <rect x="52" y="330" width="430" height="58" rx="29" fill="#ffffff"/>
+  <text x="80" y="369" fill="#C8102E" font-size="30" font-weight="900">VEN 24 JUILLET 2026</text>
+  <text x="52" y="440" fill="#ffd166" font-size="26" font-weight="800" letter-spacing="3">📍 QUE CALOR — PARIS</text>
+  <g>
+    <rect x="0" y="0" width="266" height="10" fill="#ffffff"/>
+    <rect x="266" y="0" width="267" height="10" fill="#C8102E"/>
+    <rect x="533" y="0" width="267" height="10" fill="#007A3D"/>
+  </g>
+  <text x="748" y="480" fill="#ffffff" opacity="0.7" font-size="16" font-weight="800" text-anchor="end" letter-spacing="2">🇲🇬 MALAGASY EVENTS</text>
+</svg>
