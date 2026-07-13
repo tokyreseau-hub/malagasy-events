@@ -7,11 +7,12 @@ const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
 const SITE_URL = "https://malagasy-events.vercel.app"
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
-const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", community:"/communaute"}
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
   aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
   gastro:     ["Restaurants & traiteurs malgaches en France — Malagasy Events","L'annuaire de la gastronomie malagasy en France : restaurants, traiteurs et food trucks, avec carte, adresses et contacts."],
+  orgas:      ["Organisateurs & associations malagasy en France — Malagasy Events","Annuaire des associations sportives et culturelles, organisateurs de soirées, médias et groupes de la communauté malagasy en France."],
   community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
 }
 const setMeta = (title, desc) => {
@@ -148,6 +149,29 @@ const initialGastro = [
   {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",region:"",note:"Communauté de recettes malgaches et du monde",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
   {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",region:"Provence-Alpes-Côte d'Azur",note:"Cuisine traditionnelle franco-malgache, produits frais",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"L'Isle-sur-la-Sorgue (84)",address:"L'Isle-sur-la-Sorgue, Vaucluse",phone:"+33 7 88 95 46 67",lat:43.9195,lng:5.0512},
   {id:18,name:"Sakafo Street",type:"Food truck",region:"",note:"",fb:"",insta:"https://www.instagram.com/sakafostreet",contact:"Tojo A. (gérant)",city:"",lat:null,lng:null},
+]
+
+const initialOrgas = [
+  {id:1,name:"RNS — Rencontre Nationale Sportive",type:"Association sportive",city:"National (Vichy)",region:"",followers:"84 000",note:"Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre.",fb:"https://www.facebook.com/rns.cen",insta:"",site:"https://www.rns-cen.com",contact:""},
+  {id:2,name:"Collectif Sport Malagasy — CSM",type:"Association sportive",city:"National",region:"",followers:"14 000",note:"Organise le Tournoi de la Solidarité (foot & basket) chaque week-end de la Toussaint à Villebon-sur-Yvette, et un tournoi de printemps.",fb:"https://www.facebook.com/profile.php?id=100064795630232",insta:"",site:"",contact:""},
+  {id:3,name:"ASM Paris",type:"Association sportive",city:"Paris",region:"Île-de-France",followers:"7 100",note:"Association Sportive Malgache historique, depuis 1986. Tournoi de l'amitié.",fb:"https://www.facebook.com/profile.php?id=100064645391225",insta:"",site:"",contact:""},
+  {id:4,name:"Ligue Clichy Madagascar",type:"Association sportive",city:"Clichy",region:"Île-de-France",followers:"3 800",note:"Ligue basket de la communauté malgache. Tournoi de Noël chaque fin d'année.",fb:"https://www.facebook.com/profile.php?id=100063642368550",insta:"",site:"",contact:""},
+  {id:5,name:"Gasy Sport Lille",type:"Association sportive",city:"Lille",region:"Hauts-de-France",followers:"2 100",note:"Association sportive et culturelle malgache du Nord. Soirée d'intégration chaque octobre, garden party l'été.",fb:"https://www.facebook.com/gslille",insta:"",site:"",contact:""},
+  {id:6,name:"SPORTIL",type:"Association sportive",city:"Paris",region:"Île-de-France",followers:"655",note:"Journée sportive annuelle organisée par les scouts (tily) de la FPMA Paris, traditionnellement le 8 mai.",fb:"https://www.facebook.com/SportilParis1",insta:"",site:"",contact:""},
+  {id:7,name:"Gas'Paname Sport",type:"Association sportive",city:"Paris",region:"Île-de-France",followers:"1 200",note:"Communauté sportive malagasy de Paris : Gaspaname Game, basket inter-lycées de Tana alumni.",fb:"https://www.facebook.com/genialis.mg",insta:"",site:"",contact:""},
+  {id:8,name:"Solidarité France Diégo — ASFD",type:"Association",city:"Marseille",region:"Provence-Alpes-Côte d'Azur",followers:"7 000",note:"Promotion de la culture malgache, projets culturels et humanitaires. Prépare le Maoulida de la diaspora du Sud de la France.",fb:"https://www.facebook.com/assosfd",insta:"",site:"",contact:"06 95 85 30 88 · solidaritefrancediego@gmail.com"},
+  {id:9,name:"Club Mad'",type:"Association",city:"Lyon",region:"Auvergne-Rhône-Alpes",followers:"814",note:"Association franco-malgache socio-éducative, culturelle et solidaire, reconnue d'utilité publique. Chorale Kalomad. MJC Laennec Mermoz, Lyon 8e.",fb:"https://www.facebook.com/profile.php?id=100064524732458",insta:"",site:"",contact:"06 14 28 74 02"},
+  {id:10,name:"Fitia'Havana Toulouse",type:"Association",city:"Toulouse",region:"Occitanie",followers:"889",note:"Association loi 1901 : aide sociale, promotion culturelle et économique franco-malgache.",fb:"https://www.facebook.com/profile.php?id=100072412716681",insta:"",site:"",contact:"fitia.havana@gmail.com"},
+  {id:11,name:"Association Malgache Franco-Guyanaise",type:"Association",city:"Rémire-Montjoly (Guyane)",region:"Outre-mer",followers:"895",note:"Association humanitaire et culturelle qui fédère les cultures et finance des actions en Guyane et à Madagascar.",fb:"https://www.facebook.com/AssociationFrancoMalgacheGuyanaise",insta:"",site:"",contact:"m.rattier973@gmail.com"},
+  {id:12,name:"ACFM — Association Culturelle Franco-Malgache",type:"Association",city:"France",region:"",followers:"55",note:"Aide aux confrères malgaches dans le besoin, en particulier les enfants.",fb:"https://www.facebook.com/profile.php?id=61550882390310",insta:"",site:"https://association-culturelle-franco-malgache.com",contact:""},
+  {id:13,name:"Revy Revy Vacances (Angle 360)",type:"Organisateur",city:"National",region:"",followers:"",note:"Tournées d'artistes malagasy en France : Princio & Njara Marcel à Marseille, Toulouse et Les Ulis (juillet 2026).",fb:"",insta:"",site:"",contact:""},
+  {id:14,name:"Que Calor Paris",type:"Organisateur",city:"Paris",region:"Île-de-France",followers:"",note:"Soirées à Paris — 206 Vibes, Kosmo, Midnight 261, Falfa.",fb:"",insta:"https://www.instagram.com/quecalorparis",site:"",contact:""},
+  {id:15,name:"Mada Mifety",type:"Organisateur",city:"Paris",region:"Île-de-France",followers:"",note:"Producteur du Grand spectacle d'été (Nono) au Domaine de la Beauvoisière, Avrainville.",fb:"",insta:"",site:"",contact:""},
+  {id:16,name:"Malagasy en France 2.0",type:"Média",city:"National",region:"",followers:"44 000",note:"Émission web d'actualités de la diaspora malagasy en France.",fb:"https://www.facebook.com/malagasydiasporanews",insta:"",site:"https://malagasyenfrance.com",contact:""},
+  {id:17,name:"Un Malgache à Paris",type:"Média",city:"Paris",region:"Île-de-France",followers:"62 900",note:"Blog lifestyle & mode d'un créateur malgache à Paris — rubrique Héritage sur la culture malagasy.",fb:"https://facebook.com/unmalgacheaparis",insta:"https://instagram.com/unmalgacheaparis",site:"https://unmalgacheaparis.com",contact:""},
+  {id:18,name:"Malagasy En France",type:"Groupe",city:"National",region:"",followers:"79 100",note:"Le plus grand groupe communautaire malgache de France.",fb:"https://www.facebook.com/groups/204379976640842",insta:"",site:"",contact:""},
+  {id:19,name:"Diaspora Malagasy",type:"Groupe",city:"National",region:"",followers:"18 100",note:"Groupe communautaire de la diaspora.",fb:"https://www.facebook.com/groups/2461198107341793",insta:"",site:"",contact:""},
+  {id:20,name:"Gasy Ka Manja à Lyon",type:"Groupe",city:"Lyon",region:"Auvergne-Rhône-Alpes",followers:"1 900",note:"Groupe communautaire actif à Lyon, annonces de soirées régulières.",fb:"https://www.facebook.com/groups/577969292365884",insta:"",site:"",contact:""},
 ]
 
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
@@ -1245,6 +1269,161 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
 const GASTRO_COLORS = {"Restaurant":{bg:"#FAECE7",color:"#712B13"},"Traiteur":{bg:"#e6f4ed",color:GREEN},"Food truck":{bg:"#fff3e0",color:"#e65100"}}
 const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food truck":"🚚"}
 
+const ORGA_COLORS = {"Association sportive":{bg:"#e3f2fd",color:"#1565c0"},"Association":{bg:"#e6f4ed",color:GREEN},"Organisateur":{bg:"#fde8ec",color:RED},"Média":{bg:"#EEEDFE",color:"#3C3489"},"Groupe":{bg:"#fff3e0",color:"#b35c00"}}
+const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organisateur":"🎪","Média":"📰","Groupe":"👥"}
+
+function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
+  const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
+  const canEdit = !!user && (o.owner_id===user.id || isAdmin)
+  const [editing,setEditing] = useState(false)
+  const [form,setForm] = useState({...o})
+  const [saving,setSaving] = useState(false)
+  const initials = o.name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+  const theirEvents = events.filter(e=>{
+    const org=(e.organizer||"").toLowerCase(); const first=o.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0]
+    return first && org.includes(first)
+  })
+  const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
+
+  const save = async () => {
+    setSaving(true)
+    const payload = {...form}; delete payload.id
+    const {error} = await supabase.from('organisateurs').update(payload).eq('id',o.id)
+    if (error) alert("⚠️ Non sauvegardé ("+error.message+").\nSeul le compte propriétaire de la fiche ou l'admin officiel peut modifier.")
+    else { onUpdated({...payload,id:o.id}); setEditing(false) }
+    setSaving(false)
+  }
+
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:80,overflowY:"auto",padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:600,margin:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+        <div style={{position:"relative",height:isMobile?140:170,background:`linear-gradient(135deg, ${RED} 0%, #6e0a16 55%, ${GREEN} 140%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:4,display:"flex"}}>
+            <div style={{flex:1,background:WHITE}}/><div style={{flex:1,background:RED}}/><div style={{flex:1,background:GREEN}}/>
+          </div>
+          <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(0,0,0,0.4)",color:WHITE,fontWeight:800,fontSize:20,width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer"}}>×</button>
+          <div style={{width:60,height:60,borderRadius:"50%",background:WHITE,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:20}}>{initials}</div>
+          <span style={{color:"rgba(255,255,255,0.9)",fontWeight:800,fontSize:11,letterSpacing:2.5,textTransform:"uppercase"}}>🇲🇬 Organisateurs & associations</span>
+        </div>
+        <div style={{padding:isMobile?"18px 20px 24px":"22px 28px 30px"}}>
+          {!editing ? (<>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+              <h2 style={{fontWeight:800,fontSize:21,color:"#111",margin:"0 0 8px"}}>{o.name}</h2>
+              {canEdit && <button onClick={()=>{setForm({...o});setEditing(true)}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:12,padding:"7px 14px",borderRadius:99,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>✏️ Modifier</button>}
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
+              <span style={{background:col.bg,color:col.color,fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{ORGA_EMOJI[o.type]||"🎪"} {o.type}</span>
+              {o.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {o.city}</span>}
+              {o.followers && <span style={{fontSize:13,color:"#999"}}>👥 {o.followers} abonnés</span>}
+            </div>
+            {o.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{o.note}</p>}
+            {o.contact && (
+              <div style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",fontWeight:600,marginBottom:14}}>📞 {o.contact}</div>
+            )}
+            {theirEvents.length>0 && (
+              <div style={{marginBottom:16}}>
+                <p style={{fontWeight:700,fontSize:13,color:"#444",margin:"0 0 8px"}}>🎪 Leurs événements sur le site</p>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {theirEvents.map(e=>(
+                    <button key={e.id} onClick={()=>{onClose();onOpenEvent(e)}} style={{textAlign:"left",background:"#f8f8f8",border:"none",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"#111"}}>{e.title}</span>
+                      <span style={{fontSize:12,color:"#888"}}> — {fmtShort(e.date)} · {e.city}{isPast(e.date)?" (passé)":""}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {o.fb && <a href={o.fb} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
+              {o.insta && <a href={o.insta} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
+              {o.site && <a href={o.site} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:GREEN,color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>🌐 Site web</a>}
+            </div>
+            {!o.owner_id && (
+              <p style={{fontSize:12,color:"#aaa",margin:"16px 0 0",textAlign:"center"}}>C'est votre organisation ? Contactez-nous via la Communauté pour gérer cette fiche.</p>
+            )}
+          </>) : (<>
+            <h2 style={{fontWeight:800,fontSize:18,color:"#111",margin:"0 0 14px"}}>✏️ Modifier la fiche</h2>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <input value={form.name||""} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nom *" style={inp}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <select value={form.type||"Association"} onChange={e=>setForm({...form,type:e.target.value})} style={inp}>
+                  {Object.keys(ORGA_COLORS).map(t=><option key={t} value={t}>{t}</option>)}
+                </select>
+                <input value={form.city||""} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Ville" style={inp}/>
+                <input value={form.region||""} onChange={e=>setForm({...form,region:e.target.value})} placeholder="Région" style={inp}/>
+                <input value={form.followers||""} onChange={e=>setForm({...form,followers:e.target.value})} placeholder="Abonnés (ex: 5 000)" style={inp}/>
+              </div>
+              <textarea value={form.note||""} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Présentation" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+              <input value={form.contact||""} onChange={e=>setForm({...form,contact:e.target.value})} placeholder="Contact public (tél, email)" style={inp}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <input value={form.fb||""} onChange={e=>setForm({...form,fb:e.target.value})} placeholder="Lien Facebook" style={inp}/>
+                <input value={form.insta||""} onChange={e=>setForm({...form,insta:e.target.value})} placeholder="Lien Instagram" style={inp}/>
+              </div>
+              <input value={form.site||""} onChange={e=>setForm({...form,site:e.target.value})} placeholder="Site web" style={inp}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={save} disabled={saving} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>{saving?"...":"✓ Sauvegarder"}</button>
+                <button onClick={()=>setEditing(false)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,fontSize:13,padding:"10px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+              </div>
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OrgaPage({ isMobile, orgas, events, user, isAdmin, onOpenEvent, onOrgaUpdated }) {
+  const [filter,setFilter] = useState("Tous")
+  const [selected,setSelected] = useState(null)
+  const types = ["Tous",...Object.keys(ORGA_COLORS)]
+  const list = filter==="Tous" ? orgas : orgas.filter(o=>o.type===filter)
+  const initials = nm => nm.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
+      <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>🎪 Organisateurs & associations</h2>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 20px"}}>Les acteurs de la communauté malagasy en France — {orgas.length} structures</p>
+
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+        {types.map(t=>(
+          <button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?RED:WHITE,color:filter===t?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:filter===t?"none":"1px solid #e0e0e0",cursor:"pointer"}}>
+            {t==="Tous"?"Tous":`${ORGA_EMOJI[t]||""} ${t}${t.endsWith("e")||t.endsWith("s")?"s":"s"}`}
+          </button>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
+        {list.map(o=>{
+          const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
+          const count = events.filter(e=>{const org=(e.organizer||"").toLowerCase();const first=o.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0];return first&&org.includes(first)}).length
+          return (
+            <div key={o.id} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(o.name)}</div>
+                <div style={{minWidth:0}}>
+                  <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
+                    {o.city && <span style={{fontSize:12,color:"#888"}}>📍 {o.city}</span>}
+                  </div>
+                </div>
+              </div>
+              {o.note && <p style={{fontSize:12,color:"#777",margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{o.note}</p>}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:"auto"}}>
+                {o.followers && <span style={{fontSize:12,color:"#999",fontWeight:600}}>👥 {o.followers}</span>}
+                {count>0 && <span style={{fontSize:11,fontWeight:700,background:"#fde8ec",color:RED,padding:"3px 10px",borderRadius:99}}>🎪 {count} événement{count>1?"s":""}</span>}
+                {o.owner_id && <span style={{fontSize:11,fontWeight:700,background:"#e6f4ed",color:GREEN,padding:"3px 10px",borderRadius:99,marginLeft:"auto"}}>✓ Gérée par l'orga</span>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
+    </div>
+  )
+}
+
 function GastroDetail({ g, isMobile, onClose }) {
   const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
   const initials = g.name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
@@ -1903,7 +2082,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
 }
 
 /* ── AdminPanel ───────────────────────────────────── */
-function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, onClose }) {
+function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, orgas, setOrgas, onClose }) {
   const GASTRO_EMPTY = {name:"",type:"Restaurant",region:"",city:"",address:"",phone:"",fb:"",insta:"",tiktok:"",contact:"",note:"",lat:null,lng:null}
   const [gEditId,setGEditId] = useState(null)
   const [gForm,setGForm]     = useState(GASTRO_EMPTY)
@@ -1922,6 +2101,28 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     setGEditId(null)
   }
   const delGastro = async id => { setGastro(g=>g.filter(x=>x.id!==id)); await adminSave(supabase.from('gastro').delete().eq('id',id)) }
+  const ORGA_EMPTY = {name:"",type:"Association",city:"",region:"",followers:"",note:"",fb:"",insta:"",site:"",contact:"",owner_username:""}
+  const [oEditId,setOEditId] = useState(null)
+  const [oForm,setOForm]     = useState(ORGA_EMPTY)
+  const saveOrga = async () => {
+    const payload = {...oForm}; delete payload.id
+    const ownerName = (payload.owner_username||"").trim(); delete payload.owner_username
+    if (ownerName) {
+      const {data:prof} = await supabase.from('profiles').select('id').eq('username',ownerName).maybeSingle()
+      if (prof) payload.owner_id = prof.id
+      else { alert("⚠️ Aucun membre trouvé avec le pseudo « "+ownerName+" » — fiche sauvegardée sans propriétaire."); payload.owner_id = null }
+    }
+    if (oEditId==="new") {
+      const {data,error} = await supabase.from('organisateurs').insert(payload).select().single()
+      if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setOrgas(o=>[...o,{...payload,id:Date.now()}]) }
+      else setOrgas(o=>[...o,data])
+    } else {
+      setOrgas(o=>o.map(x=>x.id===oEditId?{...x,...payload,id:oEditId}:x))
+      await adminSave(supabase.from('organisateurs').update(payload).eq('id',oEditId))
+    }
+    setOEditId(null)
+  }
+  const delOrga = async id => { setOrgas(o=>o.filter(x=>x.id!==id)); await adminSave(supabase.from('organisateurs').delete().eq('id',id)) }
   const [tab,setTab]           = useState("dashboard")
   const [stats,setStats]       = useState({})
   const [users,setUsers]       = useState([])
@@ -1992,7 +2193,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -2175,6 +2376,53 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
             </div>
           )}
 
+          {/* ORGAS */}
+          {tab==="orgas" && (
+            <div>
+              <button onClick={()=>{setOEditId("new");setOForm({...ORGA_EMPTY})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter une structure</button>
+              {(oEditId==="new"?[{id:"new"}]:[]).concat(orgas).map(o=>(
+                <div key={o.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+                  {oEditId===o.id ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <input value={oForm.name||""} onChange={e=>setOForm({...oForm,name:e.target.value})} placeholder="Nom *" style={inp}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <select value={oForm.type||"Association"} onChange={e=>setOForm({...oForm,type:e.target.value})} style={inp}>
+                          {["Association sportive","Association","Organisateur","Média","Groupe"].map(t=><option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <input value={oForm.city||""} onChange={e=>setOForm({...oForm,city:e.target.value})} placeholder="Ville" style={inp}/>
+                        <input value={oForm.region||""} onChange={e=>setOForm({...oForm,region:e.target.value})} placeholder="Région" style={inp}/>
+                        <input value={oForm.followers||""} onChange={e=>setOForm({...oForm,followers:e.target.value})} placeholder="Abonnés (ex: 5 000)" style={inp}/>
+                      </div>
+                      <textarea value={oForm.note||""} onChange={e=>setOForm({...oForm,note:e.target.value})} placeholder="Présentation" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <input value={oForm.fb||""} onChange={e=>setOForm({...oForm,fb:e.target.value})} placeholder="Lien Facebook" style={inp}/>
+                        <input value={oForm.insta||""} onChange={e=>setOForm({...oForm,insta:e.target.value})} placeholder="Lien Instagram" style={inp}/>
+                        <input value={oForm.site||""} onChange={e=>setOForm({...oForm,site:e.target.value})} placeholder="Site web" style={inp}/>
+                        <input value={oForm.contact||""} onChange={e=>setOForm({...oForm,contact:e.target.value})} placeholder="Contact public" style={inp}/>
+                      </div>
+                      <input value={oForm.owner_username||""} onChange={e=>setOForm({...oForm,owner_username:e.target.value})} placeholder="👤 Pseudo du membre propriétaire (pourra modifier sa fiche)" style={inp}/>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={saveOrga} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
+                        <button onClick={()=>setOEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name}</p>
+                        <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}{o.owner_id?" · ✓ propriétaire relié":""}</p>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                        {delBtn(()=>delOrga(o.id))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* POSTS */}
           {tab==="posts" && (
             <div>
@@ -2282,6 +2530,7 @@ export default function App() {
   const [events,setEvents]             = useState(initialEvents)
   const [videos,setVideos]             = useState(initialVideos)
   const [gastro,setGastro]             = useState(initialGastro)
+  const [orgas,setOrgas]               = useState(initialOrgas)
   const [user,setUser]                 = useState(null)
   const [userProfile,setUserProfile]   = useState(null)
   const [showAuth,setShowAuth]         = useState(false)
@@ -2380,6 +2629,8 @@ export default function App() {
     ])
     if (!ev.error && ev.data?.length) setEvents(ev.data)
     if (!ga.error && ga.data?.length) setGastro(ga.data)
+    const og = await supabase.from('organisateurs').select('*').order('id')
+    if (!og.error && og.data?.length) setOrgas(og.data)
     if (!vi.error && vi.data?.length) setVideos(vi.data)
   }
 
@@ -2453,6 +2704,7 @@ export default function App() {
     {key:"home",label:"🏠 Accueil"},
     {key:"aftermovies",label:"🎬 After-movies"},
     {key:"gastro",label:"🍽️ Gastronomie"},
+    {key:"orgas",label:"🎪 Organisateurs"},
     {key:"community",label:"👥 Communauté"},
   ]
 
@@ -2568,6 +2820,10 @@ export default function App() {
 
       {page==="gastro" && (
         <GastroPage isMobile={isMobile} gastro={gastro}/>
+      )}
+
+      {page==="orgas" && (
+        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))}/>
       )}
 
       {page==="community" && (
@@ -2706,7 +2962,7 @@ export default function App() {
         />
       )}
 
-      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} onClose={()=>setShowAdmin(false)}/>}
+      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} onClose={()=>setShowAdmin(false)}/>}
 
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
