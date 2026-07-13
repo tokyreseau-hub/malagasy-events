@@ -5,6 +5,42 @@ const RED = "#C8102E", GREEN = "#007A3D", WHITE = "#FFFFFF"
 const ADMIN_PASSWORD = "malagasy2026"
 const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
+const SITE_URL = "https://malagasy-events.vercel.app"
+const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", community:"/communaute"}
+const PAGE_META = {
+  home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
+  aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
+  gastro:     ["Restaurants & traiteurs malgaches en France — Malagasy Events","L'annuaire de la gastronomie malagasy en France : restaurants, traiteurs et food trucks, avec carte, adresses et contacts."],
+  community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
+}
+const setMeta = (title, desc) => {
+  document.title = title
+  const ensure = (sel, create) => { let el = document.querySelector(sel); if (!el) { el = create(); document.head.appendChild(el) } return el }
+  ensure('meta[name="description"]', ()=>{ const m=document.createElement("meta"); m.name="description"; return m }).content = desc
+  const og = document.querySelector('meta[property="og:title"]'); if (og) og.content = title
+  const ogd = document.querySelector('meta[property="og:description"]'); if (ogd) ogd.content = desc
+  const ogu = document.querySelector('meta[property="og:url"]'); if (ogu) ogu.content = SITE_URL + window.location.pathname
+  ensure('link[rel="canonical"]', ()=>{ const l=document.createElement("link"); l.rel="canonical"; return l }).href = SITE_URL + window.location.pathname
+}
+const setJsonLd = (id, data) => {
+  let el = document.getElementById(id)
+  if (!data) { if (el) el.remove(); return }
+  if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = id; document.head.appendChild(el) }
+  el.textContent = JSON.stringify(data)
+}
+const eventJsonLd = e => ({
+  "@type":"Event", name:e.title, startDate:e.date,
+  eventAttendanceMode:"https://schema.org/OfflineEventAttendanceMode",
+  eventStatus:"https://schema.org/EventScheduled",
+  location:{"@type":"Place", name:e.location||e.city, address:{"@type":"PostalAddress", addressLocality:e.city, addressCountry:"FR"}},
+  ...(e.image?{image:[e.image.startsWith("http")?e.image:SITE_URL+e.image]}:{}),
+  description:e.description||e.title,
+  organizer:{"@type":"Organization", name:e.organizer||"Malagasy Events"},
+  ...(e.ticketUrl?{offers:{"@type":"Offer", url:e.ticketUrl, availability:"https://schema.org/InStock"}}:{}),
+  url: SITE_URL + "/evenement/" + slugify(e.title),
+})
+
 const adminSave = async promise => {
   const {data,error} = await promise
   if (error) { alert("⚠️ Changement local seulement — non sauvegardé en base (" + error.message + ").\nConnecte-toi avec le compte officiel Malagasy_events_admin pour que ce soit permanent."); return null }
@@ -2275,7 +2311,56 @@ export default function App() {
   const [sessionCats,setSessionCats]                       = useState([]) // filtre temporaire de session
   const [showAdmin,setShowAdmin]       = useState(false)
   const [viewingProfile,setViewingProfile] = useState(null) // {id, name}
+  const [pendingSlug,setPendingSlug]   = useState(null)
   const isMobile                       = useIsMobile()
+
+  /* ── SEO : routing par URL, méta, données structurées ── */
+  useEffect(()=>{
+    const applyRoute = () => {
+      const path = window.location.pathname
+      if (path.startsWith("/evenement/")) { setPage("home"); setPendingSlug(decodeURIComponent(path.split("/")[2]||"")) }
+      else { const k = Object.keys(PAGE_PATHS).find(k=>PAGE_PATHS[k]===path); setPage(k||"home"); setSelectedEvent(null) }
+    }
+    applyRoute()
+    window.addEventListener("popstate", applyRoute)
+    return ()=>window.removeEventListener("popstate", applyRoute)
+  },[])
+
+  useEffect(()=>{ // résoudre un lien profond /evenement/slug une fois les événements chargés
+    if (!pendingSlug) return
+    const ev = events.find(e=>slugify(e.title)===pendingSlug)
+    if (ev) { setSelectedEvent(ev); setPendingSlug(null) }
+  },[events,pendingSlug])
+
+  useEffect(()=>{ // URL + méta par page
+    if (selectedEvent) return
+    const path = PAGE_PATHS[page]||"/"
+    if (window.location.pathname!==path) window.history.pushState({},"",path)
+    const [t,d] = PAGE_META[page]||PAGE_META.home
+    setMeta(t,d)
+  },[page,selectedEvent])
+
+  useEffect(()=>{ // URL + méta + JSON-LD de l'événement ouvert
+    if (selectedEvent) {
+      const path = "/evenement/"+slugify(selectedEvent.title)
+      if (window.location.pathname!==path) window.history.pushState({},"",path)
+      setMeta(`${selectedEvent.title} — ${fmtShort(selectedEvent.date)} · ${selectedEvent.city} | Malagasy Events`, (selectedEvent.description||selectedEvent.title).slice(0,160))
+      setJsonLd("ld-event", {"@context":"https://schema.org", ...eventJsonLd(selectedEvent)})
+    } else setJsonLd("ld-event", null)
+  },[selectedEvent])
+
+  useEffect(()=>{ // JSON-LD listes (événements à venir + annuaire gastro)
+    const upcomingLd = events.filter(e=>!isPast(e.date))
+    setJsonLd("ld-events", upcomingLd.length ? {"@context":"https://schema.org","@type":"ItemList",
+      itemListElement: upcomingLd.map((e,i)=>({"@type":"ListItem",position:i+1,item:eventJsonLd(e)}))} : null)
+    setJsonLd("ld-gastro", gastro.length ? {"@context":"https://schema.org","@type":"ItemList",
+      itemListElement: gastro.map((g,i)=>({"@type":"ListItem",position:i+1,item:{
+        "@type": g.type==="Restaurant"?"Restaurant":"FoodEstablishment", name:g.name, servesCuisine:"Malgache",
+        ...(g.address?{address:{"@type":"PostalAddress",streetAddress:g.address,addressCountry:"FR"}}:{}),
+        ...(g.phone?{telephone:g.phone}:{}), ...(g.fb?{sameAs:[g.fb,g.insta].filter(Boolean)}:{}),
+        ...(g.lat?{geo:{"@type":"GeoCoordinates",latitude:g.lat,longitude:g.lng}}:{}),
+      }}))} : null)
+  },[events,gastro])
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id) })
