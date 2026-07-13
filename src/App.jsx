@@ -85,24 +85,24 @@ const initialVideos = [
 ]
 
 const initialGastro = [
-  {id:1,name:"Ikala Kara",type:"Restaurant",note:"Restaurant malgache & karaoké, quartier La Plaine",fb:"https://www.facebook.com/Ikalakara",insta:"",contact:"",city:"Marseille",address:"La Plaine, Marseille",phone:"",lat:43.2938,lng:5.3828},
-  {id:2,name:"O'Bol d'Or",type:"Restaurant",note:"Restaurant — spécialités asiatiques & malgaches",fb:"https://www.facebook.com/profile.php?id=61558005182008",insta:"",contact:"",city:"",address:"",phone:"",lat:null,lng:null},
-  {id:3,name:"Le Tana",type:"Restaurant",note:"Cuisine malgache & océan Indien — ouvert du mardi au samedi",fb:"https://www.facebook.com/restaurantletana",insta:"",contact:"",city:"Le Tholonet (13)",address:"283 avenue Paul Roubaud, Palette, 13100 Le Tholonet",phone:"",lat:43.5124,lng:5.4880},
-  {id:4,name:"Chez Maman Mada",type:"Restaurant",note:"",fb:"",insta:"https://www.instagram.com/chezmaman_mada",tiktok:"https://www.tiktok.com/@chezmamantt",contact:"Zo Rav. (propriétaire)",city:"",lat:null,lng:null},
-  {id:5,name:"La Gourmandise Malgache",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100076189512327",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:6,name:"Pili Pili Malgache Food",type:"Traiteur",note:"Recettes traditionnelles de Madagascar pour vos événements",fb:"https://www.facebook.com/pilipilimalgachefood",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:7,name:"Chez Daben",type:"Traiteur",note:"Traiteur malgache",fb:"https://www.facebook.com/profile.php?id=100067003274574",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:8,name:"Traiteur Franco-Malagasy Paris",type:"Traiteur",note:"Mariages & événements",fb:"https://www.facebook.com/wenddingtraiteurmalagasy",insta:"",contact:"",city:"Paris",address:"",phone:"+33 6 35 97 42 34",lat:48.8566,lng:2.3522},
-  {id:9,name:"Chez Tiana",type:"Traiteur",note:"Ravitoto & mofo gasy faits maison, salé et sucré",fb:"https://www.facebook.com/Cheztiana",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:10,name:"Naffees Traiteur",type:"Traiteur",note:"Spécialités indo-pakistanaises & malgaches, halal",fb:"https://www.facebook.com/traiteurevenementielnaffees",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:11,name:"Nini + Vous",type:"Traiteur",note:"Chef à domicile, traiteur, livraison — cuisine franco-malgache",fb:"https://www.facebook.com/profile.php?id=100086724786890",insta:"",contact:"",city:"Bordeaux",address:"Bordeaux et sa région",phone:"",lat:44.8378,lng:-0.5792},
-  {id:12,name:"La Cuisine de Gabriel",type:"Traiteur",note:"",fb:"https://www.facebook.com/lacuisinedegabriel",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:13,name:"Malak Traiteur",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100064014279221",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:14,name:"Au Soleil de Madagascar",type:"Food truck",note:"Food truck & traiteur",fb:"https://www.facebook.com/AuSoleildeMadagascar",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:15,name:"Harena Sisters",type:"Traiteur",note:"",fb:"https://www.facebook.com/HarenaSistersTraiteur",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",note:"Communauté de recettes malgaches et du monde",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",note:"Cuisine traditionnelle franco-malgache, produits frais",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"L'Isle-sur-la-Sorgue (84)",address:"L'Isle-sur-la-Sorgue, Vaucluse",phone:"+33 7 88 95 46 67",lat:43.9195,lng:5.0512},
-  {id:18,name:"Sakafo Street",type:"Food truck",note:"",fb:"",insta:"https://www.instagram.com/sakafostreet",contact:"Tojo A. (gérant)",city:"",lat:null,lng:null},
+  {id:1,name:"Ikala Kara",type:"Restaurant",region:"Provence-Alpes-Côte d'Azur",note:"Restaurant malgache & karaoké, quartier La Plaine",fb:"https://www.facebook.com/Ikalakara",insta:"",contact:"",city:"Marseille",address:"La Plaine, Marseille",phone:"",lat:43.2938,lng:5.3828},
+  {id:2,name:"O'Bol d'Or",type:"Restaurant",region:"",note:"Restaurant — spécialités asiatiques & malgaches",fb:"https://www.facebook.com/profile.php?id=61558005182008",insta:"",contact:"",city:"",address:"",phone:"",lat:null,lng:null},
+  {id:3,name:"Le Tana",type:"Restaurant",region:"Provence-Alpes-Côte d'Azur",note:"Cuisine malgache & océan Indien — ouvert du mardi au samedi",fb:"https://www.facebook.com/restaurantletana",insta:"",contact:"",city:"Le Tholonet (13)",address:"283 avenue Paul Roubaud, Palette, 13100 Le Tholonet",phone:"",lat:43.5124,lng:5.4880},
+  {id:4,name:"Chez Maman Mada",type:"Restaurant",region:"",note:"",fb:"",insta:"https://www.instagram.com/chezmaman_mada",tiktok:"https://www.tiktok.com/@chezmamantt",contact:"Zo Rav. (propriétaire)",city:"",lat:null,lng:null},
+  {id:5,name:"La Gourmandise Malgache",type:"Traiteur",region:"",note:"",fb:"https://www.facebook.com/profile.php?id=100076189512327",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:6,name:"Pili Pili Malgache Food",type:"Traiteur",region:"",note:"Recettes traditionnelles de Madagascar pour vos événements",fb:"https://www.facebook.com/pilipilimalgachefood",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:7,name:"Chez Daben",type:"Traiteur",region:"",note:"Traiteur malgache",fb:"https://www.facebook.com/profile.php?id=100067003274574",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:8,name:"Traiteur Franco-Malagasy Paris",type:"Traiteur",region:"Île-de-France",note:"Mariages & événements",fb:"https://www.facebook.com/wenddingtraiteurmalagasy",insta:"",contact:"",city:"Paris",address:"",phone:"+33 6 35 97 42 34",lat:48.8566,lng:2.3522},
+  {id:9,name:"Chez Tiana",type:"Traiteur",region:"",note:"Ravitoto & mofo gasy faits maison, salé et sucré",fb:"https://www.facebook.com/Cheztiana",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:10,name:"Naffees Traiteur",type:"Traiteur",region:"",note:"Spécialités indo-pakistanaises & malgaches, halal",fb:"https://www.facebook.com/traiteurevenementielnaffees",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:11,name:"Nini + Vous",type:"Traiteur",region:"Nouvelle-Aquitaine",note:"Chef à domicile, traiteur, livraison — cuisine franco-malgache",fb:"https://www.facebook.com/profile.php?id=100086724786890",insta:"",contact:"",city:"Bordeaux",address:"Bordeaux et sa région",phone:"",lat:44.8378,lng:-0.5792},
+  {id:12,name:"La Cuisine de Gabriel",type:"Traiteur",region:"",note:"",fb:"https://www.facebook.com/lacuisinedegabriel",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:13,name:"Malak Traiteur",type:"Traiteur",region:"",note:"",fb:"https://www.facebook.com/profile.php?id=100064014279221",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:14,name:"Au Soleil de Madagascar",type:"Food truck",region:"",note:"Food truck & traiteur",fb:"https://www.facebook.com/AuSoleildeMadagascar",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:15,name:"Harena Sisters",type:"Traiteur",region:"",note:"",fb:"https://www.facebook.com/HarenaSistersTraiteur",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",region:"",note:"Communauté de recettes malgaches et du monde",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",region:"Provence-Alpes-Côte d'Azur",note:"Cuisine traditionnelle franco-malgache, produits frais",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"L'Isle-sur-la-Sorgue (84)",address:"L'Isle-sur-la-Sorgue, Vaucluse",phone:"+33 7 88 95 46 67",lat:43.9195,lng:5.0512},
+  {id:18,name:"Sakafo Street",type:"Food truck",region:"",note:"",fb:"",insta:"https://www.instagram.com/sakafostreet",contact:"Tojo A. (gérant)",city:"",lat:null,lng:null},
 ]
 
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
@@ -1162,11 +1162,17 @@ function GastroDetail({ g, isMobile, onClose }) {
 
 function GastroPage({ isMobile }) {
   const [filter,setFilter] = useState("Tous")
+  const [regionFilter,setRegionFilter] = useState("Toutes")
   const [selected,setSelected] = useState(null)
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const types = ["Tous","Restaurant","Traiteur","Food truck"]
-  const list = filter==="Tous" ? initialGastro : initialGastro.filter(g=>g.type===filter)
+  const regions = ["Toutes",...[...new Set(initialGastro.map(g=>g.region).filter(Boolean))].sort(),"À localiser"]
+  const list = initialGastro.filter(g=>{
+    const typeOk   = filter==="Tous" || g.type===filter
+    const regionOk = regionFilter==="Toutes" || (regionFilter==="À localiser" ? !g.region : g.region===regionFilter)
+    return typeOk && regionOk
+  })
   const located = initialGastro.filter(g=>g.lat&&g.lng)
 
   useEffect(()=>{
@@ -1202,13 +1208,27 @@ function GastroPage({ isMobile }) {
       <p style={{fontSize:12,color:"#999",margin:"0 0 20px"}}>{located.length>0?`${located.length} adresse${located.length>1?"s":""} sur la carte`:""}</p>
 
       {/* Filtres */}
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+      <p style={{fontSize:11,fontWeight:700,color:"#999",letterSpacing:1,textTransform:"uppercase",margin:"0 0 6px"}}>Type</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
         {types.map(t=>(
           <button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?RED:WHITE,color:filter===t?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:filter===t?"none":"1px solid #e0e0e0",cursor:"pointer"}}>
             {t==="Tous"?"Tous":`${GASTRO_EMOJI[t]} ${t}${t==="Food truck"?"s":"s"}`}
           </button>
         ))}
       </div>
+      <p style={{fontSize:11,fontWeight:700,color:"#999",letterSpacing:1,textTransform:"uppercase",margin:"0 0 6px"}}>Région</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+        {regions.map(r=>(
+          <button key={r} onClick={()=>setRegionFilter(r)} style={{background:regionFilter===r?GREEN:WHITE,color:regionFilter===r?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:regionFilter===r?"none":"1px solid #e0e0e0",cursor:"pointer"}}>
+            {r==="À localiser"?"❓ À localiser":r==="Toutes"?"Toutes":`📍 ${r}`}
+          </button>
+        ))}
+      </div>
+      {list.length===0 && (
+        <div style={{textAlign:"center",padding:"32px 24px",background:WHITE,borderRadius:16,color:"#bbb",marginBottom:14}}>
+          <p style={{fontWeight:700,margin:0}}>Aucune adresse pour ces filtres</p>
+        </div>
+      )}
 
       {/* Cartes */}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(260px, 1fr))",gap:14}}>
