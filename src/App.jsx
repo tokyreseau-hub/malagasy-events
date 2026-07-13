@@ -85,23 +85,23 @@ const initialVideos = [
 ]
 
 const initialGastro = [
-  {id:1,name:"Ikala Kara",type:"Restaurant",note:"Spécialités malgaches & karaoké",fb:"https://www.facebook.com/Ikalakara",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:2,name:"O'Bol d'Or",type:"Restaurant",note:"",fb:"https://www.facebook.com/profile.php?id=61558005182008",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:3,name:"Le Tana",type:"Restaurant",note:"Restaurant malgache",fb:"https://www.facebook.com/restaurantletana",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:1,name:"Ikala Kara",type:"Restaurant",note:"Restaurant malgache & karaoké, quartier La Plaine",fb:"https://www.facebook.com/Ikalakara",insta:"",contact:"",city:"Marseille",address:"La Plaine, Marseille",phone:"",lat:43.2938,lng:5.3828},
+  {id:2,name:"O'Bol d'Or",type:"Restaurant",note:"Restaurant — spécialités asiatiques & malgaches",fb:"https://www.facebook.com/profile.php?id=61558005182008",insta:"",contact:"",city:"",address:"",phone:"",lat:null,lng:null},
+  {id:3,name:"Le Tana",type:"Restaurant",note:"Cuisine malgache & océan Indien — ouvert du mardi au samedi",fb:"https://www.facebook.com/restaurantletana",insta:"",contact:"",city:"Le Tholonet (13)",address:"283 avenue Paul Roubaud, Palette, 13100 Le Tholonet",phone:"",lat:43.5124,lng:5.4880},
   {id:4,name:"Chez Maman Mada",type:"Restaurant",note:"",fb:"",insta:"https://www.instagram.com/chezmaman_mada",tiktok:"https://www.tiktok.com/@chezmamantt",contact:"Zo Rav. (propriétaire)",city:"",lat:null,lng:null},
   {id:5,name:"La Gourmandise Malgache",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100076189512327",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:6,name:"Pili Pili Malgache Food",type:"Traiteur",note:"",fb:"https://www.facebook.com/pilipilimalgachefood",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:6,name:"Pili Pili Malgache Food",type:"Traiteur",note:"Recettes traditionnelles de Madagascar pour vos événements",fb:"https://www.facebook.com/pilipilimalgachefood",insta:"",contact:"",city:"",lat:null,lng:null},
   {id:7,name:"Chez Daben",type:"Traiteur",note:"Traiteur malgache",fb:"https://www.facebook.com/profile.php?id=100067003274574",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:8,name:"Traiteur Franco-Malagasy Paris",type:"Traiteur",note:"Mariages & événements",fb:"https://www.facebook.com/wenddingtraiteurmalagasy",insta:"",contact:"",city:"Paris",lat:null,lng:null},
-  {id:9,name:"Chez Tiana",type:"Traiteur",note:"",fb:"https://www.facebook.com/Cheztiana",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:10,name:"Naffees Traiteur",type:"Traiteur",note:"Traiteur événementiel",fb:"https://www.facebook.com/traiteurevenementielnaffees",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:11,name:"Nini + Vous",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100086724786890",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:8,name:"Traiteur Franco-Malagasy Paris",type:"Traiteur",note:"Mariages & événements",fb:"https://www.facebook.com/wenddingtraiteurmalagasy",insta:"",contact:"",city:"Paris",address:"",phone:"+33 6 35 97 42 34",lat:48.8566,lng:2.3522},
+  {id:9,name:"Chez Tiana",type:"Traiteur",note:"Ravitoto & mofo gasy faits maison, salé et sucré",fb:"https://www.facebook.com/Cheztiana",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:10,name:"Naffees Traiteur",type:"Traiteur",note:"Spécialités indo-pakistanaises & malgaches, halal",fb:"https://www.facebook.com/traiteurevenementielnaffees",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:11,name:"Nini + Vous",type:"Traiteur",note:"Chef à domicile, traiteur, livraison — cuisine franco-malgache",fb:"https://www.facebook.com/profile.php?id=100086724786890",insta:"",contact:"",city:"Bordeaux",address:"Bordeaux et sa région",phone:"",lat:44.8378,lng:-0.5792},
   {id:12,name:"La Cuisine de Gabriel",type:"Traiteur",note:"",fb:"https://www.facebook.com/lacuisinedegabriel",insta:"",contact:"",city:"",lat:null,lng:null},
   {id:13,name:"Malak Traiteur",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100064014279221",insta:"",contact:"",city:"",lat:null,lng:null},
   {id:14,name:"Au Soleil de Madagascar",type:"Food truck",note:"Food truck & traiteur",fb:"https://www.facebook.com/AuSoleildeMadagascar",insta:"",contact:"",city:"",lat:null,lng:null},
   {id:15,name:"Harena Sisters",type:"Traiteur",note:"",fb:"https://www.facebook.com/HarenaSistersTraiteur",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",note:"",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
-  {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",note:"Restaurant & traiteur",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",note:"Communauté de recettes malgaches et du monde",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",note:"Cuisine traditionnelle franco-malgache, produits frais",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"L'Isle-sur-la-Sorgue (84)",address:"L'Isle-sur-la-Sorgue, Vaucluse",phone:"+33 7 88 95 46 67",lat:43.9195,lng:5.0512},
   {id:18,name:"Sakafo Street",type:"Food truck",note:"",fb:"",insta:"https://www.instagram.com/sakafostreet",contact:"Tojo A. (gérant)",city:"",lat:null,lng:null},
 ]
 
@@ -1111,8 +1111,58 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
 const GASTRO_COLORS = {"Restaurant":{bg:"#FAECE7",color:"#712B13"},"Traiteur":{bg:"#e6f4ed",color:GREEN},"Food truck":{bg:"#fff3e0",color:"#e65100"}}
 const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food truck":"🚚"}
 
+function GastroDetail({ g, isMobile, onClose }) {
+  const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
+  const initials = g.name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:80,overflowY:"auto",padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:560,margin:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+        <div style={{position:"relative",height:isMobile?150:190,background:`linear-gradient(135deg, ${RED} 0%, #6e0a16 55%, ${GREEN} 140%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:4,display:"flex"}}>
+            <div style={{flex:1,background:WHITE}}/><div style={{flex:1,background:RED}}/><div style={{flex:1,background:GREEN}}/>
+          </div>
+          <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(0,0,0,0.4)",color:WHITE,fontWeight:800,fontSize:20,width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer"}}>×</button>
+          <div style={{width:64,height:64,borderRadius:"50%",background:WHITE,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:22}}>{initials}</div>
+          <span style={{color:"rgba(255,255,255,0.9)",fontWeight:800,fontSize:11,letterSpacing:2.5,textTransform:"uppercase"}}>🇲🇬 Gastronomie Malagasy</span>
+        </div>
+        <div style={{padding:isMobile?"18px 20px 24px":"22px 28px 30px"}}>
+          <h2 style={{fontWeight:800,fontSize:22,color:"#111",margin:"0 0 8px"}}>{g.name}</h2>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
+            <span style={{background:col.bg,color:col.color,fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{GASTRO_EMOJI[g.type]} {g.type}</span>
+            {g.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {g.city}</span>}
+          </div>
+          {g.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{g.note}</p>}
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
+            {g.address && (
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.address)}`} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",textDecoration:"none",fontWeight:600}}>
+                🗺️ <span>{g.address}</span><span style={{marginLeft:"auto",color:GREEN,fontSize:12,whiteSpace:"nowrap"}}>Itinéraire →</span>
+              </a>
+            )}
+            {g.phone && (
+              <a href={`tel:${g.phone.replace(/\s/g,"")}`} style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",textDecoration:"none",fontWeight:600}}>
+                📞 {g.phone}<span style={{marginLeft:"auto",color:GREEN,fontSize:12}}>Appeler →</span>
+              </a>
+            )}
+            {g.contact && (
+              <div style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",fontWeight:600}}>
+                👤 {g.contact}
+              </div>
+            )}
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {g.fb && <a href={g.fb} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
+            {g.insta && <a href={g.insta} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
+            {g.tiktok && <a href={g.tiktok} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#111",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>🎵 TikTok</a>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function GastroPage({ isMobile }) {
   const [filter,setFilter] = useState("Tous")
+  const [selected,setSelected] = useState(null)
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const types = ["Tous","Restaurant","Traiteur","Food truck"]
@@ -1165,7 +1215,7 @@ function GastroPage({ isMobile }) {
         {list.map(g=>{
           const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
           return (
-            <div key={g.id} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10}}>
+            <div key={g.id} onClick={()=>setSelected(g)} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(g.name)}</div>
                 <div style={{minWidth:0}}>
@@ -1177,7 +1227,7 @@ function GastroPage({ isMobile }) {
                 </div>
               </div>
               {g.note && <p style={{fontSize:12,color:"#777",margin:0}}>{g.note}</p>}
-              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:"auto"}}>
+              <div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:"auto"}}>
                 {g.fb && <a href={g.fb} target="_blank" rel="noreferrer" style={{background:"#eef4fc",color:"#1565c0",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📘 Facebook</a>}
                 {g.insta && <a href={g.insta} target="_blank" rel="noreferrer" style={{background:"#fdeef4",color:"#c2185b",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📸 Instagram</a>}
                 {g.tiktok && <a href={g.tiktok} target="_blank" rel="noreferrer" style={{background:"#f0f0f0",color:"#222",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>🎵 TikTok</a>}
@@ -1187,6 +1237,8 @@ function GastroPage({ isMobile }) {
           )
         })}
       </div>
+
+      {selected && <GastroDetail g={selected} isMobile={isMobile} onClose={()=>setSelected(null)}/>}
     </div>
   )
 }
