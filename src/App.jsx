@@ -172,6 +172,22 @@ const initialOrgas = [
   {id:18,name:"Malagasy En France",type:"Groupe",city:"National",region:"",followers:"79 100",note:"Le plus grand groupe communautaire malgache de France.",fb:"https://www.facebook.com/groups/204379976640842",insta:"",site:"",contact:""},
   {id:19,name:"Diaspora Malagasy",type:"Groupe",city:"National",region:"",followers:"18 100",note:"Groupe communautaire de la diaspora.",fb:"https://www.facebook.com/groups/2461198107341793",insta:"",site:"",contact:""},
   {id:20,name:"Gasy Ka Manja à Lyon",type:"Groupe",city:"Lyon",region:"Auvergne-Rhône-Alpes",followers:"1 900",note:"Groupe communautaire actif à Lyon, annonces de soirées régulières.",fb:"https://www.facebook.com/groups/577969292365884",insta:"",site:"",contact:""},
+  {id:21,name:"FETYBE",type:"Organisateur",city:"Paris",region:"Île-de-France",followers:"16 000",note:"Organise de grosses soirées à Paris : nouvel an, artistes venus de Madagascar.",fb:"https://www.facebook.com/fetybe",insta:"",site:"",contact:""},
+  {id:22,name:"Fiesta Lyon",type:"Organisateur",city:"Lyon",region:"Auvergne-Rhône-Alpes",followers:"5 600",note:"Organisation d'événements malgaches sur Lyon et sa région.",fb:"https://www.facebook.com/profile.php?id=100009852315220",insta:"",site:"",contact:""},
+  {id:23,name:"Gasy Unit Paris",type:"Organisateur",city:"Savigny-le-Temple",region:"Île-de-France",followers:"",note:"« L'événement 100% Gasy » — soirées avec artistes, billetterie en ligne active.",fb:"",insta:"",site:"https://my.weezevent.com/gasy-unit",contact:""},
+  {id:24,name:"Gasy Moov",type:"Organisateur",city:"Strasbourg / Marseille",region:"Grand Est",followers:"",note:"Soirées gasy par BESHA BEEP, JR Prod, Tamosilahy, Weraweaw et Makua Entertainment.",fb:"",insta:"",site:"https://my.weezevent.com/gasy-moov-3-strasbourg",contact:""},
+  {id:25,name:"Festi-Gasy Marseille",type:"Organisateur",city:"Marseille",region:"Provence-Alpes-Côte d'Azur",followers:"",note:"Festival malgache à Marseille : concerts, plats traditionnels et tsakitsaky gasy.",fb:"",insta:"",site:"https://my.weezevent.com/festi-gasy-marseille",contact:""},
+  {id:26,name:"Gasy Feeling",type:"Organisateur",city:"France",region:"",followers:"",note:"Organisation d'événements : mariages, fiançailles, concerts, cabarets.",fb:"",insta:"",site:"",contact:""},
+  {id:27,name:"KOSMO",type:"DJ & artistes",city:"Paris",region:"Île-de-France",followers:"",note:"Anime soirées et journées parisiennes — au line-up de la soirée Que Calor du 24 juillet.",fb:"https://www.facebook.com/profile.php?id=61570846886143",insta:"",site:"",contact:""},
+  {id:28,name:"DJ Gouty Madagascar",type:"DJ & artistes",city:"France / Madagascar",region:"",followers:"50 000",note:"DJ et formateur en organisation événementielle.",fb:"https://www.facebook.com/djgouty",insta:"",site:"",contact:""},
+  {id:29,name:"Dj DiNA",type:"DJ & artistes",city:"National",region:"",followers:"1 700",note:"DJ et administrateur du groupe Soirée Gasy France Officiel (19 400 membres).",fb:"https://www.facebook.com/dinadeejay",insta:"",site:"",contact:""},
+  {id:30,name:"Rodman",type:"DJ & artistes",city:"Paris",region:"Île-de-France",followers:"",note:"DJ et organisateur de soirées dansantes.",fb:"",insta:"",site:"",contact:""},
+  {id:31,name:"DJ Malagasy de France (DMF)",type:"DJ & artistes",city:"France",region:"",followers:"734",note:"Association de DJ : promotion et organisation de soirées et d'événements culturels.",fb:"https://www.facebook.com/groups/djmalagasydefrance",insta:"",site:"",contact:""},
+  {id:32,name:"Hypemada",type:"Média",city:"National",region:"",followers:"10 000",note:"Collectif, média et association de la diaspora malagasy.",fb:"https://www.facebook.com/hypemada",insta:"",site:"",contact:""},
+  {id:33,name:"Soirée Gasy France Officiel",type:"Groupe",city:"National",region:"",followers:"19 400",note:"Réseau d'artistes et DJ malgaches de France, géré par Dj DiNA.",fb:"https://www.facebook.com/groups/soireegasyfrance",insta:"",site:"",contact:""},
+  {id:34,name:"Gasy Aty France",type:"Groupe",city:"National",region:"",followers:"13 100",note:"Groupe communautaire très actif.",fb:"https://www.facebook.com/groups/2049048968643577",insta:"",site:"",contact:""},
+  {id:35,name:"Gasy Jiaby de France",type:"Groupe",city:"National",region:"",followers:"11 100",note:"Groupe communautaire très actif.",fb:"https://www.facebook.com/groups/1044706243008430",insta:"",site:"",contact:""},
+  {id:36,name:"Le Bon Coin Gasy de France",type:"Groupe",city:"National",region:"",followers:"25 600",note:"Groupe d'annonces communautaire.",fb:"https://www.facebook.com/groups/2072223663014016",insta:"",site:"",contact:""},
 ]
 
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
@@ -1269,8 +1285,8 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
 const GASTRO_COLORS = {"Restaurant":{bg:"#FAECE7",color:"#712B13"},"Traiteur":{bg:"#e6f4ed",color:GREEN},"Food truck":{bg:"#fff3e0",color:"#e65100"}}
 const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food truck":"🚚"}
 
-const ORGA_COLORS = {"Association sportive":{bg:"#e3f2fd",color:"#1565c0"},"Association":{bg:"#e6f4ed",color:GREEN},"Organisateur":{bg:"#fde8ec",color:RED},"Média":{bg:"#EEEDFE",color:"#3C3489"},"Groupe":{bg:"#fff3e0",color:"#b35c00"}}
-const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organisateur":"🎪","Média":"📰","Groupe":"👥"}
+const ORGA_COLORS = {"Association sportive":{bg:"#e3f2fd",color:"#1565c0"},"Association":{bg:"#e6f4ed",color:GREEN},"Organisateur":{bg:"#fde8ec",color:RED},"DJ & artistes":{bg:"#FBEAF0",color:"#72243E"},"Média":{bg:"#EEEDFE",color:"#3C3489"},"Groupe":{bg:"#fff3e0",color:"#b35c00"}}
+const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organisateur":"🎪","DJ & artistes":"🎧","Média":"📰","Groupe":"👥"}
 
 function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
@@ -2387,7 +2403,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                       <input value={oForm.name||""} onChange={e=>setOForm({...oForm,name:e.target.value})} placeholder="Nom *" style={inp}/>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                         <select value={oForm.type||"Association"} onChange={e=>setOForm({...oForm,type:e.target.value})} style={inp}>
-                          {["Association sportive","Association","Organisateur","Média","Groupe"].map(t=><option key={t} value={t}>{t}</option>)}
+                          {["Association sportive","Association","Organisateur","DJ & artistes","Média","Groupe"].map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
                         <input value={oForm.city||""} onChange={e=>setOForm({...oForm,city:e.target.value})} placeholder="Ville" style={inp}/>
                         <input value={oForm.region||""} onChange={e=>setOForm({...oForm,region:e.target.value})} placeholder="Région" style={inp}/>
