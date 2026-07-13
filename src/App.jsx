@@ -84,6 +84,27 @@ const initialVideos = [
   {id:3,type:"communaute",title:"La communauté malagasy de Lyon se présente",youtubeUrl:"https://www.youtube.com/embed/dQw4w9WgXcQ",thumbnail:"https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400",eventName:"",eventId:null,date:"2025-06-01",city:"Lyon",description:"Portrait de notre communauté.",isTeaser:false,views:432},
 ]
 
+const initialGastro = [
+  {id:1,name:"Ikala Kara",type:"Restaurant",note:"Spécialités malgaches & karaoké",fb:"https://www.facebook.com/Ikalakara",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:2,name:"O'Bol d'Or",type:"Restaurant",note:"",fb:"https://www.facebook.com/profile.php?id=61558005182008",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:3,name:"Le Tana",type:"Restaurant",note:"Restaurant malgache",fb:"https://www.facebook.com/restaurantletana",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:4,name:"Chez Maman Mada",type:"Restaurant",note:"",fb:"",insta:"https://www.instagram.com/chezmaman_mada",tiktok:"https://www.tiktok.com/@chezmamantt",contact:"Zo Rav. (propriétaire)",city:"",lat:null,lng:null},
+  {id:5,name:"La Gourmandise Malgache",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100076189512327",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:6,name:"Pili Pili Malgache Food",type:"Traiteur",note:"",fb:"https://www.facebook.com/pilipilimalgachefood",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:7,name:"Chez Daben",type:"Traiteur",note:"Traiteur malgache",fb:"https://www.facebook.com/profile.php?id=100067003274574",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:8,name:"Traiteur Franco-Malagasy Paris",type:"Traiteur",note:"Mariages & événements",fb:"https://www.facebook.com/wenddingtraiteurmalagasy",insta:"",contact:"",city:"Paris",lat:null,lng:null},
+  {id:9,name:"Chez Tiana",type:"Traiteur",note:"",fb:"https://www.facebook.com/Cheztiana",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:10,name:"Naffees Traiteur",type:"Traiteur",note:"Traiteur événementiel",fb:"https://www.facebook.com/traiteurevenementielnaffees",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:11,name:"Nini + Vous",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100086724786890",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:12,name:"La Cuisine de Gabriel",type:"Traiteur",note:"",fb:"https://www.facebook.com/lacuisinedegabriel",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:13,name:"Malak Traiteur",type:"Traiteur",note:"",fb:"https://www.facebook.com/profile.php?id=100064014279221",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:14,name:"Au Soleil de Madagascar",type:"Food truck",note:"Food truck & traiteur",fb:"https://www.facebook.com/AuSoleildeMadagascar",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:15,name:"Harena Sisters",type:"Traiteur",note:"",fb:"https://www.facebook.com/HarenaSistersTraiteur",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:16,name:"Cuisine Malgache et d'ailleurs",type:"Traiteur",note:"",fb:"https://www.facebook.com/EvitraAkohoFaMahaOmby",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:17,name:"Le Rendez-vous Franco-Malgache",type:"Restaurant",note:"Restaurant & traiteur",fb:"https://www.facebook.com/profile.php?id=100092651710205",insta:"",contact:"",city:"",lat:null,lng:null},
+  {id:18,name:"Sakafo Street",type:"Food truck",note:"",fb:"",insta:"https://www.instagram.com/sakafostreet",contact:"Tojo A. (gérant)",city:"",lat:null,lng:null},
+]
+
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
 const CAT_EMOJI = {Soirée:"🎉",Culture:"🎭",Gastronomie:"🍽️",Sport:"🏆",Religion:"⛪",Autre:"📌"}
 
@@ -1087,6 +1108,89 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
 }
 
 /* ── AfterMoviePage ───────────────────────────────── */
+const GASTRO_COLORS = {"Restaurant":{bg:"#FAECE7",color:"#712B13"},"Traiteur":{bg:"#e6f4ed",color:GREEN},"Food truck":{bg:"#fff3e0",color:"#e65100"}}
+const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food truck":"🚚"}
+
+function GastroPage({ isMobile }) {
+  const [filter,setFilter] = useState("Tous")
+  const mapRef = useRef(null)
+  const mapInstance = useRef(null)
+  const types = ["Tous","Restaurant","Traiteur","Food truck"]
+  const list = filter==="Tous" ? initialGastro : initialGastro.filter(g=>g.type===filter)
+  const located = initialGastro.filter(g=>g.lat&&g.lng)
+
+  useEffect(()=>{
+    if (!window.L || !mapRef.current || mapInstance.current) return
+    const map = window.L.map(mapRef.current, {scrollWheelZoom:false}).setView([46.6,2.4],5)
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map)
+    located.forEach(g=>{
+      window.L.marker([g.lat,g.lng]).addTo(map).bindPopup(`<b>${GASTRO_EMOJI[g.type]||"🍽️"} ${g.name}</b><br/>${g.type}${g.city?" · "+g.city:""}`)
+    })
+    mapInstance.current = map
+    return ()=>{ map.remove(); mapInstance.current = null }
+  },[])
+
+  const initials = n => n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
+      <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>🍽️ Gastronomie malagasy</h2>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 20px"}}>Restaurants, traiteurs et food trucks de la communauté — {initialGastro.length} adresses</p>
+
+      {/* Carte */}
+      <div style={{position:"relative",borderRadius:20,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)",marginBottom:8}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:4,display:"flex",zIndex:500}}>
+          <div style={{flex:1,background:WHITE}}/><div style={{flex:1,background:RED}}/><div style={{flex:1,background:GREEN}}/>
+        </div>
+        <div ref={mapRef} style={{height:isMobile?260:340,width:"100%",background:"#e8eef2"}}/>
+        {located.length===0 && (
+          <div style={{position:"absolute",inset:0,zIndex:400,background:"rgba(255,255,255,0.75)",display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",padding:20}}>
+            <p style={{fontWeight:700,color:"#555",fontSize:14,margin:0}}>📍 La carte s'activera dès que les adresses seront renseignées.<br/><span style={{fontWeight:400,fontSize:13,color:"#888"}}>Envoie-nous l'adresse de ton resto ou traiteur préféré !</span></p>
+          </div>
+        )}
+      </div>
+      <p style={{fontSize:12,color:"#999",margin:"0 0 20px"}}>{located.length>0?`${located.length} adresse${located.length>1?"s":""} sur la carte`:""}</p>
+
+      {/* Filtres */}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+        {types.map(t=>(
+          <button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?RED:WHITE,color:filter===t?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:filter===t?"none":"1px solid #e0e0e0",cursor:"pointer"}}>
+            {t==="Tous"?"Tous":`${GASTRO_EMOJI[t]} ${t}${t==="Food truck"?"s":"s"}`}
+          </button>
+        ))}
+      </div>
+
+      {/* Cartes */}
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(260px, 1fr))",gap:14}}>
+        {list.map(g=>{
+          const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
+          return (
+            <div key={g.id} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(g.name)}</div>
+                <div style={{minWidth:0}}>
+                  <p style={{fontWeight:800,fontSize:15,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{g.name}</p>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{GASTRO_EMOJI[g.type]} {g.type}</span>
+                    {g.city && <span style={{fontSize:12,color:"#888"}}>📍 {g.city}</span>}
+                  </div>
+                </div>
+              </div>
+              {g.note && <p style={{fontSize:12,color:"#777",margin:0}}>{g.note}</p>}
+              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:"auto"}}>
+                {g.fb && <a href={g.fb} target="_blank" rel="noreferrer" style={{background:"#eef4fc",color:"#1565c0",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📘 Facebook</a>}
+                {g.insta && <a href={g.insta} target="_blank" rel="noreferrer" style={{background:"#fdeef4",color:"#c2185b",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📸 Instagram</a>}
+                {g.tiktok && <a href={g.tiktok} target="_blank" rel="noreferrer" style={{background:"#f0f0f0",color:"#222",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>🎵 TikTok</a>}
+                {g.contact && <span style={{fontSize:12,color:"#999",marginLeft:"auto"}}>👤 {g.contact}</span>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function AfterMoviePage({ videos, events, user, userProfile, onAuthRequired, onBack }) {
   const [activeFilter,setActiveFilter] = useState("Tous")
   const [playing,setPlaying]           = useState(null)
@@ -1809,6 +1913,7 @@ export default function App() {
   const navItems = [
     {key:"home",label:"🏠 Accueil"},
     {key:"aftermovies",label:"🎬 After-movies"},
+    {key:"gastro",label:"🍽️ Gastronomie"},
     {key:"community",label:"👥 Communauté"},
   ]
 
@@ -1920,6 +2025,10 @@ export default function App() {
       {/* ── PAGES ── */}
       {page==="aftermovies" && (
         <AfterMoviePage videos={videos} events={events} user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onBack={()=>setPage("home")}/>
+      )}
+
+      {page==="gastro" && (
+        <GastroPage isMobile={isMobile}/>
       )}
 
       {page==="community" && (
