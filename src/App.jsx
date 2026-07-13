@@ -1498,12 +1498,140 @@ function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete })
 }
 
 /* ── EventDetail ──────────────────────────────────── */
+/* ── Qui y va ? ───────────────────────────────────── */
+const AVATAR_COLORS = [["#FAECE7","#712B13"],["#E1F5EE","#085041"],["#E6F1FB","#0C447C"],["#FAEEDA","#633806"],["#EEEDFE","#3C3489"],["#FBEAF0","#72243E"]]
+
+function EventPeople({ event, user, onAuthRequired, interested, toggleInterest, count }) {
+  const [people,setPeople] = useState([])
+
+  useEffect(()=>{ fetchPeople() },[count])
+
+  const fetchPeople = async () => {
+    const {data,error} = await supabase.from('event_interests').select('user_id,profiles(username,avatar_url)').eq('event_id',event.id)
+    if (!error && data) { setPeople(data); return }
+    const {data:raw} = await supabase.from('event_interests').select('user_id').eq('event_id',event.id)
+    if (!raw?.length) { setPeople([]); return }
+    const {data:profs} = await supabase.from('profiles').select('id,username,avatar_url').in('id',raw.map(r=>r.user_id))
+    setPeople(raw.map(r=>({user_id:r.user_id,profiles:profs?.find(p=>p.id===r.user_id)})))
+  }
+
+  const names = people.map(p=>p.profiles?.username).filter(Boolean)
+  const summary = names.length===0 ? "" : names.length<=3 ? names.join(", ") : `${names.slice(0,3).join(", ")} et ${names.length-3} autre${names.length-3>1?"s":""}`
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:16}}>
+        <div style={{display:"flex"}}>
+          {people.slice(0,6).map((p,i)=>{
+            const [bg,fg] = AVATAR_COLORS[i%AVATAR_COLORS.length]
+            const u = p.profiles?.username||"?"
+            return p.profiles?.avatar_url
+              ? <img key={p.user_id} src={p.profiles.avatar_url} alt={u} title={u} style={{width:34,height:34,borderRadius:"50%",border:"2px solid #fff",marginLeft:i?-8:0,objectFit:"cover"}}/>
+              : <div key={p.user_id} title={u} style={{width:34,height:34,borderRadius:"50%",background:bg,color:fg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,border:"2px solid #fff",marginLeft:i?-8:0}}>{u.slice(0,2).toUpperCase()}</div>
+          })}
+          {people.length>6 && <div style={{width:34,height:34,borderRadius:"50%",background:"#f0f0f0",color:"#666",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,border:"2px solid #fff",marginLeft:-8}}>+{people.length-6}</div>}
+        </div>
+        <span style={{fontSize:13,color:"#666"}}>
+          {count===0 ? "Personne pour l'instant — lance le mouvement !" : `${summary||count+" personne"+(count>1?"s":"")} ${count>1?"y vont":"y va"}`}
+        </span>
+        <button onClick={toggleInterest} style={{marginLeft:"auto",background:interested?"#e6f4ed":RED,color:interested?GREEN:WHITE,fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
+          {interested?"✓ J'y vais !":"🙋 J'y vais"}
+        </button>
+      </div>
+      <CommentSection eventId={event.id} user={user} onAuthRequired={onAuthRequired}/>
+    </div>
+  )
+}
+
+/* ── Covoiturage ──────────────────────────────────── */
+function RideSection({ event, user, onAuthRequired }) {
+  const [rides,setRides]           = useState([])
+  const [unavailable,setUnavailable] = useState(false)
+  const [showForm,setShowForm]     = useState(false)
+  const [saving,setSaving]         = useState(false)
+  const [form,setForm]             = useState({type:"propose",from_city:"",seats:1,note:""})
+
+  useEffect(()=>{ fetchRides() },[])
+
+  const fetchRides = async () => {
+    let {data,error} = await supabase.from('rides').select('*,profiles(username)').eq('event_id',event.id).order('created_at',{ascending:false})
+    if (error) {
+      const retry = await supabase.from('rides').select('*').eq('event_id',event.id).order('created_at',{ascending:false})
+      if (retry.error) { setUnavailable(true); return }
+      data = retry.data
+    }
+    setRides(data||[])
+  }
+
+  const submit = async e => {
+    e.preventDefault()
+    if (!user) { onAuthRequired(); return }
+    if (!form.from_city.trim()) return
+    setSaving(true)
+    const {error} = await supabase.from('rides').insert({event_id:event.id,user_id:user.id,type:form.type,from_city:form.from_city.trim(),seats:form.seats,note:form.note.trim()})
+    if (!error) { setForm({type:"propose",from_city:"",seats:1,note:""}); setShowForm(false); await fetchRides() }
+    setSaving(false)
+  }
+
+  const remove = async id => { await supabase.from('rides').delete().eq('id',id).eq('user_id',user.id); await fetchRides() }
+
+  if (unavailable) return <p style={{fontSize:13,color:"#999",textAlign:"center",padding:"24px 0"}}>🚗 Le module covoiturage arrive très bientôt !</p>
+
+  return (
+    <div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
+        {rides.map(r=>(
+          <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,background:"#f8f8f8",borderRadius:14,padding:"12px 14px"}}>
+            <span style={{fontSize:20}}>{r.type==="propose"?"🚗":"🙋"}</span>
+            <div style={{minWidth:0,flex:1}}>
+              <p style={{fontSize:13,fontWeight:700,color:"#111",margin:0}}>
+                {r.profiles?.username||"Un membre"} {r.type==="propose"?"propose":"cherche"} · {r.seats} place{r.seats>1?"s":""}
+              </p>
+              <p style={{fontSize:12,color:"#777",margin:0}}>Depuis {r.from_city}{r.note?` · ${r.note}`:""}</p>
+            </div>
+            <span style={{fontSize:11,fontWeight:700,background:r.type==="propose"?"#e6f4ed":"#FAECE7",color:r.type==="propose"?GREEN:"#712B13",padding:"3px 10px",borderRadius:99,whiteSpace:"nowrap"}}>{r.type==="propose"?"Propose":"Cherche"}</span>
+            {user && r.user_id===user.id && <button onClick={()=>remove(r.id)} style={{background:"none",border:"none",color:"#bbb",cursor:"pointer",fontSize:14}}>🗑️</button>}
+          </div>
+        ))}
+        {rides.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"12px 0"}}>Aucun trajet pour l'instant. Propose le tien 👇</p>}
+      </div>
+
+      {!showForm ? (
+        <button onClick={()=>{ if(!user){onAuthRequired();return} setShowForm(true) }} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:99,border:"none",cursor:"pointer"}}>
+          + Proposer ou chercher un trajet
+        </button>
+      ) : (
+        <form onSubmit={submit} style={{background:"#f8f8f8",borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",gap:8}}>
+            {[["propose","🚗 Je propose"],["cherche","🙋 Je cherche"]].map(([v,l])=>(
+              <button key={v} type="button" onClick={()=>setForm({...form,type:v})} style={{flex:1,background:form.type===v?GREEN:WHITE,color:form.type===v?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px",borderRadius:10,border:form.type===v?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{l}</button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <input required value={form.from_city} onChange={e=>setForm({...form,from_city:e.target.value})} placeholder="Ville de départ *" style={{flex:2,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
+            <select value={form.seats} onChange={e=>setForm({...form,seats:+e.target.value})} style={{flex:1,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 8px",fontSize:13,outline:"none",background:WHITE}}>
+              {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} place{n>1?"s":""}</option>)}
+            </select>
+          </div>
+          <input value={form.note} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Détails (horaire, participation essence...)" style={{border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
+          <div style={{display:"flex",gap:8}}>
+            <button type="submit" disabled={saving} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"9px 18px",borderRadius:99,border:"none",cursor:"pointer"}}>{saving?"...":"Publier"}</button>
+            <button type="button" onClick={()=>setShowForm(false)} style={{background:"none",color:"#888",fontWeight:700,fontSize:13,padding:"9px 12px",border:"none",cursor:"pointer"}}>Annuler</button>
+          </div>
+          <p style={{fontSize:11,color:"#aaa",margin:0}}>💡 Organisez les détails dans le fil « Qui y va ? » — évitez de publier votre numéro en clair.</p>
+        </form>
+      )}
+    </div>
+  )
+}
+
 function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
   const [showShare,setShowShare]   = useState(false)
   const [showReminder,setReminder] = useState(false)
   const [interested,setInterested] = useState(false)
   const [fav,setFav]               = useState(false)
   const [count,setCount]           = useState(0)
+  const [tab,setTab]               = useState("infos")
   const isMobile                   = useIsMobile()
   const isYoutube = url => url&&(url.includes('youtube')||url.includes('youtu.be'))
 
@@ -1549,6 +1677,17 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
           </div>
 
           <div style={{padding:isMobile?"16px":"28px"}}>
+            {/* Onglets */}
+            <div style={{display:"flex",gap:2,borderBottom:"1px solid #eee",marginBottom:20}}>
+              {[["infos","ℹ️ Infos"],["people",`👥 Qui y va${count>0?` · ${count}`:""}`],["rides","🚗 Covoiturage"]].map(([k,l])=>(
+                <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",borderBottom:tab===k?`3px solid ${RED}`:"3px solid transparent",fontWeight:700,fontSize:13,color:tab===k?"#111":"#999",padding:"8px 12px",cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>
+              ))}
+            </div>
+
+            {tab==="people" && <EventPeople event={event} user={user} onAuthRequired={onAuthRequired} interested={interested} toggleInterest={toggleInterest} count={count}/>}
+            {tab==="rides" && <RideSection event={event} user={user} onAuthRequired={onAuthRequired}/>}
+
+            {tab==="infos" && (<>
             {/* Info grid */}
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:20}}>
               {[
@@ -1602,8 +1741,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
               <button onClick={()=>setShowShare(true)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>📤 Partager</button>
               {event.ticketUrl && <a href={event.ticketUrl} target="_blank" rel="noreferrer" style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:12,textDecoration:"none"}}>🎟️ Acheter mes billets</a>}
             </div>
-
-            <CommentSection eventId={event.id} user={user} onAuthRequired={onAuthRequired}/>
+            </>)}
           </div>
         </div>
       </div>
