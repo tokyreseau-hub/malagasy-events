@@ -772,7 +772,91 @@ function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDel
 }
 
 /* ── CommunityFeed ────────────────────────────────── */
-function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfileClick }) {
+/* ── Feed Entraide global (onglet Communauté) ────── */
+function EntraideFeed({ user, onAuthRequired, onOpenEvent }) {
+  const [items,setItems]             = useState([])
+  const [unavailable,setUnavailable] = useState(false)
+  const [loading,setLoading]         = useState(true)
+  const [catFilter,setCatFilter]     = useState("tous")
+
+  useEffect(()=>{ fetchAll() },[])
+
+  const fetchAll = async () => {
+    let {data,error} = await supabase.from('entraide').select('*,profiles(username)').order('created_at',{ascending:false}).limit(50)
+    if (error) {
+      const retry = await supabase.from('entraide').select('*').order('created_at',{ascending:false}).limit(50)
+      if (retry.error) { setUnavailable(true); setLoading(false); return }
+      data = retry.data
+    }
+    setItems((data||[]).filter(r=>{ const ev=initialEvents.find(e=>e.id===r.event_id); return ev && !isPast(ev.date) }))
+    setLoading(false)
+  }
+
+  const upcoming = initialEvents.filter(e=>!isPast(e.date)).sort((a,b)=>a.date.localeCompare(b.date))
+  const shown = catFilter==="tous" ? items : items.filter(i=>i.category===catFilter)
+
+  return (
+    <div>
+      {/* Explication + CTA */}
+      <div style={{background:"#e6f4ed",border:"1.5px solid #bfe3d0",borderRadius:16,padding:"14px 18px",marginBottom:16}}>
+        <p style={{fontWeight:800,fontSize:14,color:GREEN,margin:"0 0 2px"}}>🤝 L'entraide de la communauté</p>
+        <p style={{fontSize:13,color:"#3d6b52",margin:0}}>Covoiturage et hébergement pour aller aux événements. Choisis un événement ci-dessous pour proposer ou chercher.</p>
+      </div>
+
+      {/* Événements à venir : accès rapide */}
+      <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:16}}>
+        {upcoming.slice(0,8).map(ev=>(
+          <button key={ev.id} onClick={()=>onOpenEvent(ev)} style={{flexShrink:0,background:WHITE,border:"1px solid #e5e5e5",borderRadius:12,padding:"8px 14px",cursor:"pointer",textAlign:"left"}}>
+            <p style={{fontSize:12,fontWeight:800,color:"#111",margin:0,maxWidth:160,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{ev.title}</p>
+            <p style={{fontSize:11,color:"#999",margin:0}}>📅 {fmtShort(ev.date)} · {ev.city}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Filtres */}
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {[["tous","Tous"],["trajet","🚗 Trajets"],["hebergement","🛏️ Hébergements"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setCatFilter(k)} style={{background:catFilter===k?"#333":WHITE,color:catFilter===k?WHITE:"#555",fontWeight:700,fontSize:12,padding:"6px 12px",borderRadius:99,border:catFilter===k?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{l}</button>
+        ))}
+      </div>
+
+      {/* Annonces */}
+      {unavailable ? (
+        <p style={{fontSize:13,color:"#999",textAlign:"center",padding:"24px 0"}}>🤝 Le module entraide arrive très bientôt !</p>
+      ) : loading ? (
+        <p style={{fontSize:13,color:"#bbb",textAlign:"center",padding:"24px 0"}}>Chargement...</p>
+      ) : shown.length===0 ? (
+        <div style={{textAlign:"center",padding:"28px 20px",background:WHITE,borderRadius:16,color:"#bbb"}}>
+          <p style={{fontSize:28,margin:"0 0 6px"}}>🚗</p>
+          <p style={{fontWeight:700,margin:0,fontSize:13}}>Aucune annonce pour l'instant.</p>
+          <p style={{fontSize:12,margin:"4px 0 0"}}>Clique sur un événement ci-dessus et lance la première !</p>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {shown.map(r=>{
+            const ev = initialEvents.find(e=>e.id===r.event_id)
+            const cat = ENTRAIDE_CATS[r.category]||ENTRAIDE_CATS.trajet
+            return (
+              <div key={r.id} onClick={()=>ev&&onOpenEvent(ev)} style={{background:WHITE,borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",cursor:"pointer"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                  <span style={{fontSize:18}}>{r.type==="propose"?cat.emoji:"🙋"}</span>
+                  <p style={{fontSize:13,fontWeight:700,color:"#111",margin:0,flex:1}}>
+                    {r.profiles?.username||"Un membre"} {r.type==="propose"?"propose":"cherche"} · {cat.label.toLowerCase()} · {r.places} {cat.placeLbl}{r.places>1?"s":""}
+                  </p>
+                  <span style={{fontSize:11,fontWeight:700,background:r.type==="propose"?"#e6f4ed":"#FAECE7",color:r.type==="propose"?GREEN:"#712B13",padding:"3px 10px",borderRadius:99}}>{r.type==="propose"?"Propose":"Cherche"}</span>
+                </div>
+                <p style={{fontSize:12,color:"#777",margin:"0 0 6px"}}>{r.category==="trajet"?"Depuis":"À"} {r.city}{r.note?` · ${r.note}`:""}</p>
+                {ev && <p style={{fontSize:12,fontWeight:700,color:RED,margin:0}}>🎪 {ev.title} — {fmtShort(ev.date)} · {ev.city} →</p>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfileClick, onOpenEvent }) {
   const [posts,setPosts]         = useState([])
   const [content,setContent]     = useState("")
   const [imageUrl,setImageUrl]   = useState("")
@@ -787,7 +871,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
 
   useEffect(()=>{
     if (feedMode==="members") fetchMembers()
-    else fetchPosts()
+    else if (feedMode!=="entraide") fetchPosts()
   },[feedMode, user])
   useEffect(()=>{ if(user) fetchSuggested() },[user])
 
@@ -840,12 +924,17 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
       <div style={{flex:1,minWidth:0}}>
         {/* Feed mode tabs */}
         <div style={{display:"flex",gap:4,marginBottom:16,background:WHITE,borderRadius:14,padding:4,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
-          {[["all","🌍 Tous"],["following","👥 Abonnements"],["members","🔍 Membres"]].map(([k,l])=>(
+          {[["entraide","🤝 Entraide"],["all","🌍 Tous"],["following","👥 Abonnements"],["members","🔍 Membres"]].map(([k,l])=>(
             <button key={k} onClick={()=>setFeedMode(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:feedMode===k?RED:"transparent",color:feedMode===k?WHITE:"#888"}}>
               {l}
             </button>
           ))}
         </div>
+
+        {/* Onglet Entraide */}
+        {feedMode==="entraide" && (
+          <EntraideFeed user={user} onAuthRequired={onAuthRequired} onOpenEvent={onOpenEvent}/>
+        )}
 
         {/* Onglet Membres */}
         {feedMode==="members" && (
@@ -885,7 +974,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
         )}
 
         {/* Compose */}
-        {feedMode!=="members" && (user ? (
+        {feedMode!=="members" && feedMode!=="entraide" && (user ? (
           <div style={{background:WHITE,borderRadius:20,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",padding:20,marginBottom:16}}>
             <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
               <div style={{width:44,height:44,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
@@ -909,7 +998,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
         ))}
 
         {/* Feed */}
-        {feedMode!=="members" && (loading ? (
+        {feedMode!=="members" && feedMode!=="entraide" && (loading ? (
           <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Chargement...</div>
         ) : posts.length===0 ? (
           <div style={{textAlign:"center",padding:60,background:WHITE,borderRadius:20}}>
@@ -1543,77 +1632,98 @@ function EventPeople({ event, user, onAuthRequired, interested, toggleInterest, 
   )
 }
 
-/* ── Covoiturage ──────────────────────────────────── */
-function RideSection({ event, user, onAuthRequired }) {
-  const [rides,setRides]           = useState([])
+/* ── Entraide : covoiturage + hébergement ────────── */
+const ENTRAIDE_CATS = {
+  trajet:      {emoji:"🚗", label:"Trajet",      placeLbl:"place",  cta:"un trajet"},
+  hebergement: {emoji:"🛏️", label:"Hébergement", placeLbl:"couchage", cta:"un hébergement"},
+}
+
+function EntraideSection({ event, user, onAuthRequired }) {
+  const [items,setItems]             = useState([])
   const [unavailable,setUnavailable] = useState(false)
-  const [showForm,setShowForm]     = useState(false)
-  const [saving,setSaving]         = useState(false)
-  const [form,setForm]             = useState({type:"propose",from_city:"",seats:1,note:""})
+  const [catFilter,setCatFilter]     = useState("tous")
+  const [showForm,setShowForm]       = useState(false)
+  const [saving,setSaving]           = useState(false)
+  const [form,setForm]               = useState({category:"trajet",type:"propose",city:"",places:1,note:""})
 
-  useEffect(()=>{ fetchRides() },[])
+  useEffect(()=>{ fetchItems() },[])
 
-  const fetchRides = async () => {
-    let {data,error} = await supabase.from('rides').select('*,profiles(username)').eq('event_id',event.id).order('created_at',{ascending:false})
+  const fetchItems = async () => {
+    let {data,error} = await supabase.from('entraide').select('*,profiles(username)').eq('event_id',event.id).order('created_at',{ascending:false})
     if (error) {
-      const retry = await supabase.from('rides').select('*').eq('event_id',event.id).order('created_at',{ascending:false})
+      const retry = await supabase.from('entraide').select('*').eq('event_id',event.id).order('created_at',{ascending:false})
       if (retry.error) { setUnavailable(true); return }
       data = retry.data
     }
-    setRides(data||[])
+    setItems(data||[])
   }
 
   const submit = async e => {
     e.preventDefault()
     if (!user) { onAuthRequired(); return }
-    if (!form.from_city.trim()) return
+    if (!form.city.trim()) return
     setSaving(true)
-    const {error} = await supabase.from('rides').insert({event_id:event.id,user_id:user.id,type:form.type,from_city:form.from_city.trim(),seats:form.seats,note:form.note.trim()})
-    if (!error) { setForm({type:"propose",from_city:"",seats:1,note:""}); setShowForm(false); await fetchRides() }
+    const {error} = await supabase.from('entraide').insert({event_id:event.id,user_id:user.id,category:form.category,type:form.type,city:form.city.trim(),places:form.places,note:form.note.trim()})
+    if (!error) { setForm({category:"trajet",type:"propose",city:"",places:1,note:""}); setShowForm(false); await fetchItems() }
     setSaving(false)
   }
 
-  const remove = async id => { await supabase.from('rides').delete().eq('id',id).eq('user_id',user.id); await fetchRides() }
+  const remove = async id => { await supabase.from('entraide').delete().eq('id',id).eq('user_id',user.id); await fetchItems() }
 
-  if (unavailable) return <p style={{fontSize:13,color:"#999",textAlign:"center",padding:"24px 0"}}>🚗 Le module covoiturage arrive très bientôt !</p>
+  if (unavailable) return <p style={{fontSize:13,color:"#999",textAlign:"center",padding:"24px 0"}}>🤝 Le module entraide arrive très bientôt !</p>
+
+  const shown = catFilter==="tous" ? items : items.filter(i=>i.category===catFilter)
 
   return (
     <div>
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
-        {rides.map(r=>(
-          <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,background:"#f8f8f8",borderRadius:14,padding:"12px 14px"}}>
-            <span style={{fontSize:20}}>{r.type==="propose"?"🚗":"🙋"}</span>
-            <div style={{minWidth:0,flex:1}}>
-              <p style={{fontSize:13,fontWeight:700,color:"#111",margin:0}}>
-                {r.profiles?.username||"Un membre"} {r.type==="propose"?"propose":"cherche"} · {r.seats} place{r.seats>1?"s":""}
-              </p>
-              <p style={{fontSize:12,color:"#777",margin:0}}>Depuis {r.from_city}{r.note?` · ${r.note}`:""}</p>
-            </div>
-            <span style={{fontSize:11,fontWeight:700,background:r.type==="propose"?"#e6f4ed":"#FAECE7",color:r.type==="propose"?GREEN:"#712B13",padding:"3px 10px",borderRadius:99,whiteSpace:"nowrap"}}>{r.type==="propose"?"Propose":"Cherche"}</span>
-            {user && r.user_id===user.id && <button onClick={()=>remove(r.id)} style={{background:"none",border:"none",color:"#bbb",cursor:"pointer",fontSize:14}}>🗑️</button>}
-          </div>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {[["tous","Tous"],["trajet","🚗 Trajets"],["hebergement","🛏️ Hébergements"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setCatFilter(k)} style={{background:catFilter===k?"#333":WHITE,color:catFilter===k?WHITE:"#555",fontWeight:700,fontSize:12,padding:"6px 12px",borderRadius:99,border:catFilter===k?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{l}</button>
         ))}
-        {rides.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"12px 0"}}>Aucun trajet pour l'instant. Propose le tien 👇</p>}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
+        {shown.map(r=>{
+          const cat = ENTRAIDE_CATS[r.category]||ENTRAIDE_CATS.trajet
+          return (
+            <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,background:"#f8f8f8",borderRadius:14,padding:"12px 14px"}}>
+              <span style={{fontSize:20}}>{r.type==="propose"?cat.emoji:"🙋"}</span>
+              <div style={{minWidth:0,flex:1}}>
+                <p style={{fontSize:13,fontWeight:700,color:"#111",margin:0}}>
+                  {r.profiles?.username||"Un membre"} {r.type==="propose"?"propose":"cherche"} · {cat.label.toLowerCase()} · {r.places} {cat.placeLbl}{r.places>1?"s":""}
+                </p>
+                <p style={{fontSize:12,color:"#777",margin:0}}>{r.category==="trajet"?"Depuis":"À"} {r.city}{r.note?` · ${r.note}`:""}</p>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,background:r.type==="propose"?"#e6f4ed":"#FAECE7",color:r.type==="propose"?GREEN:"#712B13",padding:"3px 10px",borderRadius:99,whiteSpace:"nowrap"}}>{r.type==="propose"?"Propose":"Cherche"}</span>
+              {user && r.user_id===user.id && <button onClick={()=>remove(r.id)} style={{background:"none",border:"none",color:"#bbb",cursor:"pointer",fontSize:14}}>🗑️</button>}
+            </div>
+          )
+        })}
+        {shown.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"12px 0"}}>Aucune annonce pour l'instant. Lance la première 👇</p>}
       </div>
 
       {!showForm ? (
         <button onClick={()=>{ if(!user){onAuthRequired();return} setShowForm(true) }} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:99,border:"none",cursor:"pointer"}}>
-          + Proposer ou chercher un trajet
+          + Proposer ou chercher (trajet, hébergement)
         </button>
       ) : (
         <form onSubmit={submit} style={{background:"#f8f8f8",borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10}}>
           <div style={{display:"flex",gap:8}}>
-            {[["propose","🚗 Je propose"],["cherche","🙋 Je cherche"]].map(([v,l])=>(
+            {[["trajet","🚗 Trajet"],["hebergement","🛏️ Hébergement"]].map(([v,l])=>(
+              <button key={v} type="button" onClick={()=>setForm({...form,category:v})} style={{flex:1,background:form.category===v?"#333":WHITE,color:form.category===v?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px",borderRadius:10,border:form.category===v?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{l}</button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {[["propose","✅ Je propose"],["cherche","🙋 Je cherche"]].map(([v,l])=>(
               <button key={v} type="button" onClick={()=>setForm({...form,type:v})} style={{flex:1,background:form.type===v?GREEN:WHITE,color:form.type===v?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px",borderRadius:10,border:form.type===v?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{l}</button>
             ))}
           </div>
           <div style={{display:"flex",gap:8}}>
-            <input required value={form.from_city} onChange={e=>setForm({...form,from_city:e.target.value})} placeholder="Ville de départ *" style={{flex:2,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
-            <select value={form.seats} onChange={e=>setForm({...form,seats:+e.target.value})} style={{flex:1,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 8px",fontSize:13,outline:"none",background:WHITE}}>
-              {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} place{n>1?"s":""}</option>)}
+            <input required value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder={form.category==="trajet"?"Ville de départ *":"Ville / quartier *"} style={{flex:2,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
+            <select value={form.places} onChange={e=>setForm({...form,places:+e.target.value})} style={{flex:1,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 8px",fontSize:13,outline:"none",background:WHITE}}>
+              {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} {ENTRAIDE_CATS[form.category].placeLbl}{n>1?"s":""}</option>)}
             </select>
           </div>
-          <input value={form.note} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Détails (horaire, participation essence...)" style={{border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
+          <input value={form.note} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Détails (horaire, participation, conditions...)" style={{border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none"}}/>
           <div style={{display:"flex",gap:8}}>
             <button type="submit" disabled={saving} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"9px 18px",borderRadius:99,border:"none",cursor:"pointer"}}>{saving?"...":"Publier"}</button>
             <button type="button" onClick={()=>setShowForm(false)} style={{background:"none",color:"#888",fontWeight:700,fontSize:13,padding:"9px 12px",border:"none",cursor:"pointer"}}>Annuler</button>
@@ -1679,13 +1789,13 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
           <div style={{padding:isMobile?"16px":"28px"}}>
             {/* Onglets */}
             <div style={{display:"flex",gap:2,borderBottom:"1px solid #eee",marginBottom:20}}>
-              {[["infos","ℹ️ Infos"],["people",`👥 Qui y va${count>0?` · ${count}`:""}`],["rides","🚗 Covoiturage"]].map(([k,l])=>(
+              {[["infos","ℹ️ Infos"],["people",`👥 Qui y va${count>0?` · ${count}`:""}`],["rides","🤝 Entraide"]].map(([k,l])=>(
                 <button key={k} onClick={()=>setTab(k)} style={{background:"none",border:"none",borderBottom:tab===k?`3px solid ${RED}`:"3px solid transparent",fontWeight:700,fontSize:13,color:tab===k?"#111":"#999",padding:"8px 12px",cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>
               ))}
             </div>
 
             {tab==="people" && <EventPeople event={event} user={user} onAuthRequired={onAuthRequired} interested={interested} toggleInterest={toggleInterest} count={count}/>}
-            {tab==="rides" && <RideSection event={event} user={user} onAuthRequired={onAuthRequired}/>}
+            {tab==="rides" && <EntraideSection event={event} user={user} onAuthRequired={onAuthRequired}/>}
 
             {tab==="infos" && (<>
             {/* Info grid */}
@@ -2251,7 +2361,7 @@ export default function App() {
             <h2 style={{fontWeight:900,fontSize:isMobile?20:28,color:"#111",margin:"0 0 4px"}}>👥 Communauté Malagasy</h2>
             <p style={{fontSize:14,color:"#888",margin:"0 0 20px"}}>Échangez, partagez, et rencontrez d'autres membres 🇲🇬</p>
           </div>
-          <CommunityFeed user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})}/>
+          <CommunityFeed user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})} onOpenEvent={ev=>setSelectedEvent(ev)}/>
         </div>
       )}
 
