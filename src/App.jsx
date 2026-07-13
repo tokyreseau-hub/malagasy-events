@@ -2082,6 +2082,15 @@ export default function App() {
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <h2 style={{fontWeight:800,fontSize:isMobile?18:22,color:"#111",margin:0}}>📅 Événements à venir <span style={{fontSize:14,color:"#aaa",fontWeight:500}}>({upcoming.length})</span></h2>
             </div>
+            {catFilter==="Gastronomie" && (
+              <div onClick={()=>setPage("gastro")} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"#fff3e0",border:"1.5px solid #ffd699",borderRadius:16,padding:"14px 18px",marginBottom:16,cursor:"pointer"}}>
+                <div>
+                  <p style={{fontWeight:800,fontSize:14,color:"#e65100",margin:"0 0 2px"}}>🍽️ Tu cherches où manger malagasy ?</p>
+                  <p style={{fontSize:13,color:"#a15a1a",margin:0}}>Découvre notre annuaire : {initialGastro.length} restaurants, traiteurs et food trucks partout en France.</p>
+                </div>
+                <span style={{background:"#e65100",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,whiteSpace:"nowrap"}}>Voir l'annuaire →</span>
+              </div>
+            )}
             {upcoming.length===0 ? (
               <div style={{textAlign:"center",padding:"48px 24px",background:WHITE,borderRadius:20,color:"#bbb"}}>
                 <p style={{fontSize:32,margin:"0 0 8px"}}>🌺</p>
