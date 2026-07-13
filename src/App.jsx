@@ -1290,10 +1290,34 @@ const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organis
 
 function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
-  const canEdit = !!user && (o.owner_id===user.id || isAdmin)
+  const isOwner = !!user && o.owner_id===user.id
+  const canEdit = isOwner || (!!user && isAdmin)
+  const isPro = o.plan==='pro'
+  const canPost = (isOwner && isPro) || (!!user && isAdmin)
   const [editing,setEditing] = useState(false)
   const [form,setForm] = useState({...o})
   const [saving,setSaving] = useState(false)
+  const [posts,setPosts] = useState([])
+  const [postText,setPostText] = useState("")
+  const [postImg,setPostImg] = useState("")
+  const [posting,setPosting] = useState(false)
+  useEffect(()=>{
+    supabase.from('orga_posts').select('*, profiles(username)').eq('orga_id',o.id).order('created_at',{ascending:false}).limit(20)
+      .then(({data})=>setPosts(data||[]))
+  },[o.id])
+  const publish = async () => {
+    const content = postText.trim(); if(!content) return
+    setPosting(true)
+    const {data,error} = await supabase.from('orga_posts').insert({orga_id:o.id,user_id:user.id,content,image_url:postImg.trim()}).select('*, profiles(username)').single()
+    if (error) alert("⚠️ Publication refusée ("+error.message+").\nSeul le propriétaire de la fiche avec un forfait Organisateur actif peut publier.")
+    else { setPosts(p=>[data,...p]); setPostText(""); setPostImg("") }
+    setPosting(false)
+  }
+  const delPost = async id => {
+    if (!confirm("Supprimer cette actu ?")) return
+    setPosts(p=>p.filter(x=>x.id!==id))
+    await supabase.from('orga_posts').delete().eq('id',id)
+  }
   const initials = o.name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
   const theirEvents = events.filter(e=>{
     const org=(e.organizer||"").toLowerCase(); const first=o.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0]
@@ -1304,6 +1328,7 @@ function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, 
   const save = async () => {
     setSaving(true)
     const payload = {...form}; delete payload.id
+    if (!isAdmin) { delete payload.plan; delete payload.plan_until; delete payload.owner_id }
     const {error} = await supabase.from('organisateurs').update(payload).eq('id',o.id)
     if (error) alert("⚠️ Non sauvegardé ("+error.message+").\nSeul le compte propriétaire de la fiche ou l'admin officiel peut modifier.")
     else { onUpdated({...payload,id:o.id}); setEditing(false) }
@@ -1329,12 +1354,49 @@ function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, 
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
               <span style={{background:col.bg,color:col.color,fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{ORGA_EMOJI[o.type]||"🎪"} {o.type}</span>
+              {isPro && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:11,fontWeight:800,padding:"4px 10px",borderRadius:99,letterSpacing:0.5}}>⭐ PRO</span>}
               {o.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {o.city}</span>}
               {o.followers && <span style={{fontSize:13,color:"#999"}}>👥 {o.followers} abonnés</span>}
             </div>
             {o.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{o.note}</p>}
             {o.contact && (
               <div style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",fontWeight:600,marginBottom:14}}>📞 {o.contact}</div>
+            )}
+            {(posts.length>0 || canPost || isOwner) && (
+              <div style={{marginBottom:16}}>
+                <p style={{fontWeight:700,fontSize:13,color:"#444",margin:"0 0 8px"}}>📣 Actus {isPro && <span style={{fontSize:10,fontWeight:800,color:"#b8860b"}}>· espace PRO</span>}</p>
+                {canPost && (
+                  <div style={{background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:12,marginBottom:10}}>
+                    <textarea value={postText} onChange={e=>setPostText(e.target.value)} placeholder="Annoncez un événement, une promo, une actualité…" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif",marginBottom:8}}/>
+                    <div style={{display:"flex",gap:8}}>
+                      <input value={postImg} onChange={e=>setPostImg(e.target.value)} placeholder="URL d'image (optionnel)" style={{...inp,flex:1}}/>
+                      <button onClick={publish} disabled={posting||!postText.trim()} style={{background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"9px 18px",borderRadius:10,border:"none",cursor:"pointer",opacity:posting||!postText.trim()?0.5:1,whiteSpace:"nowrap"}}>{posting?"...":"📣 Publier"}</button>
+                    </div>
+                  </div>
+                )}
+                {isOwner && !canPost && (
+                  <div style={{background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:"12px 14px",marginBottom:10,fontSize:13,color:"#7a5c00",lineHeight:1.5}}>
+                    ⭐ Publiez vos actus directement sur votre fiche avec le <b>forfait Organisateur</b>. Contactez-nous via la Communauté pour l'activer.
+                  </div>
+                )}
+                {posts.length===0 && !canPost && !isOwner ? null : posts.length===0 ? (
+                  <p style={{fontSize:12,color:"#aaa",margin:0}}>Aucune actu pour le moment.</p>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {posts.map(p=>(
+                      <div key={p.id} style={{background:"#f8f8f8",borderRadius:12,padding:"10px 14px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                          <span style={{fontSize:12,fontWeight:700,color:col.color}}>{o.name}</span>
+                          <span style={{fontSize:11,color:"#aaa"}}>{ago(p.created_at)}</span>
+                          {(isAdmin || (user && p.user_id===user.id)) && <button onClick={()=>delPost(p.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#c00",fontSize:11,cursor:"pointer",fontWeight:700}}>🗑️</button>}
+                        </div>
+                        <p style={{fontSize:13.5,color:"#222",margin:0,lineHeight:1.5,whiteSpace:"pre-wrap"}}>{p.content}</p>
+                        {p.image_url && <img src={p.image_url} alt="" style={{width:"100%",borderRadius:10,marginTop:8,maxHeight:260,objectFit:"cover"}}/>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             {theirEvents.length>0 && (
               <div style={{marginBottom:16}}>
@@ -1420,6 +1482,7 @@ function OrgaPage({ isMobile, orgas, events, user, isAdmin, onOpenEvent, onOrgaU
                   <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                     <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
+                    {o.plan==='pro' && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
                     {o.city && <span style={{fontSize:12,color:"#888"}}>📍 {o.city}</span>}
                   </div>
                 </div>
@@ -2099,13 +2162,20 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
 
 /* ── AdminPanel ───────────────────────────────────── */
 function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, orgas, setOrgas, onClose }) {
-  const GASTRO_EMPTY = {name:"",type:"Restaurant",region:"",city:"",address:"",phone:"",fb:"",insta:"",tiktok:"",contact:"",note:"",lat:null,lng:null}
+  const GASTRO_EMPTY = {name:"",type:"Restaurant",region:"",city:"",address:"",phone:"",fb:"",insta:"",tiktok:"",contact:"",note:"",lat:null,lng:null,owner_username:"",plan:"free"}
   const [gEditId,setGEditId] = useState(null)
   const [gForm,setGForm]     = useState(GASTRO_EMPTY)
   const saveGastro = async () => {
     const payload = {...gForm}; delete payload.id
     payload.lat = payload.lat===""||payload.lat===null?null:+payload.lat
     payload.lng = payload.lng===""||payload.lng===null?null:+payload.lng
+    payload.plan = payload.plan||'free'
+    const gOwner = (payload.owner_username||"").trim(); delete payload.owner_username
+    if (gOwner) {
+      const {data:prof} = await supabase.from('profiles').select('id').eq('username',gOwner).maybeSingle()
+      if (prof) payload.owner_id = prof.id
+      else { alert("⚠️ Aucun membre trouvé avec le pseudo « "+gOwner+" » — fiche sauvegardée sans propriétaire."); payload.owner_id = null }
+    }
     if (gEditId==="new") {
       const {data,error} = await supabase.from('gastro').insert(payload).select().single()
       if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setGastro(g=>[...g,{...payload,id:Date.now()}]) }
@@ -2117,11 +2187,13 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     setGEditId(null)
   }
   const delGastro = async id => { setGastro(g=>g.filter(x=>x.id!==id)); await adminSave(supabase.from('gastro').delete().eq('id',id)) }
-  const ORGA_EMPTY = {name:"",type:"Association",city:"",region:"",followers:"",note:"",fb:"",insta:"",site:"",contact:"",owner_username:""}
+  const ORGA_EMPTY = {name:"",type:"Association",city:"",region:"",followers:"",note:"",fb:"",insta:"",site:"",contact:"",owner_username:"",plan:"free",plan_until:""}
   const [oEditId,setOEditId] = useState(null)
   const [oForm,setOForm]     = useState(ORGA_EMPTY)
   const saveOrga = async () => {
     const payload = {...oForm}; delete payload.id
+    payload.plan = payload.plan||'free'
+    payload.plan_until = payload.plan_until||null
     const ownerName = (payload.owner_username||"").trim(); delete payload.owner_username
     if (ownerName) {
       const {data:prof} = await supabase.from('profiles').select('id').eq('username',ownerName).maybeSingle()
@@ -2370,6 +2442,13 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <input value={gForm.contact||""} onChange={e=>setGForm({...gForm,contact:e.target.value})} placeholder="Contact (ex: Zo Rav.)" style={inp}/>
                       </div>
                       <textarea value={gForm.note||""} onChange={e=>setGForm({...gForm,note:e.target.value})} placeholder="Description" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:10}}>
+                        <input value={gForm.owner_username||""} onChange={e=>setGForm({...gForm,owner_username:e.target.value})} placeholder="👤 Pseudo du membre propriétaire" style={inp}/>
+                        <select value={gForm.plan||"free"} onChange={e=>setGForm({...gForm,plan:e.target.value})} style={inp}>
+                          <option value="free">Gratuit — fiche simple</option>
+                          <option value="pro">⭐ PRO</option>
+                        </select>
+                      </div>
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={saveGastro} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
                         <button onClick={()=>setGEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
@@ -2382,7 +2461,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <p style={{fontSize:12,color:"#888",margin:0}}>{g.type} · {g.city||"ville ?"} · {g.region||"région ?"}{g.lat?" · 📍 sur la carte":""}</p>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>{setGEditId(g.id);setGForm({...g})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                        <button onClick={()=>{setGEditId(g.id);setGForm({...g,owner_username:"",plan:g.plan||"free"})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delGastro(g.id))}
                       </div>
                     </div>
@@ -2417,6 +2496,19 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <input value={oForm.contact||""} onChange={e=>setOForm({...oForm,contact:e.target.value})} placeholder="Contact public" style={inp}/>
                       </div>
                       <input value={oForm.owner_username||""} onChange={e=>setOForm({...oForm,owner_username:e.target.value})} placeholder="👤 Pseudo du membre propriétaire (pourra modifier sa fiche)" style={inp}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:10}}>
+                        <div>
+                          <label style={{fontSize:11,fontWeight:700,color:"#7a5c00",display:"block",marginBottom:4}}>⭐ Forfait</label>
+                          <select value={oForm.plan||"free"} onChange={e=>setOForm({...oForm,plan:e.target.value})} style={inp}>
+                            <option value="free">Gratuit — fiche simple</option>
+                            <option value="pro">PRO — peut publier des actus</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{fontSize:11,fontWeight:700,color:"#7a5c00",display:"block",marginBottom:4}}>Payé jusqu'au</label>
+                          <input type="date" value={oForm.plan_until||""} onChange={e=>setOForm({...oForm,plan_until:e.target.value})} style={inp}/>
+                        </div>
+                      </div>
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={saveOrga} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
                         <button onClick={()=>setOEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
@@ -2425,11 +2517,11 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name}</p>
+                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name} {o.plan==='pro' && <span style={{fontSize:10,fontWeight:800,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,padding:"2px 8px",borderRadius:99}}>⭐ PRO{o.plan_until?` → ${fmtShort(o.plan_until)}`:""}</span>}</p>
                         <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}{o.owner_id?" · ✓ propriétaire relié":""}</p>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                        <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:"",plan:o.plan||"free",plan_until:o.plan_until||""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delOrga(o.id))}
                       </div>
                     </div>
