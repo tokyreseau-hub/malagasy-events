@@ -5,6 +5,11 @@ const RED = "#C8102E", GREEN = "#007A3D", WHITE = "#FFFFFF"
 const ADMIN_PASSWORD = "malagasy2026"
 const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
+const adminSave = async promise => {
+  const {data,error} = await promise
+  if (error) { alert("⚠️ Changement local seulement — non sauvegardé en base (" + error.message + ").\nConnecte-toi avec le compte officiel Malagasy_events_admin pour que ce soit permanent."); return null }
+  return data
+}
 
 const AVATARS = [
   "https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=Lova&backgroundColor=b6e3f4&backgroundType=solid",
@@ -773,7 +778,7 @@ function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDel
 
 /* ── CommunityFeed ────────────────────────────────── */
 /* ── Feed Entraide global (onglet Communauté) ────── */
-function EntraideFeed({ user, onAuthRequired, onOpenEvent }) {
+function EntraideFeed({ user, onAuthRequired, onOpenEvent, events = initialEvents }) {
   const [items,setItems]             = useState([])
   const [unavailable,setUnavailable] = useState(false)
   const [loading,setLoading]         = useState(true)
@@ -788,11 +793,11 @@ function EntraideFeed({ user, onAuthRequired, onOpenEvent }) {
       if (retry.error) { setUnavailable(true); setLoading(false); return }
       data = retry.data
     }
-    setItems((data||[]).filter(r=>{ const ev=initialEvents.find(e=>e.id===r.event_id); return ev && !isPast(ev.date) }))
+    setItems((data||[]).filter(r=>{ const ev=events.find(e=>e.id===r.event_id); return ev && !isPast(ev.date) }))
     setLoading(false)
   }
 
-  const upcoming = initialEvents.filter(e=>!isPast(e.date)).sort((a,b)=>a.date.localeCompare(b.date))
+  const upcoming = events.filter(e=>!isPast(e.date)).sort((a,b)=>a.date.localeCompare(b.date))
   const shown = catFilter==="tous" ? items : items.filter(i=>i.category===catFilter)
 
   return (
@@ -834,7 +839,7 @@ function EntraideFeed({ user, onAuthRequired, onOpenEvent }) {
       ) : (
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {shown.map(r=>{
-            const ev = initialEvents.find(e=>e.id===r.event_id)
+            const ev = events.find(e=>e.id===r.event_id)
             const cat = ENTRAIDE_CATS[r.category]||ENTRAIDE_CATS.trajet
             return (
               <div key={r.id} onClick={()=>ev&&onOpenEvent(ev)} style={{background:WHITE,borderRadius:16,padding:"14px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",cursor:"pointer"}}>
@@ -856,7 +861,7 @@ function EntraideFeed({ user, onAuthRequired, onOpenEvent }) {
   )
 }
 
-function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfileClick, onOpenEvent }) {
+function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfileClick, onOpenEvent, events }) {
   const [posts,setPosts]         = useState([])
   const [content,setContent]     = useState("")
   const [imageUrl,setImageUrl]   = useState("")
@@ -933,7 +938,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
 
         {/* Onglet Entraide */}
         {feedMode==="entraide" && (
-          <EntraideFeed user={user} onAuthRequired={onAuthRequired} onOpenEvent={onOpenEvent}/>
+          <EntraideFeed user={user} onAuthRequired={onAuthRequired} onOpenEvent={onOpenEvent} events={events}/>
         )}
 
         {/* Onglet Membres */}
@@ -1253,20 +1258,20 @@ function GastroDetail({ g, isMobile, onClose }) {
   )
 }
 
-function GastroPage({ isMobile }) {
+function GastroPage({ isMobile, gastro = initialGastro }) {
   const [filter,setFilter] = useState("Tous")
   const [regionFilter,setRegionFilter] = useState("Toutes")
   const [selected,setSelected] = useState(null)
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const types = ["Tous","Restaurant","Traiteur","Food truck"]
-  const regions = ["Toutes",...[...new Set(initialGastro.map(g=>g.region).filter(Boolean))].sort(),"À localiser"]
-  const list = initialGastro.filter(g=>{
+  const regions = ["Toutes",...[...new Set(gastro.map(g=>g.region).filter(Boolean))].sort(),"À localiser"]
+  const list = gastro.filter(g=>{
     const typeOk   = filter==="Tous" || g.type===filter
     const regionOk = regionFilter==="Toutes" || (regionFilter==="À localiser" ? !g.region : g.region===regionFilter)
     return typeOk && regionOk
   })
-  const located = initialGastro.filter(g=>g.lat&&g.lng)
+  const located = gastro.filter(g=>g.lat&&g.lng)
 
   useEffect(()=>{
     if (!window.L || !mapRef.current || mapInstance.current) return
@@ -1284,7 +1289,7 @@ function GastroPage({ isMobile }) {
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
       <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>🍽️ Gastronomie malagasy</h2>
-      <p style={{color:"#666",fontSize:14,margin:"0 0 20px"}}>Restaurants, traiteurs et food trucks de la communauté — {initialGastro.length} adresses</p>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 20px"}}>Restaurants, traiteurs et food trucks de la communauté — {gastro.length} adresses</p>
 
       {/* Carte */}
       <div style={{position:"relative",borderRadius:20,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.08)",marginBottom:8}}>
@@ -1862,7 +1867,25 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
 }
 
 /* ── AdminPanel ───────────────────────────────────── */
-function AdminPanel({ events, setEvents, videos, setVideos, onClose }) {
+function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, onClose }) {
+  const GASTRO_EMPTY = {name:"",type:"Restaurant",region:"",city:"",address:"",phone:"",fb:"",insta:"",tiktok:"",contact:"",note:"",lat:null,lng:null}
+  const [gEditId,setGEditId] = useState(null)
+  const [gForm,setGForm]     = useState(GASTRO_EMPTY)
+  const saveGastro = async () => {
+    const payload = {...gForm}; delete payload.id
+    payload.lat = payload.lat===""||payload.lat===null?null:+payload.lat
+    payload.lng = payload.lng===""||payload.lng===null?null:+payload.lng
+    if (gEditId==="new") {
+      const {data,error} = await supabase.from('gastro').insert(payload).select().single()
+      if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setGastro(g=>[...g,{...payload,id:Date.now()}]) }
+      else setGastro(g=>[...g,data])
+    } else {
+      setGastro(g=>g.map(x=>x.id===gEditId?{...payload,id:gEditId}:x))
+      await adminSave(supabase.from('gastro').update(payload).eq('id',gEditId))
+    }
+    setGEditId(null)
+  }
+  const delGastro = async id => { setGastro(g=>g.filter(x=>x.id!==id)); await adminSave(supabase.from('gastro').delete().eq('id',id)) }
   const [tab,setTab]           = useState("dashboard")
   const [stats,setStats]       = useState({})
   const [users,setUsers]       = useState([])
@@ -1910,14 +1933,30 @@ function AdminPanel({ events, setEvents, videos, setVideos, onClose }) {
   const banUser   = async (id,banned) => { await supabase.from('profiles').update({is_banned:!banned}).eq('id',id); setUsers(u=>u.map(p=>p.id===id?{...p,is_banned:!banned}:p)) }
   const delPost   = async id => { await supabase.from('posts').delete().eq('id',id); setAllPosts(p=>p.filter(x=>x.id!==id)) }
   const delCmt    = async id => { await supabase.from('post_comments').delete().eq('id',id); setAllCmts(c=>c.filter(x=>x.id!==id)) }
-  const delEvent  = id => setEvents(e=>e.filter(x=>x.id!==id))
-  const delVideo  = id => setVideos(v=>v.filter(x=>x.id!==id))
-  const saveEvent = () => { setEvents(e=>e.map(x=>x.id===editId?{...editForm,id:editId}:x)); setEditId(null) }
-  const addVideo  = () => { setVideos(v=>[...v,{...vForm,id:Date.now()}]); setVForm({title:"",youtubeUrl:"",thumbnail:"",city:"",date:"",description:"",isTeaser:false,type:"aftermovie",views:0}); setShowVForm(false) }
+  const delEvent  = async id => { setEvents(e=>e.filter(x=>x.id!==id)); await adminSave(supabase.from('events').delete().eq('id',id)) }
+  const delVideo  = async id => { setVideos(v=>v.filter(x=>x.id!==id)); await adminSave(supabase.from('videos').delete().eq('id',id)) }
+  const saveEvent = async () => {
+    const payload = {...editForm}; delete payload.id
+    if (editId==="new") {
+      const {data,error} = await supabase.from('events').insert({...payload,createdAt:new Date().toISOString()}).select().single()
+      if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setEvents(e=>[...e,{...payload,id:Date.now()}]) }
+      else setEvents(e=>[...e,data])
+    } else {
+      setEvents(e=>e.map(x=>x.id===editId?{...editForm,id:editId}:x))
+      await adminSave(supabase.from('events').update(payload).eq('id',editId))
+    }
+    setEditId(null)
+  }
+  const addVideo  = async () => {
+    const {data,error} = await supabase.from('videos').insert(vForm).select().single()
+    if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setVideos(v=>[...v,{...vForm,id:Date.now()}]) }
+    else setVideos(v=>[...v,data])
+    setVForm({title:"",youtubeUrl:"",thumbnail:"",city:"",date:"",description:"",isTeaser:false,type:"aftermovie",views:0}); setShowVForm(false)
+  }
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -1989,6 +2028,29 @@ function AdminPanel({ events, setEvents, videos, setVideos, onClose }) {
           {/* ÉVÉNEMENTS */}
           {tab==="events" && (
             <div>
+              <button onClick={()=>{setEditId("new");setEditForm({...EMPTY_FORM})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter un événement</button>
+              {editId==="new" && (
+                <div style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",display:"flex",flexDirection:"column",gap:10}}>
+                  <input value={editForm.title||""} onChange={e=>setEditForm({...editForm,title:e.target.value})} placeholder="Titre *" style={inp}/>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <input type="date" value={editForm.date||""} onChange={e=>setEditForm({...editForm,date:e.target.value})} style={inp}/>
+                    <select value={editForm.category||"Soirée"} onChange={e=>setEditForm({...editForm,category:e.target.value})} style={inp}>
+                      {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input value={editForm.location||""} onChange={e=>setEditForm({...editForm,location:e.target.value})} placeholder="Lieu" style={inp}/>
+                    <input value={editForm.city||""} onChange={e=>setEditForm({...editForm,city:e.target.value})} placeholder="Ville" style={inp}/>
+                    <input value={editForm.price||""} onChange={e=>setEditForm({...editForm,price:e.target.value})} placeholder="Prix" style={inp}/>
+                    <input value={editForm.organizer||""} onChange={e=>setEditForm({...editForm,organizer:e.target.value})} placeholder="Organisateur" style={inp}/>
+                  </div>
+                  <input value={editForm.ticketUrl||""} onChange={e=>setEditForm({...editForm,ticketUrl:e.target.value})} placeholder="URL billetterie" style={inp}/>
+                  <input value={editForm.image||""} onChange={e=>setEditForm({...editForm,image:e.target.value})} placeholder="URL affiche/image" style={inp}/>
+                  <textarea value={editForm.description||""} onChange={e=>setEditForm({...editForm,description:e.target.value})} placeholder="Description" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={saveEvent} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Créer l'événement</button>
+                    <button onClick={()=>setEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+                  </div>
+                </div>
+              )}
               {events.map(ev=>(
                 <div key={ev.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
                   {editId===ev.id ? (
@@ -2020,6 +2082,55 @@ function AdminPanel({ events, setEvents, videos, setVideos, onClose }) {
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
                         <button onClick={()=>{setEditId(ev.id);setEditForm({...ev})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delEvent(ev.id))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* GASTRO */}
+          {tab==="gastro" && (
+            <div>
+              <button onClick={()=>{setGEditId("new");setGForm({...GASTRO_EMPTY})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter une adresse</button>
+              {(gEditId==="new"?[{id:"new"}]:[]).concat(gastro).map(g=>(
+                <div key={g.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+                  {gEditId===g.id ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <input value={gForm.name||""} onChange={e=>setGForm({...gForm,name:e.target.value})} placeholder="Nom *" style={inp}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <select value={gForm.type||"Restaurant"} onChange={e=>setGForm({...gForm,type:e.target.value})} style={inp}>
+                          {["Restaurant","Traiteur","Food truck"].map(t=><option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <input value={gForm.region||""} onChange={e=>setGForm({...gForm,region:e.target.value})} placeholder="Région (ex: Île-de-France)" style={inp}/>
+                        <input value={gForm.city||""} onChange={e=>setGForm({...gForm,city:e.target.value})} placeholder="Ville" style={inp}/>
+                        <input value={gForm.phone||""} onChange={e=>setGForm({...gForm,phone:e.target.value})} placeholder="Téléphone" style={inp}/>
+                        <input value={gForm.lat??""} onChange={e=>setGForm({...gForm,lat:e.target.value})} placeholder="Latitude (carte)" style={inp}/>
+                        <input value={gForm.lng??""} onChange={e=>setGForm({...gForm,lng:e.target.value})} placeholder="Longitude (carte)" style={inp}/>
+                      </div>
+                      <input value={gForm.address||""} onChange={e=>setGForm({...gForm,address:e.target.value})} placeholder="Adresse complète" style={inp}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <input value={gForm.fb||""} onChange={e=>setGForm({...gForm,fb:e.target.value})} placeholder="Lien Facebook" style={inp}/>
+                        <input value={gForm.insta||""} onChange={e=>setGForm({...gForm,insta:e.target.value})} placeholder="Lien Instagram" style={inp}/>
+                        <input value={gForm.tiktok||""} onChange={e=>setGForm({...gForm,tiktok:e.target.value})} placeholder="Lien TikTok" style={inp}/>
+                        <input value={gForm.contact||""} onChange={e=>setGForm({...gForm,contact:e.target.value})} placeholder="Contact (ex: Zo Rav.)" style={inp}/>
+                      </div>
+                      <textarea value={gForm.note||""} onChange={e=>setGForm({...gForm,note:e.target.value})} placeholder="Description" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={saveGastro} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
+                        <button onClick={()=>setGEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{g.name}</p>
+                        <p style={{fontSize:12,color:"#888",margin:0}}>{g.type} · {g.city||"ville ?"} · {g.region||"région ?"}{g.lat?" · 📍 sur la carte":""}</p>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>{setGEditId(g.id);setGForm({...g})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                        {delBtn(()=>delGastro(g.id))}
                       </div>
                     </div>
                   )}
@@ -2134,6 +2245,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, onClose }) {
 export default function App() {
   const [events,setEvents]             = useState(initialEvents)
   const [videos,setVideos]             = useState(initialVideos)
+  const [gastro,setGastro]             = useState(initialGastro)
   const [user,setUser]                 = useState(null)
   const [userProfile,setUserProfile]   = useState(null)
   const [showAuth,setShowAuth]         = useState(false)
@@ -2169,10 +2281,22 @@ export default function App() {
     supabase.auth.getSession().then(({data:{session}})=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id) })
     const {data:{subscription}} = supabase.auth.onAuthStateChange((_e,session)=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id); else setUserProfile(null) })
     fetchStats()
+    loadDb()
     return()=>subscription.unsubscribe()
   },[])
 
   useEffect(()=>{ if(user) fetchUnread() },[user])
+
+  const loadDb = async () => {
+    const [ev,ga,vi] = await Promise.all([
+      supabase.from('events').select('*'),
+      supabase.from('gastro').select('*').order('name'),
+      supabase.from('videos').select('*').order('id'),
+    ])
+    if (!ev.error && ev.data?.length) setEvents(ev.data)
+    if (!ga.error && ga.data?.length) setGastro(ga.data)
+    if (!vi.error && vi.data?.length) setVideos(vi.data)
+  }
 
   const fetchProfile = async id => {
     const {data} = await supabase.from('profiles').select('*').eq('id',id).single()
@@ -2213,15 +2337,21 @@ export default function App() {
   const upcoming = applyFilters(events.filter(e=>!isPast(e.date))).sort((a,b)=>new Date(a.date)-new Date(b.date))
   const past     = applyFilters(events.filter(e=>isPast(e.date))).sort((a,b)=>new Date(b.date)-new Date(a.date))
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault()
-    setEvents([...events,{...form,id:Date.now(),createdAt:new Date().toISOString()}])
+    const payload = {...form, createdAt:new Date().toISOString()}
+    delete payload.id
+    const {data,error} = await supabase.from('events').insert(payload).select().single()
+    if (error) {
+      alert("⚠️ Événement ajouté localement seulement (" + error.message + ").\nConnecte-toi avec le compte officiel pour le rendre permanent.")
+      setEvents([...events,{...payload,id:Date.now()}])
+    } else setEvents([...events,data])
     setForm(EMPTY_FORM); setMediaInput(""); setShowForm(false)
   }
 
   const addMedia = () => { if(mediaInput.trim()){setForm({...form,mediaUrls:[...(form.mediaUrls||[]),mediaInput.trim()]});setMediaInput("")} }
   const removeMedia = i => setForm({...form,mediaUrls:form.mediaUrls.filter((_,idx)=>idx!==i)})
-  const deleteEvent = id => setEvents(ev=>ev.filter(e=>e.id!==id))
+  const deleteEvent = async id => { setEvents(ev=>ev.filter(e=>e.id!==id)); await adminSave(supabase.from('events').delete().eq('id',id)) }
 
   const openMsg = (recipientId, recipientName) => { setMsgTarget({id:recipientId,name:recipientName}); setShowMessages(true) }
 
@@ -2352,7 +2482,7 @@ export default function App() {
       )}
 
       {page==="gastro" && (
-        <GastroPage isMobile={isMobile}/>
+        <GastroPage isMobile={isMobile} gastro={gastro}/>
       )}
 
       {page==="community" && (
@@ -2361,7 +2491,7 @@ export default function App() {
             <h2 style={{fontWeight:900,fontSize:isMobile?20:28,color:"#111",margin:"0 0 4px"}}>👥 Communauté Malagasy</h2>
             <p style={{fontSize:14,color:"#888",margin:"0 0 20px"}}>Échangez, partagez, et rencontrez d'autres membres 🇲🇬</p>
           </div>
-          <CommunityFeed user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})} onOpenEvent={ev=>setSelectedEvent(ev)}/>
+          <CommunityFeed user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})} onOpenEvent={ev=>setSelectedEvent(ev)} events={events}/>
         </div>
       )}
 
@@ -2410,7 +2540,7 @@ export default function App() {
               <div onClick={()=>setPage("gastro")} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"#fff3e0",border:"1.5px solid #ffd699",borderRadius:16,padding:"14px 18px",marginBottom:16,cursor:"pointer"}}>
                 <div>
                   <p style={{fontWeight:800,fontSize:14,color:"#e65100",margin:"0 0 2px"}}>🍽️ Tu cherches où manger malagasy ?</p>
-                  <p style={{fontSize:13,color:"#a15a1a",margin:0}}>Découvre notre annuaire : {initialGastro.length} restaurants, traiteurs et food trucks partout en France.</p>
+                  <p style={{fontSize:13,color:"#a15a1a",margin:0}}>Découvre notre annuaire : {gastro.length} restaurants, traiteurs et food trucks partout en France.</p>
                 </div>
                 <span style={{background:"#e65100",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,whiteSpace:"nowrap"}}>Voir l'annuaire →</span>
               </div>
@@ -2491,7 +2621,7 @@ export default function App() {
         />
       )}
 
-      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} onClose={()=>setShowAdmin(false)}/>}
+      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} onClose={()=>setShowAdmin(false)}/>}
 
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
