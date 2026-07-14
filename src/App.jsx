@@ -2369,7 +2369,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
       const {data} = await supabase.from('email_reminders').select('*').order('created_at',{ascending:false}).limit(200)
       setReminders(data||[])
     } else if (t==="revenus") {
-      const {data} = await supabase.from('profiles').select('id,username,email,is_member,created_at').eq('is_member',true).order('created_at',{ascending:false})
+      const {data} = await supabase.from('profiles').select('id,username,email,plan,is_member,created_at').order('created_at',{ascending:false}).limit(500)
       setUsers(data||[])
     } else if (t==="submissions") {
       const {data} = await supabase.from('event_submissions').select('*').order('created_at',{ascending:false}).limit(200)
@@ -2383,6 +2383,11 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     }
   }
 
+  const setUserPlan = async (id,plan) => {
+    setUsers(list=>list.map(u=>u.id===id?{...u,plan}:u))
+    const {error} = await supabase.from('profiles').update({plan}).eq('id',id)
+    if (error) alert("⚠️ "+error.message)
+  }
   const saveBanner = async () => {
     await supabase.from('site_settings').upsert({key:'banner',value:bannerText,updated_at:new Date().toISOString()})
     setBannerSaved(true); setTimeout(()=>setBannerSaved(false),2000)
@@ -2499,34 +2504,39 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
           {/* FORFAITS & REVENUS */}
           {tab==="revenus" && (() => {
-            const proOrgas = orgas.filter(o=>o.plan==='pro')
-            const today = new Date().toISOString().slice(0,10)
-            const proActifs = proOrgas.filter(o=>!o.plan_until||o.plan_until>=today)
-            const expBientot = proOrgas.filter(o=>o.plan_until&&o.plan_until>=today).sort((a,b)=>(a.plan_until||"").localeCompare(b.plan_until||"")).slice(0,8)
-            const membres = users
-            const revMembres = membres.length*2.5
+            const PLANS = [
+              {id:"free",l:"Gratuit",emoji:"○",bg:"#f0f0f0",color:"#888"},
+              {id:"organisateur",l:"Organisateur",emoji:"🎪",bg:"#fde8ec",color:RED},
+              {id:"pro",l:"Pro",emoji:"⭐",bg:"#faf6ec",color:"#b8860b"},
+            ]
+            const cnt = p => users.filter(u=>(u.plan||'free')===p).length
+            const list = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
             return (
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:16,marginBottom:24}}>
-                  <StatCard n={proActifs.length} l="Orgas PRO actifs" emoji="⭐"/>
-                  <StatCard n={membres.length} l="Membres payants" emoji="💚"/>
-                  <StatCard n={`${revMembres.toFixed(2)}€`} l="Revenu membres / mois" emoji="💰"/>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:16,marginBottom:20}}>
+                  <StatCard n={cnt('pro')} l="Membres Pro" emoji="⭐"/>
+                  <StatCard n={cnt('organisateur')} l="Organisateurs" emoji="🎪"/>
+                  <StatCard n={cnt('free')} l="Comptes gratuits" emoji="○"/>
                 </div>
-                <h3 style={{fontSize:15,fontWeight:800,margin:"0 0 10px"}}>⏳ Forfaits PRO qui expirent bientôt</h3>
-                {expBientot.length===0 ? <p style={{fontSize:13,color:"#999"}}>Aucun forfait daté à surveiller.</p> : expBientot.map(o=>(
-                  <div key={o.id} style={row}>
-                    <div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:13,margin:0}}>{o.name}</p><p style={{fontSize:11,color:"#bbb",margin:0}}>{o.type} · {o.city||"?"}</p></div>
-                    <span style={{fontSize:12,fontWeight:700,color:o.plan_until<today?RED:"#b8860b",flexShrink:0}}>→ {fmtShort(o.plan_until)}</span>
+                <p style={{fontSize:12,color:"#999",margin:"0 0 10px"}}>Attribue un pack à chaque membre. Le changement est immédiat et sécurisé (seul toi peux le faire).</p>
+                <input value={userSearch} onChange={e=>setUserSearch(e.target.value)} placeholder="Chercher un membre (pseudo ou email)..." style={{...inp,marginBottom:14,maxWidth:400}}/>
+                <p style={{fontSize:12,color:"#bbb",marginBottom:8}}>{list.length} membre(s)</p>
+                {list.map(u=>(
+                  <div key={u.id} style={{...row,flexWrap:"wrap",gap:10}}>
+                    <div style={{width:34,height:34,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:13,flexShrink:0}}>{(u.username||"?")[0].toUpperCase()}</div>
+                    <div style={{flex:1,minWidth:120}}>
+                      <p style={{fontWeight:700,fontSize:13,margin:0}}>{u.username||"—"}</p>
+                      <p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email}</p>
+                    </div>
+                    <div style={{display:"flex",gap:4,flexShrink:0,background:"#f6f6f6",borderRadius:99,padding:3}}>
+                      {PLANS.map(p=>{
+                        const active=(u.plan||'free')===p.id
+                        return <button key={p.id} onClick={()=>setUserPlan(u.id,p.id)} style={{background:active?p.color:"transparent",color:active?WHITE:"#888",fontWeight:700,fontSize:11.5,padding:"6px 12px",borderRadius:99,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{p.emoji} {p.l}</button>
+                      })}
+                    </div>
                   </div>
                 ))}
-                <h3 style={{fontSize:15,fontWeight:800,margin:"24px 0 10px"}}>💚 Membres payants ({membres.length})</h3>
-                {membres.map(u=>(
-                  <div key={u.id} style={row}>
-                    <div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:13,margin:0}}>{u.username||"—"}</p><p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email}</p></div>
-                    <span style={{fontSize:11,color:"#bbb",flexShrink:0}}>depuis {(u.created_at||"").slice(0,10)}</span>
-                  </div>
-                ))}
-                <p style={{fontSize:11,color:"#ccc",marginTop:16}}>💡 Les forfaits PRO des orgas s'activent dans l'onglet 🎪 Orgas. Le revenu total dépend aussi du prix que tu fixes pour le PRO.</p>
+                <p style={{fontSize:11,color:"#ccc",marginTop:16}}>💡 Les forfaits PRO liés aux <b>fiches organisateurs</b> (avec date d'expiration) se gèrent séparément dans l'onglet 🎪 Orgas. Ici, c'est le pack rattaché au <b>compte membre</b>.</p>
               </div>
             )
           })()}
@@ -3284,18 +3294,41 @@ export default function App() {
                 <span style={{background:"#e65100",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,whiteSpace:"nowrap"}}>Voir l'annuaire →</span>
               </div>
             )}
-            {upcoming.length===0 ? (
-              <div style={{textAlign:"center",padding:"48px 24px",background:WHITE,borderRadius:20,color:"#bbb"}}>
-                <p style={{fontSize:32,margin:"0 0 8px"}}>🌺</p>
-                <p style={{fontWeight:700}}>Aucun événement à venir pour ces filtres</p>
-              </div>
-            ) : (
-              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
-                {upcoming.map(ev=>(
-                  <EventCard key={ev.id} event={ev} onSelect={setSelectedEvent} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin} onDelete={deleteEvent}/>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const featured = upcoming.filter(e=>e.featured)
+              const rest = upcoming.filter(e=>!e.featured)
+              if (upcoming.length===0) return (
+                <div style={{textAlign:"center",padding:"48px 24px",background:WHITE,borderRadius:20,color:"#bbb"}}>
+                  <p style={{fontSize:32,margin:"0 0 8px"}}>🌺</p>
+                  <p style={{fontWeight:700}}>Aucun événement à venir pour ces filtres</p>
+                </div>
+              )
+              return (<>
+                {featured.length>0 && (
+                  <div style={{marginBottom:24}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                      <span style={{fontSize:16}}>⭐</span>
+                      <h3 style={{fontWeight:800,fontSize:16,color:"#b8860b",margin:0}}>À la une</h3>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
+                      {featured.map(ev=>(
+                        <div key={ev.id} style={{position:"relative",borderRadius:18,padding:3,background:"linear-gradient(135deg,#e6b31e,#b8860b)"}}>
+                          <span style={{position:"absolute",top:10,left:10,zIndex:2,background:"#b8860b",color:WHITE,fontSize:10,fontWeight:800,padding:"3px 10px",borderRadius:99}}>⭐ À LA UNE</span>
+                          <EventCard event={ev} onSelect={setSelectedEvent} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin} onDelete={deleteEvent}/>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {rest.length>0 && (
+                  <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
+                    {rest.map(ev=>(
+                      <EventCard key={ev.id} event={ev} onSelect={setSelectedEvent} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin} onDelete={deleteEvent}/>
+                    ))}
+                  </div>
+                )}
+              </>)
+            })()}
           </div>
 
           {/* EVENTS PASSÉS */}
