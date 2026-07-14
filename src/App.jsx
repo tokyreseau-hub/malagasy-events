@@ -1085,9 +1085,11 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
 
   const fetchMembers = async () => {
     setMembersLoading(true)
-    const {data,error} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at').order('created_at',{ascending:false}).limit(500)
+    // select('*') = ne casse jamais si une colonne (created_at, email…) n'existe pas
+    const {data,error} = await supabase.from('profiles').select('*').limit(500)
     if (error) console.error("Lecture des membres impossible :", error.message)
-    setMembers(data||[]); setMembersLoading(false)
+    const sorted = (data||[]).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))
+    setMembers(sorted); setMembersLoading(false)
   }
 
   const norm = s => (s||"").toLowerCase().replace(/[_\s]+/g," ").trim()
@@ -2374,8 +2376,9 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
       const {data} = await supabase.from('email_reminders').select('*').order('created_at',{ascending:false}).limit(200)
       setReminders(data||[])
     } else if (t==="revenus") {
-      const {data} = await supabase.from('profiles').select('id,username,email,plan,is_member,created_at').order('created_at',{ascending:false}).limit(500)
-      setUsers(data||[])
+      const {data,error} = await supabase.from('profiles').select('*').limit(500)
+      if (error) console.error("Lecture des profils (forfaits) :", error.message)
+      setUsers((data||[]).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))))
     } else if (t==="submissions") {
       const {data} = await supabase.from('event_submissions').select('*').order('created_at',{ascending:false}).limit(200)
       setSubmissions(data||[])
@@ -2426,8 +2429,8 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     await adminSave(supabase.from('events').update({featured:val}).eq('id',ev.id))
   }
   const exportMembersCsv = () => {
-    supabase.from('profiles').select('username,email,code_postal,is_member,created_at').order('created_at',{ascending:false}).then(({data})=>{
-      const rows = [["pseudo","email","code_postal","membre","inscrit_le"], ...(data||[]).map(u=>[u.username||"",u.email||"",u.code_postal||"",u.is_member?"oui":"non",(u.created_at||"").slice(0,10)])]
+    supabase.from('profiles').select('*').limit(1000).then(({data})=>{
+      const rows = [["pseudo","email","code_postal","pack","membre","inscrit_le"], ...(data||[]).map(u=>[u.username||"",u.email||"",u.code_postal||"",u.plan||"free",u.is_member?"oui":"non",(u.created_at||"").slice(0,10)])]
       const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n")
       const url = URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}))
       const a=document.createElement("a"); a.href=url; a.download="membres-malagasy-events.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000)
