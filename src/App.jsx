@@ -41,12 +41,13 @@ const safeUrl = u => {
   return "https://" + s // sans schéma → on force https
 }
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
-const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", community:"/communaute"}
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", eglises:"/eglises", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
   aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
   gastro:     ["Restaurants & traiteurs malgaches en France — Malagasy Events","L'annuaire de la gastronomie malagasy en France : restaurants, traiteurs et food trucks, avec carte, adresses et contacts."],
   orgas:      ["Organisateurs & associations malagasy en France — Malagasy Events","Annuaire des associations sportives et culturelles, organisateurs de soirées, médias et groupes de la communauté malagasy en France."],
+  eglises:    ["Églises malagasy en France — Malagasy Events","Annuaire des paroisses et communautés chrétiennes malagasy en France : FJKM, FLM, FPMA, catholiques. Paris, Meaux, Rennes, Orléans et plus."],
   community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
 }
 const setMeta = (title, desc) => {
@@ -1364,13 +1365,22 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
   },[user, selectedUserId])
 
   const fetchConvList = async () => {
-    const {data} = await supabase.from('messages').select('sender_id,recipient_id,created_at').or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order('created_at',{ascending:false})
+    const {data} = await supabase.from('messages').select('sender_id,recipient_id,created_at,read,content').or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order('created_at',{ascending:false})
     if (!data) return
-    const seen=new Set(); const uniq=[]
-    data.forEach(m=>{ const other=m.sender_id===user.id?m.recipient_id:m.sender_id; if(!seen.has(other)){seen.add(other);uniq.push(other)} })
+    const seen=new Set(); const uniq=[]; const unread={}; const last={}
+    data.forEach(m=>{
+      const other = m.sender_id===user.id?m.recipient_id:m.sender_id
+      if (!seen.has(other)) { seen.add(other); uniq.push(other); last[other]=m }
+      if (m.recipient_id===user.id && !m.read) unread[other]=true // message reçu non lu
+    })
     if (uniq.length===0) { setConvList([]); return }
     const {data:profiles} = await supabase.from('profiles').select('id,username,avatar_url').in('id',uniq)
-    setConvList(profiles||[])
+    // ordonné par dernier message, avec drapeau "non lu" et aperçu
+    const ordered = uniq.map(id=>{
+      const p=(profiles||[]).find(x=>x.id===id)||{id,username:"?"}
+      return {...p, unread:!!unread[id], preview:last[id]?.content||"", incoming:last[id]?.sender_id===id}
+    })
+    setConvList(ordered)
   }
 
   const fetchMsgs = async () => {
@@ -1378,6 +1388,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
     setMsgs(data||[])
     // mark as read
     await supabase.from('messages').update({read:true}).eq('recipient_id',user.id).eq('sender_id',selectedUserId)
+    fetchConvList() // rafraîchit les gras "non lu"
   }
 
   const send = async e => {
@@ -1422,9 +1433,15 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {convList.map(c=>(
-                <div key={c.id} onClick={()=>selectUser(c.id,c.username)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px",cursor:"pointer",background:selectedUserId===c.id?"#fde8ec":"transparent",borderBottom:"1px solid #f5f5f5"}}>
-                  <div style={{width:38,height:38,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,flexShrink:0}}>{(c.username||"?")[0].toUpperCase()}</div>
-                  <span style={{fontSize:13,fontWeight:600,color:selectedUserId===c.id?RED:"#333"}}>{c.username}</span>
+                <div key={c.id} onClick={()=>selectUser(c.id,c.username)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px",cursor:"pointer",background:selectedUserId===c.id?"#fde8ec":c.unread?"#fff8f9":"transparent",borderBottom:"1px solid #f5f5f5"}}>
+                  <div style={{position:"relative",flexShrink:0}}>
+                    <div style={{width:38,height:38,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800}}>{(c.username||"?")[0].toUpperCase()}</div>
+                    {c.unread && <span style={{position:"absolute",top:-1,right:-1,width:11,height:11,borderRadius:"50%",background:GREEN,border:"2px solid #fff"}}/>}
+                  </div>
+                  <div style={{minWidth:0,flex:1}}>
+                    <span style={{fontSize:13,fontWeight:c.unread?800:600,color:c.unread?"#111":(selectedUserId===c.id?RED:"#333")}}>{c.username}</span>
+                    {c.preview && <p style={{fontSize:11,margin:"2px 0 0",color:c.unread?"#444":"#aaa",fontWeight:c.unread?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.incoming?"":"Toi : "}{c.preview}</p>}
+                  </div>
                 </div>
               ))}
               {convList.length===0 && !search && (
@@ -1643,11 +1660,114 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
   )
 }
 
+const LIEUX_META = {
+  eglise:   {emoji:"⛪", title:"Églises malagasy", sub:"Paroisses et communautés chrétiennes malagasy en France"},
+  boutique: {emoji:"🛍️", title:"Boutiques malagasy", sub:"Produits et épiceries malagasy en France"},
+  artisanat:{emoji:"🧵", title:"Artisanat malagasy", sub:"Créateurs et artisans malagasy en France"},
+}
+function LieuxPage({ isMobile, category, lieux }) {
+  const meta = LIEUX_META[category]||LIEUX_META.eglise
+  const items = lieux.filter(l=>l.category===category)
+  const [q,setQ] = useState("")
+  const [denom,setDenom] = useState("Tous")
+  const [selected,setSelected] = useState(null)
+  const denoms = ["Tous",...[...new Set(items.map(l=>l.denom).filter(Boolean))].sort()]
+  const nq = q.trim().toLowerCase()
+  const list = items.filter(l=>{
+    const dOk = denom==="Tous" || l.denom===denom
+    const qOk = !nq || [l.name,l.city,l.address,l.note].some(v=>(v||"").toLowerCase().includes(nq))
+    return dOk && qOk
+  }).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0))
+  const initials = nm => nm.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
+      <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>{meta.emoji} {meta.title}</h2>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 16px"}}>{meta.sub} — {items.length} référencé{items.length>1?"s":""}</p>
+
+      {items.length===0 ? (
+        <div style={{textAlign:"center",padding:"48px 24px",background:WHITE,borderRadius:20,color:"#999"}}>
+          <p style={{fontSize:32,margin:"0 0 8px"}}>{meta.emoji}</p>
+          <p style={{fontWeight:700,margin:0}}>Bientôt disponible</p>
+          <p style={{fontSize:13,margin:"4px 0 0"}}>Cet annuaire se remplit petit à petit.</p>
+        </div>
+      ) : (<>
+        <div style={{position:"relative",marginBottom:14}}>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"#aaa"}}>🔍</span>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder={`Rechercher par nom ou ville...`} style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
+        </div>
+        {denoms.length>2 && (
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+            {denoms.map(d=>(
+              <button key={d} onClick={()=>setDenom(d)} style={{background:denom===d?RED:WHITE,color:denom===d?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:denom===d?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{d}</button>
+            ))}
+          </div>
+        )}
+        {list.length===0 && <p style={{color:"#bbb",fontSize:13,textAlign:"center",padding:"30px 0"}}>Aucun résultat pour « {q} »</p>}
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
+          {list.map(l=>(
+            <div key={l.id} onClick={()=>setSelected(l)} style={{background:WHITE,borderRadius:16,boxShadow:l.featured?"0 2px 14px rgba(184,134,11,0.25)":"0 2px 10px rgba(0,0,0,0.06)",border:l.featured?"1.5px solid #e6b31e":"none",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+              {l.featured && <span style={{alignSelf:"flex-start",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:99}}>⭐ À LA UNE</span>}
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:44,height:44,borderRadius:"50%",background:"#eef4fc",color:"#185FA5",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(l.name)}</div>
+                <div style={{minWidth:0}}>
+                  <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.name}</p>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                    {l.denom && <span style={{background:"#eef4fc",color:"#185FA5",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{l.denom}</span>}
+                    {l.city && <span style={{fontSize:12,color:"#888"}}>📍 {l.city}</span>}
+                  </div>
+                </div>
+              </div>
+              {l.note && <p style={{fontSize:12,color:"#777",margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{l.note}</p>}
+              {l.followers && <span style={{fontSize:12,color:"#999",fontWeight:600,marginTop:"auto"}}>👥 {l.followers}</span>}
+            </div>
+          ))}
+        </div>
+      </>)}
+
+      {selected && (
+        <div onClick={e=>e.target===e.currentTarget&&setSelected(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:80,overflowY:"auto",padding:16}}>
+          <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:520,margin:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+            <div style={{position:"relative",height:isMobile?130:150,background:`linear-gradient(135deg, ${RED} 0%, #6e0a16 55%, ${GREEN} 140%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+              <button onClick={()=>setSelected(null)} style={{position:"absolute",top:14,right:14,background:"rgba(0,0,0,0.4)",color:WHITE,fontWeight:800,fontSize:20,width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer"}}>×</button>
+              <div style={{width:60,height:60,borderRadius:"50%",background:WHITE,color:"#185FA5",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:20}}>{initials(selected.name)}</div>
+              <span style={{color:"rgba(255,255,255,0.9)",fontWeight:800,fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>{meta.emoji} {meta.title}</span>
+            </div>
+            <div style={{padding:isMobile?"18px 20px 24px":"22px 28px 30px"}}>
+              <h2 style={{fontWeight:800,fontSize:20,color:"#111",margin:"0 0 8px"}}>{selected.name}</h2>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
+                {selected.denom && <span style={{background:"#eef4fc",color:"#185FA5",fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{selected.denom}</span>}
+                {selected.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {selected.city}</span>}
+                {selected.followers && <span style={{fontSize:13,color:"#999"}}>👥 {selected.followers}</span>}
+              </div>
+              {selected.address && <div style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",fontWeight:600,marginBottom:12}}>📍 {selected.address}</div>}
+              {selected.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{selected.note}</p>}
+              {selected.contact && <div style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",fontWeight:600,marginBottom:12}}>📞 {selected.contact}</div>}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {selected.fb && <a href={safeUrl(selected.fb)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
+                {selected.insta && <a href={safeUrl(selected.insta)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
+                {selected.site && <a href={safeUrl(selected.site)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:GREEN,color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>🌐 Site web</a>}
+              </div>
+              <p style={{fontSize:12,color:"#aaa",margin:"16px 0 0",textAlign:"center"}}>C'est votre {category==="eglise"?"paroisse":"structure"} ? Contactez-nous pour compléter cette fiche.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated }) {
   const [filter,setFilter] = useState("Tous")
+  const [q,setQ] = useState("")
   const [selected,setSelected] = useState(null)
   const types = ["Tous",...Object.keys(ORGA_COLORS)]
-  const base = filter==="Tous" ? orgas : orgas.filter(o=>o.type===filter)
+  const nq = q.trim().toLowerCase()
+  const base = orgas.filter(o=>{
+    const typeOk = filter==="Tous" || o.type===filter
+    const qOk = !nq || [o.name,o.city,o.region,o.note].some(v=>(v||"").toLowerCase().includes(nq))
+    return typeOk && qOk
+  })
   // Épinglés puis fiches Pro en tête de l'annuaire
   const today = new Date().toISOString().slice(0,10)
   const isProOrga = o => o.plan==='pro' && (!o.plan_until||o.plan_until>=today)
@@ -1658,7 +1778,12 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
       <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>🎪 Organisateurs & associations</h2>
-      <p style={{color:"#666",fontSize:14,margin:"0 0 20px"}}>Les acteurs de la communauté malagasy en France — {orgas.length} structures</p>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 16px"}}>Les acteurs de la communauté malagasy en France — {orgas.length} structures</p>
+
+      <div style={{position:"relative",marginBottom:14}}>
+        <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"#aaa"}}>🔍</span>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un organisateur, une association, une ville..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
+      </div>
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
         {types.map(t=>(
@@ -1667,6 +1792,7 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
           </button>
         ))}
       </div>
+      {list.length===0 && <p style={{color:"#bbb",fontSize:13,textAlign:"center",padding:"30px 0"}}>Aucun résultat pour « {q} »</p>}
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
         {list.map(o=>{
@@ -2409,7 +2535,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
 }
 
 /* ── AdminPanel ───────────────────────────────────── */
-function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, orgas, setOrgas, onClose }) {
+function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, orgas, setOrgas, lieux, setLieux, onClose }) {
   const GASTRO_EMPTY = {name:"",type:"Restaurant",region:"",city:"",address:"",phone:"",fb:"",insta:"",tiktok:"",contact:"",note:"",lat:null,lng:null,owner_username:"",plan:"free"}
   const [gEditId,setGEditId] = useState(null)
   const [gForm,setGForm]     = useState(GASTRO_EMPTY)
@@ -2459,6 +2585,22 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     setOEditId(null)
   }
   const delOrga = async id => { setOrgas(o=>o.filter(x=>x.id!==id)); await adminSave(supabase.from('organisateurs').delete().eq('id',id)) }
+  const LIEU_EMPTY = {category:"eglise",name:"",denom:"",city:"",address:"",followers:"",note:"",fb:"",insta:"",site:"",contact:""}
+  const [lEditId,setLEditId] = useState(null)
+  const [lForm,setLForm]     = useState(LIEU_EMPTY)
+  const saveLieu = async () => {
+    const payload = {...lForm}; delete payload.id
+    if (lEditId==="new") {
+      const {data,error} = await supabase.from('lieux').insert(payload).select().single()
+      if (error) { alert("⚠️ Ajout local seulement ("+error.message+")"); setLieux(l=>[...l,{...payload,id:Date.now()}]) }
+      else setLieux(l=>[...l,data])
+    } else {
+      setLieux(l=>l.map(x=>x.id===lEditId?{...x,...payload,id:lEditId}:x))
+      await adminSave(supabase.from('lieux').update(payload).eq('id',lEditId))
+    }
+    setLEditId(null)
+  }
+  const delLieu = async id => { setLieux(l=>l.filter(x=>x.id!==id)); await adminSave(supabase.from('lieux').delete().eq('id',id)) }
   const [tab,setTab]           = useState("dashboard")
   const [stats,setStats]       = useState({})
   const [users,setUsers]       = useState([])
@@ -2607,7 +2749,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -2990,6 +3132,58 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
             </div>
           )}
 
+          {/* LIEUX (Églises · Boutiques · Artisanat) */}
+          {tab==="lieux" && (
+            <div>
+              <button onClick={()=>{setLEditId("new");setLForm({...LIEU_EMPTY})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter un lieu</button>
+              {(lEditId==="new"?[{id:"new"}]:[]).concat(lieux).map(l=>(
+                <div key={l.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+                  {lEditId===l.id ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <select value={lForm.category||"eglise"} onChange={e=>setLForm({...lForm,category:e.target.value})} style={inp}>
+                          <option value="eglise">⛪ Église</option>
+                          <option value="boutique">🛍️ Boutique</option>
+                          <option value="artisanat">🧵 Artisanat</option>
+                        </select>
+                        <input value={lForm.denom||""} onChange={e=>setLForm({...lForm,denom:e.target.value})} placeholder="Sous-type (FJKM, épicerie…)" style={inp}/>
+                      </div>
+                      <input value={lForm.name||""} onChange={e=>setLForm({...lForm,name:e.target.value})} placeholder="Nom *" style={inp}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <input value={lForm.city||""} onChange={e=>setLForm({...lForm,city:e.target.value})} placeholder="Ville / zone" style={inp}/>
+                        <input value={lForm.followers||""} onChange={e=>setLForm({...lForm,followers:e.target.value})} placeholder="Abonnés" style={inp}/>
+                      </div>
+                      <input value={lForm.address||""} onChange={e=>setLForm({...lForm,address:e.target.value})} placeholder="Adresse" style={inp}/>
+                      <textarea value={lForm.note||""} onChange={e=>setLForm({...lForm,note:e.target.value})} placeholder="Description" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <input value={lForm.fb||""} onChange={e=>setLForm({...lForm,fb:e.target.value})} placeholder="Facebook" style={inp}/>
+                        <input value={lForm.insta||""} onChange={e=>setLForm({...lForm,insta:e.target.value})} placeholder="Instagram" style={inp}/>
+                        <input value={lForm.site||""} onChange={e=>setLForm({...lForm,site:e.target.value})} placeholder="Site web" style={inp}/>
+                        <input value={lForm.contact||""} onChange={e=>setLForm({...lForm,contact:e.target.value})} placeholder="Contact public" style={inp}/>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={saveLieu} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
+                        <button onClick={()=>setLEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{l.category==="eglise"?"⛪":l.category==="boutique"?"🛍️":"🧵"} {l.name}</p>
+                        <p style={{fontSize:12,color:"#888",margin:0}}>{l.denom||"—"} · {l.city||"?"}</p>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        {pinBtn({active:l.featured,onClick:()=>togglePin('lieux',l,setLieux)})}
+                        <button onClick={()=>{setLEditId(l.id);setLForm({...l})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                        {delBtn(()=>delLieu(l.id))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* POSTS */}
           {tab==="posts" && (
             <div>
@@ -3099,6 +3293,7 @@ export default function App() {
   const [videos,setVideos]             = useState(initialVideos)
   const [gastro,setGastro]             = useState(initialGastro)
   const [orgas,setOrgas]               = useState(initialOrgas)
+  const [lieux,setLieux]               = useState([])
   const [user,setUser]                 = useState(null)
   const [userProfile,setUserProfile]   = useState(null)
   const [showAuth,setShowAuth]         = useState(false)
@@ -3170,6 +3365,15 @@ export default function App() {
     } else setJsonLd("ld-event", null)
   },[selectedEvent])
 
+  useEffect(()=>{ // Données structurées Organisation + Site (une fois)
+    setJsonLd("ld-org", {"@context":"https://schema.org","@type":"Organization",
+      name:"Malagasy Events", url:SITE_URL, logo:SITE_URL+"/og-image.png",
+      description:"L'agenda des événements de la communauté malagasy en France."})
+    setJsonLd("ld-website", {"@context":"https://schema.org","@type":"WebSite",
+      name:"Malagasy Events", url:SITE_URL,
+      potentialAction:{"@type":"SearchAction", target:SITE_URL+"/?q={search_term_string}", "query-input":"required name=search_term_string"}})
+  },[])
+
   useEffect(()=>{ // JSON-LD listes (événements à venir + annuaire gastro)
     const upcomingLd = events.filter(e=>!isPast(e.date))
     setJsonLd("ld-events", upcomingLd.length ? {"@context":"https://schema.org","@type":"ItemList",
@@ -3206,6 +3410,8 @@ export default function App() {
     if (!vi.error && vi.data?.length) setVideos(vi.data)
     const bn = await supabase.from('site_settings').select('value').eq('key','banner').maybeSingle()
     if (bn.data?.value) setBanner(bn.data.value)
+    const lx = await supabase.from('lieux').select('*').order('id')
+    if (!lx.error && lx.data) setLieux(lx.data)
   }
 
   const fetchProfile = async id => {
@@ -3279,6 +3485,7 @@ export default function App() {
     ...(user ? [{key:"aftermovies",label:"🎬 After-movies"}] : []),
     {key:"gastro",label:"🍽️ Gastronomie"},
     {key:"orgas",label:"🎪 Organisateurs"},
+    {key:"eglises",label:"⛪ Églises"},
     ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
   ]
 
@@ -3364,29 +3571,23 @@ export default function App() {
 
       {/* ── ONBOARDING BANNER ── */}
       {showOnboarding && page==="home" && (
-        <div style={{background:"linear-gradient(135deg,#007A3D,#00a351)",padding:isMobile?"20px 16px":"28px 24px"}}>
-          <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:16}}>
-            <div>
-              <h2 style={{color:WHITE,fontWeight:900,fontSize:isMobile?18:24,margin:"0 0 6px"}}>🇲🇬 Bienvenue sur Malagasy Events !</h2>
-              <p style={{color:"rgba(255,255,255,0.85)",fontSize:14,margin:"0 0 12px"}}>La plateforme qui recense tous les événements malagasy en France — soirées, culture, gastronomie, sport et plus encore.</p>
-              <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13}}>✅ Gratuit & sans inscription</span>
-                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13}}>📅 Events vérifiés</span>
-                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13}}>📤 Partageable en 1 clic</span>
-              </div>
+        <div style={{position:"relative",background:`linear-gradient(135deg, ${RED} 0%, #8f0e22 45%, ${GREEN} 130%)`,padding:isMobile?"26px 18px 28px":"40px 24px"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:4,display:"flex"}}>
+            <div style={{flex:1,background:WHITE}}/><div style={{flex:1,background:RED}}/><div style={{flex:1,background:GREEN}}/>
+          </div>
+          <button onClick={dismissOnboarding} aria-label="Fermer" style={{position:"absolute",top:12,right:14,background:"rgba(255,255,255,0.18)",color:WHITE,fontWeight:800,fontSize:16,width:30,height:30,borderRadius:"50%",border:"none",cursor:"pointer"}}>×</button>
+          <div style={{maxWidth:820,margin:"0 auto",textAlign:"center"}}>
+            <span style={{color:"rgba(255,255,255,0.85)",fontWeight:800,fontSize:11,letterSpacing:2.5,textTransform:"uppercase"}}>🇲🇬 La communauté malagasy de France</span>
+            <h2 style={{color:WHITE,fontWeight:900,fontSize:isMobile?24:36,lineHeight:1.15,margin:"10px 0 10px"}}>Tous les bons plans malagasy,<br/>au même endroit.</h2>
+            <p style={{color:"rgba(255,255,255,0.9)",fontSize:isMobile?14:16,margin:"0 auto 18px",maxWidth:560,lineHeight:1.5}}>Soirées, concerts, restos, tournois, entraide… Ne rate plus jamais un événement de la diaspora. Trouve, partage, retrouve les tiens.</p>
+            <div style={{display:"flex",gap:isMobile?8:12,flexWrap:"wrap",justifyContent:"center",marginBottom:22}}>
+              {["✅ 100% gratuit","📅 Events vérifiés","📤 Partage en 1 clic","🤝 Une vraie communauté"].map(t=>(
+                <span key={t} style={{background:"rgba(255,255,255,0.15)",color:WHITE,fontSize:12.5,fontWeight:600,padding:"6px 14px",borderRadius:99}}>{t}</span>
+              ))}
             </div>
-            <div style={{display:"flex",gap:12,alignItems:"center"}}>
-              <div style={{textAlign:"center"}}>
-                <p style={{color:WHITE,fontWeight:900,fontSize:28,margin:0}}>{communityStats.members}</p>
-                <p style={{color:"rgba(255,255,255,0.7)",fontSize:11,margin:0}}>Membres</p>
-              </div>
-              <div style={{textAlign:"center"}}>
-                <p style={{color:WHITE,fontWeight:900,fontSize:28,margin:0}}>{events.length}</p>
-                <p style={{color:"rgba(255,255,255,0.7)",fontSize:11,margin:0}}>Events</p>
-              </div>
-              <button onClick={dismissOnboarding} style={{background:"rgba(255,255,255,0.2)",color:WHITE,fontWeight:700,fontSize:12,padding:"8px 16px",borderRadius:99,border:"none",cursor:"pointer"}}>
-                OK, j'ai compris ×
-              </button>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+              <button onClick={dismissOnboarding} style={{background:WHITE,color:RED,fontWeight:800,fontSize:15,padding:"13px 30px",borderRadius:99,border:"none",cursor:"pointer",boxShadow:"0 6px 20px rgba(0,0,0,0.2)"}}>🎉 Voir les événements</button>
+              {!user && <button onClick={()=>setShowAuth(true)} style={{background:"rgba(255,255,255,0.12)",color:WHITE,fontWeight:700,fontSize:15,padding:"13px 26px",borderRadius:99,border:"1.5px solid rgba(255,255,255,0.5)",cursor:"pointer"}}>Rejoindre la communauté</button>}
             </div>
           </div>
         </div>
@@ -3405,6 +3606,10 @@ export default function App() {
 
       {page==="orgas" && (
         <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))}/>
+      )}
+
+      {page==="eglises" && (
+        <LieuxPage isMobile={isMobile} category="eglise" lieux={lieux}/>
       )}
 
       {page==="community" && (
@@ -3427,10 +3632,11 @@ export default function App() {
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un événement, une ville..."
               style={{maxWidth:420,width:"100%",padding:"12px 20px",borderRadius:99,border:"none",fontSize:14,outline:"none",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}/>
             {!showOnboarding && (
-              <div style={{display:"flex",justifyContent:"center",gap:24,marginTop:20,flexWrap:"wrap"}}>
-                <span style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>👥 {communityStats.members} membres</span>
-                <span style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>📅 {events.length} events</span>
-                <span style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>📍 {[...new Set(events.map(e=>e.city))].length} villes</span>
+              <div style={{display:"flex",justifyContent:"center",gap:isMobile?10:20,marginTop:18,flexWrap:"wrap"}}>
+                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>✅ 100% gratuit</span>
+                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>📅 Events vérifiés</span>
+                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>🤝 Partout en France</span>
+                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>📤 Partage en 1 clic</span>
               </div>
             )}
           </div>
@@ -3579,7 +3785,7 @@ export default function App() {
         />
       )}
 
-      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} onClose={()=>setShowAdmin(false)}/>}
+      {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} lieux={lieux} setLieux={setLieux} onClose={()=>setShowAdmin(false)}/>}
 
       {showSubmit && <SubmitEventModal user={user} userProfile={userProfile} onEventPublished={ev=>setEvents(list=>[...list,ev])} onClose={()=>setShowSubmit(false)}/>}
 
