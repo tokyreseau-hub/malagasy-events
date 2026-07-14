@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from './supabase'
 
 const RED = "#C8102E", GREEN = "#007A3D", WHITE = "#FFFFFF"
-const ADMIN_PASSWORD = "malagasy2026"
+const ADMIN_USERNAME = "Malagasy_events_admin" // l'accès admin = être connecté avec ce compte (vérifié aussi côté serveur par RLS)
 const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
 const SITE_URL = "https://malagasy-events.vercel.app"
@@ -1292,7 +1292,7 @@ function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, 
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
   const isOwner = !!user && o.owner_id===user.id
   const canEdit = isOwner || (!!user && isAdmin)
-  const isPro = o.plan==='pro'
+  const isPro = o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10))
   const canPost = (isOwner && isPro) || (!!user && isAdmin)
   const [editing,setEditing] = useState(false)
   const [form,setForm] = useState({...o})
@@ -1482,7 +1482,7 @@ function OrgaPage({ isMobile, orgas, events, user, isAdmin, onOpenEvent, onOrgaU
                   <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                     <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
-                    {o.plan==='pro' && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
+                    {o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10)) && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
                     {o.city && <span style={{fontSize:12,color:"#888"}}>📍 {o.city}</span>}
                   </div>
                 </div>
@@ -2657,9 +2657,7 @@ export default function App() {
   const [mediaInput,setMediaInput]     = useState("")
   const [showPast,setShowPast]         = useState(false)
   const [isAdmin,setIsAdmin]           = useState(false)
-  const [showLogin,setShowLogin]       = useState(false)
-  const [pwInput,setPwInput]           = useState("")
-  const [pwError,setPwError]           = useState(false)
+  const [showLogin,setShowLogin]       = useState(false) // modal "ce compte n'est pas admin"
   const [logoClicks,setLogoClicks]     = useState(0)
   const [selectedEvent,setSelectedEvent] = useState(null)
   const [showOnboarding,setOnboarding] = useState(!localStorage.getItem('mev_visited'))
@@ -2670,6 +2668,9 @@ export default function App() {
   const [viewingProfile,setViewingProfile] = useState(null) // {id, name}
   const [pendingSlug,setPendingSlug]   = useState(null)
   const isMobile                       = useIsMobile()
+
+  /* ── Admin = compte Supabase officiel connecté (la sécurité réelle est côté serveur, via RLS) ── */
+  useEffect(()=>{ setIsAdmin(userProfile?.username===ADMIN_USERNAME) },[userProfile])
 
   /* ── SEO : routing par URL, méta, données structurées ── */
   useEffect(()=>{
@@ -2762,8 +2763,7 @@ export default function App() {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); setUser(null); setUserProfile(null) }
 
-  const handleLogoClick = () => { const n=logoClicks+1; setLogoClicks(n); if(n>=3){setShowLogin(true);setLogoClicks(0)} }
-  const handleLogin = e => { e.preventDefault(); if(pwInput===ADMIN_PASSWORD){setIsAdmin(true);setShowLogin(false);setPwInput("");setPwError(false)}else{setPwError(true);setPwInput("")} }
+  const handleLogoClick = () => { const n=logoClicks+1; setLogoClicks(n); if(n>=3){ setLogoClicks(0); if(isAdmin) setShowAdmin(true); else if(user) setShowLogin(true); else setShowAuth(true) } }
 
   const userCats = userProfile?.categories||[]
 
@@ -3086,14 +3086,9 @@ export default function App() {
       {showLogin && (
         <div onClick={e=>e.target===e.currentTarget&&setShowLogin(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:16}}>
           <div style={{background:WHITE,borderRadius:20,width:"100%",maxWidth:360,padding:32,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-            <div style={{textAlign:"center",marginBottom:24}}><p style={{fontSize:32,margin:"0 0 8px"}}>🔐</p><h2 style={{fontWeight:800,fontSize:18,color:"#111",margin:0}}>Accès administrateur</h2></div>
-            <form onSubmit={handleLogin} style={{display:"flex",flexDirection:"column",gap:12}}>
-              <input type="password" autoFocus value={pwInput} onChange={e=>{setPwInput(e.target.value);setPwError(false)}} placeholder="Mot de passe"
-                style={{border:`1.5px solid ${pwError?RED:"#e5e5e5"}`,borderRadius:12,padding:"11px 14px",fontSize:14,outline:"none",textAlign:"center"}}/>
-              {pwError && <p style={{color:RED,fontSize:12,textAlign:"center",margin:0}}>Mot de passe incorrect</p>}
-              <button type="submit" style={{background:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer"}}>Se connecter</button>
-              <button type="button" onClick={()=>setShowLogin(false)} style={{background:"none",border:"none",color:"#aaa",fontSize:13,cursor:"pointer"}}>Annuler</button>
-            </form>
+            <div style={{textAlign:"center",marginBottom:16}}><p style={{fontSize:32,margin:"0 0 8px"}}>🔐</p><h2 style={{fontWeight:800,fontSize:18,color:"#111",margin:0}}>Accès administrateur</h2></div>
+            <p style={{fontSize:13,color:"#666",textAlign:"center",lineHeight:1.6,margin:"0 0 16px"}}>L'administration est réservée au compte officiel du site. Connecte-toi avec le compte administrateur pour y accéder.</p>
+            <button type="button" onClick={()=>setShowLogin(false)} style={{width:"100%",background:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer"}}>OK</button>
           </div>
         </div>
       )}

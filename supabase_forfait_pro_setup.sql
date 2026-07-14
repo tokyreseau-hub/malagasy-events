@@ -16,7 +16,7 @@ create policy "gastro update admin ou proprietaire" on public.gastro for update
 -- 3. Mur d'actus des organisateurs
 create table if not exists public.orga_posts (
   id bigint generated always as identity primary key,
-  orga_id bigint not null,
+  orga_id bigint not null references public.organisateurs(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
   content text not null,
   image_url text default '',
@@ -34,6 +34,7 @@ create policy "publier si pro ou admin" on public.orga_posts for insert with che
     auth.uid() = user_id and exists (
       select 1 from public.organisateurs o
       where o.id = orga_id and o.owner_id = auth.uid() and o.plan = 'pro'
+        and (o.plan_until is null or o.plan_until >= current_date)
     )
   )
 );
@@ -62,3 +63,9 @@ create trigger trg_protect_plan_orgas before update on public.organisateurs
 drop trigger if exists trg_protect_plan_gastro on public.gastro;
 create trigger trg_protect_plan_gastro before update on public.gastro
   for each row execute function public.protect_plan_fields();
+
+-- 5. Patch installations existantes : clé étrangère actus → organisateur
+--    (les actus sont supprimées avec la fiche de leur organisateur)
+alter table public.orga_posts drop constraint if exists orga_posts_orga_id_fkey;
+alter table public.orga_posts add constraint orga_posts_orga_id_fkey
+  foreign key (orga_id) references public.organisateurs(id) on delete cascade;
