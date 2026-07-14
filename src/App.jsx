@@ -2670,7 +2670,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                   <StatCard n={cnt('organisateur')} l="Organisateurs" emoji="🎪"/>
                   <StatCard n={cnt('free')} l="Comptes gratuits" emoji="○"/>
                 </div>
-                <p style={{fontSize:12,color:"#999",margin:"0 0 10px"}}>Attribue un pack à chaque membre. Le changement est immédiat et sécurisé (seul toi peux le faire).</p>
+                <p style={{fontSize:12,color:"#999",margin:"0 0 10px"}}>Attribue à chaque membre son <b>pack</b> (gauche) et son <b>badge fan</b> (droite). « Auto » = badge calculé selon l'activité. Changement immédiat et sécurisé.</p>
                 <input value={userSearch} onChange={e=>setUserSearch(e.target.value)} placeholder="Chercher un membre (pseudo ou email)..." style={{...inp,marginBottom:14,maxWidth:400}}/>
                 <p style={{fontSize:12,color:"#bbb",marginBottom:8}}>{list.length} membre(s)</p>
                 {list.map(u=>(
@@ -2678,7 +2678,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                     <div style={{width:34,height:34,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:13,flexShrink:0}}>{(u.username||"?")[0].toUpperCase()}</div>
                     <div style={{flex:1,minWidth:120}}>
                       <p style={{fontWeight:700,fontSize:13,margin:0}}>{u.username||"—"}</p>
-                      <p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email}</p>
+                      <p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email} · {u.fan_points||0} pts</p>
                     </div>
                     <div style={{display:"flex",gap:4,flexShrink:0,background:"#f6f6f6",borderRadius:99,padding:3}}>
                       {PLANS.map(p=>{
@@ -2686,6 +2686,13 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         return <button key={p.id} onClick={()=>setUserPlan(u.id,p.id)} style={{background:active?p.color:"transparent",color:active?WHITE:"#888",fontWeight:700,fontSize:11.5,padding:"6px 12px",borderRadius:99,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{p.emoji} {p.l}</button>
                       })}
                     </div>
+                    <select value={u.fan_badge||"auto"} onChange={e=>setUserFanBadge(u.id,e.target.value)} title="Badge fan" style={{fontSize:11.5,border:"1.5px solid #e5e5e5",borderRadius:10,padding:"6px 8px",flexShrink:0,cursor:"pointer",fontWeight:700,color:"#555"}}>
+                      <option value="auto">🎖️ Auto</option>
+                      <option value="vahiny">🌱 Vahiny</option>
+                      <option value="mpankafy">🎶 Mpankafy</option>
+                      <option value="mafana">🔥 Mafana</option>
+                      <option value="ray">👑 Ray aman-dReny</option>
+                    </select>
                   </div>
                 ))}
                 <p style={{fontSize:11,color:"#ccc",marginTop:16}}>💡 Les forfaits PRO liés aux <b>fiches organisateurs</b> (avec date d'expiration) se gèrent séparément dans l'onglet 🎪 Orgas. Ici, c'est le pack rattaché au <b>compte membre</b>.</p>
