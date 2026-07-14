@@ -5,6 +5,17 @@ const RED = "#C8102E", GREEN = "#007A3D", WHITE = "#FFFFFF"
 const ADMIN_USERNAME = "Malagasy_events_admin" // l'accès admin = être connecté avec ce compte (vérifié aussi côté serveur par RLS)
 const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
+// Packs membres : avantages et badges
+const PLAN_BADGE = {
+  organisateur:{emoji:"🎪",label:"Organisateur",bg:"#fde8ec",color:"#C8102E"},
+  pro:{emoji:"⭐",label:"Pro",bg:"linear-gradient(135deg,#b8860b,#e6b31e)",color:"#fff"},
+}
+const PlanBadge = ({ plan, size=9 }) => {
+  const b = PLAN_BADGE[plan]; if (!b) return null
+  return <span style={{background:b.bg,color:b.color,fontSize:size,fontWeight:800,padding:"2px 6px",borderRadius:99,whiteSpace:"nowrap"}}>{b.emoji} {b.label}</span>
+}
+// Seul l'Organisateur publie ses événements directement (le Pro est un membre premium, pas un orga)
+const canPublishDirect = profile => profile?.plan==="organisateur"
 const SITE_URL = "https://malagasy-events.vercel.app"
 // Sécurité : n'autorise que http(s) et mailto/tel — bloque javascript:, data:, etc.
 // (protège contre un lien piégé mis par un organisateur/établissement dans sa fiche)
@@ -411,13 +422,26 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
           {tab==="compte" && (
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div style={{background:"#f8f8f8",borderRadius:14,padding:16}}>
-                <p style={{fontSize:12,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"0 0 8px"}}>Plan actuel</p>
-                {userProfile?.is_member ? (
-                  <><p style={{fontSize:15,fontWeight:700,color:GREEN,margin:"0 0 4px"}}>✓ Plan Membre — 2,50€/mois</p><p style={{fontSize:12,color:"#999",margin:0}}>Accès prioritaire, badge, contenu exclusif</p></>
+                <p style={{fontSize:12,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"0 0 8px"}}>Mon pack</p>
+                {userProfile?.plan==="pro" ? (
+                  <><p style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>⭐ Pack Pro — membre premium</p>
+                  <ul style={{margin:0,paddingLeft:18,fontSize:12.5,color:"#666",lineHeight:1.7}}>
+                    <li>Badge ⭐ Pro doré sur ton profil et tes posts</li>
+                    <li>Tes publications <b>mises en avant</b> dans la communauté</li>
+                    <li>Tu soutiens Malagasy Events 🇲🇬</li>
+                  </ul></>
+                ) : userProfile?.plan==="organisateur" ? (
+                  <><p style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>🎪 Pack Organisateur</p>
+                  <ul style={{margin:0,paddingLeft:18,fontSize:12.5,color:"#666",lineHeight:1.7}}>
+                    <li>Badge 🎪 Organisateur</li>
+                    <li>Événements <b>publiés directement</b> et mis à la une</li>
+                    <li>Gérer sa fiche dans l'annuaire</li>
+                    <li>Publier des actus sur sa fiche</li>
+                  </ul></>
                 ) : (
-                  <><p style={{fontSize:15,fontWeight:700,color:"#555",margin:"0 0 8px"}}>Plan Gratuit</p>
-                  <button style={{background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 0",borderRadius:12,border:"none",cursor:"pointer",width:"100%"}}>Passer à 2,50€/mois →</button>
-                  <p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:6}}>Badge membre, accès prioritaire, contenu exclusif</p></>
+                  <><p style={{fontSize:15,fontWeight:700,color:"#555",margin:"0 0 8px"}}>○ Compte gratuit</p>
+                  <p style={{fontSize:12,color:"#999",margin:"0 0 6px",lineHeight:1.5}}>Passe en 🎪 Organisateur ou ⭐ Pro pour publier tes événements directement et gagner en visibilité.</p>
+                  <p style={{fontSize:11,color:"#bbb",margin:0}}>Contacte-nous via la Communauté pour activer un pack.</p></>
                 )}
               </div>
               <button onClick={()=>{onSignOut();onClose()}} style={{background:"#f5f5f5",color:"#e53935",fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer",marginTop:8}}>Se déconnecter</button>
@@ -613,6 +637,18 @@ const downloadIcs = ev => {
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000)
 }
 
+/* ── LoginGate (accès réservé aux connectés) ── */
+function LoginGate({ title, text, onLogin }) {
+  return (
+    <div style={{maxWidth:460,margin:"40px auto",padding:"40px 28px",background:WHITE,borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.08)",textAlign:"center"}}>
+      <div style={{fontSize:44,marginBottom:12}}>🔒</div>
+      <h2 style={{fontWeight:800,fontSize:20,color:"#111",margin:"0 0 8px"}}>{title}</h2>
+      <p style={{fontSize:14,color:"#777",lineHeight:1.5,margin:"0 0 22px"}}>{text}</p>
+      <button onClick={onLogin} style={{background:RED,color:WHITE,fontWeight:700,fontSize:15,padding:"13px 32px",borderRadius:14,border:"none",cursor:"pointer"}}>Se connecter / S'inscrire</button>
+    </div>
+  )
+}
+
 /* ── ReportButton (signaler un contenu) ── */
 function ReportButton({ user, type, id, excerpt, onAuthRequired, small }) {
   const [done,setDone] = useState(false)
@@ -628,17 +664,28 @@ function ReportButton({ user, type, id, excerpt, onAuthRequired, small }) {
 }
 
 /* ── SubmitEventModal (proposer un événement — public) ── */
-function SubmitEventModal({ user, onClose }) {
+function SubmitEventModal({ user, userProfile, onEventPublished, onClose }) {
   const empty = {title:"",date:"",city:"",location:"",category:"Soirée",price:"",organizer:"",ticket_url:"",image:"",description:"",submitter_email:user?.email||""}
   const [f,setF] = useState(empty)
   const [sent,setSent] = useState(false)
+  const [direct,setDirect] = useState(false) // publié directement (pack organisateur/pro)
   const [saving,setSaving] = useState(false)
+  const canDirect = canPublishDirect(userProfile) // Organisateur
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"10px 12px",fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"}
   const submit = async () => {
     if (!f.title.trim()||!f.date) { alert("Titre et date sont obligatoires."); return }
     setSaving(true)
-    const {error} = await supabase.from('event_submissions').insert({...f,ticket_url:safeUrl(f.ticket_url),image:safeUrl(f.image),submitter_id:user?.id||null})
-    if (error) alert("⚠️ "+error.message); else setSent(true)
+    if (canDirect) {
+      // Organisateur : publication directe + automatiquement à la une.
+      const payload = {title:f.title,date:f.date,city:f.city,location:f.location,category:f.category,price:f.price,organizer:f.organizer||userProfile?.username||"",ticketUrl:safeUrl(f.ticket_url),image:safeUrl(f.image),description:f.description,mediaUrls:[],featured:true,createdAt:new Date().toISOString()}
+      const {data,error} = await supabase.from('events').insert(payload).select().single()
+      if (error) { alert("⚠️ "+error.message); setSaving(false); return }
+      onEventPublished?.(data); setDirect(true); setSent(true)
+    } else {
+      const {error} = await supabase.from('event_submissions').insert({...f,ticket_url:safeUrl(f.ticket_url),image:safeUrl(f.image),submitter_id:user?.id||null})
+      if (error) { alert("⚠️ "+error.message); setSaving(false); return }
+      setSent(true)
+    }
     setSaving(false)
   }
   return (
@@ -646,9 +693,9 @@ function SubmitEventModal({ user, onClose }) {
       <div style={{background:WHITE,borderRadius:20,padding:24,width:"100%",maxWidth:440,margin:"auto",boxShadow:"0 16px 48px rgba(0,0,0,0.25)"}}>
         {sent ? (
           <div style={{textAlign:"center",padding:"14px 0"}}>
-            <p style={{fontSize:38,margin:"0 0 8px"}}>🎉</p>
-            <h3 style={{fontWeight:800,fontSize:17,margin:"0 0 6px"}}>Merci !</h3>
-            <p style={{fontSize:13,color:"#777",lineHeight:1.5,margin:"0 0 16px"}}>Ta proposition a bien été envoyée. Elle sera publiée après validation par l'équipe.</p>
+            <p style={{fontSize:38,margin:"0 0 8px"}}>{direct?"✅":"🎉"}</p>
+            <h3 style={{fontWeight:800,fontSize:17,margin:"0 0 6px"}}>{direct?"Événement publié !":"Merci !"}</h3>
+            <p style={{fontSize:13,color:"#777",lineHeight:1.5,margin:"0 0 16px"}}>{direct ? "Ton événement est en ligne immédiatement et mis à la une ⭐ (avantage Organisateur)." : "Ta proposition a bien été envoyée. Elle sera publiée après validation par l'équipe."}</p>
             <button onClick={onClose} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:14,padding:"11px 28px",borderRadius:12,border:"none",cursor:"pointer"}}>Fermer</button>
           </div>
         ) : (<>
@@ -656,7 +703,13 @@ function SubmitEventModal({ user, onClose }) {
             <h3 style={{fontWeight:800,fontSize:17,margin:0}}>📣 Proposer un événement</h3>
             <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,color:"#bbb",cursor:"pointer"}}>×</button>
           </div>
-          <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie.</p>
+          {canDirect ? (
+            <div style={{background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:"10px 12px",margin:"0 0 14px",fontSize:12,color:"#7a5c00",fontWeight:600}}>
+              🎪 Pack Organisateur — ton événement sera publié directement, sans validation, et mis à la une.
+            </div>
+          ) : (
+            <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie.</p>
+          )}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} placeholder="Nom de l'événement *" style={inp}/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -882,9 +935,11 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
   const u = post.profiles
   const initiale = (u?.username||"?")[0].toUpperCase()
 
+  const isProPost = u?.plan==="pro"
   return (
     <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      style={{background:WHITE,borderRadius:20,boxShadow:hover?"0 8px 32px rgba(0,0,0,0.12)":"0 2px 12px rgba(0,0,0,0.07)",transition:"all .2s",marginBottom:16,overflow:"hidden"}}>
+      style={{background:WHITE,borderRadius:20,boxShadow:hover?"0 8px 32px rgba(0,0,0,0.12)":"0 2px 12px rgba(0,0,0,0.07)",transition:"all .2s",marginBottom:16,overflow:"hidden",border:isProPost?"1.5px solid #e6b31e":"none"}}>
+      {isProPost && <div style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"4px 16px",letterSpacing:0.5}}>⭐ MEMBRE PRO — mis en avant</div>}
       <div style={{padding:"16px 16px 12px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
           <div style={{width:42,height:42,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
@@ -894,7 +949,8 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span onClick={e=>{e.stopPropagation();onProfileClick&&onProfileClick(post.user_id,u?.username)}} style={{fontWeight:700,fontSize:14,color:isOfficial(u?.username)?RED:"#111",cursor:"pointer",textDecoration:"underline dotted"}}>{u?.username||"Anonyme"}</span>
               {isOfficial(u?.username) && <span style={{background:RED,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>✓ OFFICIEL</span>}
-              {!isOfficial(u?.username) && u?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
+              {!isOfficial(u?.username) && <PlanBadge plan={u?.plan}/>}
+              {!isOfficial(u?.username) && !PLAN_BADGE[u?.plan] && u?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
             </div>
             <span style={{fontSize:11,color:"#bbb"}}>{ago(post.created_at)}</span>
           </div>
@@ -1055,7 +1111,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
   const attachProfiles = async rows => {
     const ids = [...new Set(rows.map(r=>r.user_id).filter(Boolean))]
     if (!ids.length) return rows
-    const {data:profs} = await supabase.from('profiles').select('id,username,avatar_url,is_member').in('id',ids)
+    const {data:profs} = await supabase.from('profiles').select('*').in('id',ids)
     const map = Object.fromEntries((profs||[]).map(p=>[p.id,p]))
     return rows.map(r=>({...r,profiles:r.profiles||map[r.user_id]||null}))
   }
@@ -1068,8 +1124,8 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
       ids = (follows||[]).map(f=>f.following_id)
       if (ids.length===0) { setPosts([]); setLoading(false); return }
     }
-    let q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').order('created_at',{ascending:false}).limit(30)
-    if (ids) q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
+    let q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan)').order('created_at',{ascending:false}).limit(30)
+    if (ids) q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
     let {data,error} = await q
     if (error) {
       console.warn("Jointure posts→profiles échouée, repli sans jointure :", error.message)
@@ -1155,7 +1211,8 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
                         <span onClick={()=>onProfileClick&&onProfileClick(m.id,m.username)} style={{fontWeight:700,fontSize:14,color:isOfficial(m.username)?RED:"#111",cursor:"pointer"}}>{m.username||"Anonyme"}</span>
                         {isOfficial(m.username) && <span style={{background:RED,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>✓ OFFICIEL</span>}
-                        {!isOfficial(m.username) && m.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
+                        {!isOfficial(m.username) && <PlanBadge plan={m.plan}/>}
+                        {!isOfficial(m.username) && !PLAN_BADGE[m.plan] && m.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
                       </div>
                       {m.code_postal && <p style={{fontSize:12,color:"#999",margin:0}}>📍 {m.code_postal}</p>}
                     </div>
@@ -1207,7 +1264,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
             {feedMode==="following" && <button onClick={()=>setFeedMode("all")} style={{background:RED,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:99,border:"none",cursor:"pointer",marginTop:8}}>Découvrir des membres</button>}
           </div>
         ) : (
-          posts.map(p=><PostCard key={p.id} post={p} user={user} isAdmin={isAdmin} onAuthRequired={onAuthRequired} onMessage={onMessage} onProfileClick={onProfileClick} onDeleted={id=>setPosts(list=>list.filter(x=>x.id!==id))}/>)
+          [...posts].sort((a,b)=>((b.profiles?.plan==='pro')?1:0)-((a.profiles?.plan==='pro')?1:0)).map(p=><PostCard key={p.id} post={p} user={user} isAdmin={isAdmin} onAuthRequired={onAuthRequired} onMessage={onMessage} onProfileClick={onProfileClick} onDeleted={id=>setPosts(list=>list.filter(x=>x.id!==id))}/>)
         ))}
       </div>
 
@@ -1407,12 +1464,13 @@ const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food tru
 const ORGA_COLORS = {"Association sportive":{bg:"#e3f2fd",color:"#1565c0"},"Association":{bg:"#e6f4ed",color:GREEN},"Organisateur":{bg:"#fde8ec",color:RED},"DJ & artistes":{bg:"#FBEAF0",color:"#72243E"},"Média":{bg:"#EEEDFE",color:"#3C3489"},"Groupe":{bg:"#fff3e0",color:"#b35c00"}}
 const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organisateur":"🎪","DJ & artistes":"🎧","Média":"📰","Groupe":"👥"}
 
-function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
+function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
   const isOwner = !!user && o.owner_id===user.id
   const canEdit = isOwner || (!!user && isAdmin)
   const isPro = o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10))
-  const canPost = (isOwner && isPro) || (!!user && isAdmin)
+  const memberCanPost = userProfile?.plan==="organisateur"
+  const canPost = (isOwner && (isPro || memberCanPost)) || (!!user && isAdmin)
   const [editing,setEditing] = useState(false)
   const [form,setForm] = useState({...o})
   const [saving,setSaving] = useState(false)
@@ -1569,11 +1627,15 @@ function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, 
   )
 }
 
-function OrgaPage({ isMobile, orgas, events, user, isAdmin, onOpenEvent, onOrgaUpdated }) {
+function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated }) {
   const [filter,setFilter] = useState("Tous")
   const [selected,setSelected] = useState(null)
   const types = ["Tous",...Object.keys(ORGA_COLORS)]
-  const list = filter==="Tous" ? orgas : orgas.filter(o=>o.type===filter)
+  const base = filter==="Tous" ? orgas : orgas.filter(o=>o.type===filter)
+  // Priorité Pro : les fiches en forfait pro remontent en tête de l'annuaire
+  const today = new Date().toISOString().slice(0,10)
+  const isProOrga = o => o.plan==='pro' && (!o.plan_until||o.plan_until>=today)
+  const list = [...base].sort((a,b)=>(isProOrga(b)?1:0)-(isProOrga(a)?1:0))
   const initials = nm => nm.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
 
   return (
@@ -1617,7 +1679,7 @@ function OrgaPage({ isMobile, orgas, events, user, isAdmin, onOpenEvent, onOrgaU
         })}
       </div>
 
-      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
+      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
     </div>
   )
 }
@@ -1893,6 +1955,53 @@ function AfterMoviePage({ videos, events, user, userProfile, onAuthRequired, onB
 }
 
 /* ── EventCard ────────────────────────────────────── */
+/* ── CalendarView : calendrier mensuel des événements (auto depuis la base) ── */
+function CalendarView({ events, isMobile, onOpenEvent }) {
+  const [cur,setCur] = useState(()=>{ const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()} })
+  const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+  const dayNames = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]
+  const first = new Date(cur.y,cur.m,1)
+  const offset = (first.getDay()+6)%7 // Lundi = 0
+  const daysInMonth = new Date(cur.y,cur.m+1,0).getDate()
+  const todayStr = new Date().toISOString().slice(0,10)
+  const byDay = {}
+  events.forEach(e=>{ if(!e.date) return; const [yy,mm]=e.date.split("-"); if(+yy===cur.y && +mm===cur.m+1){ (byDay[e.date]=byDay[e.date]||[]).push(e) } })
+  const move = d => setCur(c=>{ let m=c.m+d,y=c.y; if(m<0){m=11;y--} if(m>11){m=0;y++} return {y,m} })
+  const cells = []
+  for (let i=0;i<offset;i++) cells.push(null)
+  for (let d=1;d<=daysInMonth;d++) cells.push(d)
+
+  return (
+    <div style={{background:WHITE,borderRadius:18,padding:isMobile?12:18,boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <button onClick={()=>move(-1)} style={{background:"#f5f5f5",border:"none",borderRadius:10,width:36,height:36,fontSize:16,cursor:"pointer",fontWeight:800,color:"#555"}}>‹</button>
+        <h3 style={{fontWeight:800,fontSize:isMobile?15:18,margin:0,color:"#111"}}>{monthNames[cur.m]} {cur.y}</h3>
+        <button onClick={()=>move(1)} style={{background:"#f5f5f5",border:"none",borderRadius:10,width:36,height:36,fontSize:16,cursor:"pointer",fontWeight:800,color:"#555"}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:isMobile?3:6}}>
+        {dayNames.map(d=><div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:"#aaa",padding:"2px 0"}}>{isMobile?d[0]:d}</div>)}
+        {cells.map((d,i)=>{
+          if (d===null) return <div key={"e"+i}/>
+          const ds = `${cur.y}-${String(cur.m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
+          const evs = byDay[ds]||[]
+          const isToday = ds===todayStr
+          return (
+            <div key={ds} style={{minHeight:isMobile?52:72,borderRadius:10,border:isToday?`1.5px solid ${RED}`:"1px solid #f0f0f0",padding:isMobile?3:5,background:evs.length?"#fff":"#fafafa",display:"flex",flexDirection:"column",gap:2,overflow:"hidden"}}>
+              <span style={{fontSize:11,fontWeight:isToday?800:600,color:isToday?RED:"#999"}}>{d}</span>
+              {evs.slice(0,isMobile?1:2).map(e=>{
+                const col = CAT_COLORS[e.category]||{bg:"#eee",color:"#555"}
+                return <button key={e.id} onClick={()=>onOpenEvent(e)} title={e.title} style={{background:col.bg,color:col.color,border:"none",borderRadius:6,padding:isMobile?"1px 3px":"2px 5px",fontSize:isMobile?8:10,fontWeight:700,cursor:"pointer",textAlign:"left",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",width:"100%"}}>{isMobile?"•":`${CAT_EMOJI[e.category]||""} ${e.title}`}</button>
+              })}
+              {evs.length>(isMobile?1:2) && <span style={{fontSize:9,color:"#bbb",fontWeight:700}}>+{evs.length-(isMobile?1:2)}</span>}
+            </div>
+          )
+        })}
+      </div>
+      <p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12}}>📅 Mis à jour automatiquement avec les événements du site</p>
+    </div>
+  )
+}
+
 function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete }) {
   const [fav,setFav]             = useState(false)
   const [interested,setInterested] = useState(false)
@@ -2956,6 +3065,7 @@ export default function App() {
   const [mediaInput,setMediaInput]     = useState("")
   const [banner,setBanner]             = useState("")
   const [showSubmit,setShowSubmit]     = useState(false)
+  const [homeView,setHomeView]         = useState("list") // "list" | "calendar"
   const [showPast,setShowPast]         = useState(false)
   const [isAdmin,setIsAdmin]           = useState(false)
   const [showLogin,setShowLogin]       = useState(false) // modal "ce compte n'est pas admin"
@@ -3111,12 +3221,13 @@ export default function App() {
   const inp = {width:"100%",border:"1.5px solid #e5e5e5",borderRadius:12,padding:"9px 12px",fontSize:13,outline:"none",boxSizing:"border-box"}
   const lbl = {fontSize:13,fontWeight:600,color:"#444",display:"block",marginBottom:6}
 
+  // After-movies et Communauté réservés aux membres connectés
   const navItems = [
     {key:"home",label:"🏠 Accueil"},
-    {key:"aftermovies",label:"🎬 After-movies"},
+    ...(user ? [{key:"aftermovies",label:"🎬 After-movies"}] : []),
     {key:"gastro",label:"🍽️ Gastronomie"},
     {key:"orgas",label:"🎪 Organisateurs"},
-    {key:"community",label:"👥 Communauté"},
+    ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
   ]
 
   const dismissOnboarding = () => { localStorage.setItem('mev_visited','1'); setOnboarding(false) }
@@ -3231,7 +3342,9 @@ export default function App() {
 
       {/* ── PAGES ── */}
       {page==="aftermovies" && (
-        <AfterMoviePage videos={videos} events={events} user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onBack={()=>setPage("home")}/>
+        user
+          ? <AfterMoviePage videos={videos} events={events} user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onBack={()=>setPage("home")}/>
+          : <LoginGate title="🎬 After-movies réservés aux membres" text="Connecte-toi pour revivre les événements en vidéo." onLogin={()=>setShowAuth(true)}/>
       )}
 
       {page==="gastro" && (
@@ -3239,10 +3352,11 @@ export default function App() {
       )}
 
       {page==="orgas" && (
-        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))}/>
+        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))}/>
       )}
 
       {page==="community" && (
+        !user ? <LoginGate title="👥 Communauté réservée aux membres" text="Connecte-toi pour échanger, publier et rencontrer la communauté malagasy." onLogin={()=>setShowAuth(true)}/> :
         <div style={{maxWidth:900,margin:"0 auto"}}>
           <div style={{padding:isMobile?"16px 0 0":"32px 0 0",textAlign:"center",paddingBottom:0}}>
             <h2 style={{fontWeight:900,fontSize:isMobile?20:28,color:"#111",margin:"0 0 4px"}}>👥 Communauté Malagasy</h2>
@@ -3290,10 +3404,20 @@ export default function App() {
 
           {/* EVENTS À VENIR */}
           <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"16px 12px":"24px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:16,flexWrap:"wrap"}}>
               <h2 style={{fontWeight:800,fontSize:isMobile?18:22,color:"#111",margin:0}}>📅 Événements à venir <span style={{fontSize:14,color:"#aaa",fontWeight:500}}>({upcoming.length})</span></h2>
+              <div style={{display:"flex",gap:4,background:"#eee",borderRadius:99,padding:3}}>
+                {[["list","📋 Liste"],["calendar","📅 Calendrier"]].map(([k,l])=>(
+                  <button key={k} onClick={()=>setHomeView(k)} style={{background:homeView===k?WHITE:"transparent",color:homeView===k?"#111":"#888",fontWeight:700,fontSize:12.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer",boxShadow:homeView===k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{l}</button>
+                ))}
+              </div>
             </div>
-            {catFilter==="Gastronomie" && (
+            {homeView==="calendar" && (
+              <div style={{marginBottom:8}}>
+                <CalendarView events={applyFilters(events)} isMobile={isMobile} onOpenEvent={ev=>setSelectedEvent(ev)}/>
+              </div>
+            )}
+            {homeView==="list" && catFilter==="Gastronomie" && (
               <div onClick={()=>setPage("gastro")} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"#fff3e0",border:"1.5px solid #ffd699",borderRadius:16,padding:"14px 18px",marginBottom:16,cursor:"pointer"}}>
                 <div>
                   <p style={{fontWeight:800,fontSize:14,color:"#e65100",margin:"0 0 2px"}}>🍽️ Tu cherches où manger malagasy ?</p>
@@ -3302,7 +3426,7 @@ export default function App() {
                 <span style={{background:"#e65100",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,whiteSpace:"nowrap"}}>Voir l'annuaire →</span>
               </div>
             )}
-            {(() => {
+            {homeView==="list" && (() => {
               const featured = upcoming.filter(e=>e.featured)
               const rest = upcoming.filter(e=>!e.featured)
               if (upcoming.length===0) return (
@@ -3340,6 +3464,7 @@ export default function App() {
           </div>
 
           {/* EVENTS PASSÉS */}
+          {homeView==="list" && (
           <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"0 12px 32px":"0 24px 40px"}}>
             <button onClick={()=>setShowPast(p=>!p)} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",padding:"8px 0",marginBottom:showPast?16:0}}>
               <h3 style={{fontWeight:700,fontSize:16,color:"#555",margin:0}}>⏪ Événements passés ({past.length})</h3>
@@ -3353,6 +3478,7 @@ export default function App() {
               </div>
             )}
           </div>
+          )}
         </>
       )}
 
@@ -3403,7 +3529,7 @@ export default function App() {
 
       {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} onClose={()=>setShowAdmin(false)}/>}
 
-      {showSubmit && <SubmitEventModal user={user} onClose={()=>setShowSubmit(false)}/>}
+      {showSubmit && <SubmitEventModal user={user} userProfile={userProfile} onEventPublished={ev=>setEvents(list=>[...list,ev])} onClose={()=>setShowSubmit(false)}/>}
 
       {/* Bouton flottant : proposer un événement */}
       {(page==="home"||page==="community") && !showAdmin && (
