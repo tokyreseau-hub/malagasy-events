@@ -6,6 +6,15 @@ const ADMIN_USERNAME = "Malagasy_events_admin" // l'accès admin = être connect
 const OFFICIAL_USERNAME = "Malagasy_events_admin"
 const isOfficial = u => u === OFFICIAL_USERNAME
 const SITE_URL = "https://malagasy-events.vercel.app"
+// Sécurité : n'autorise que http(s) et mailto/tel — bloque javascript:, data:, etc.
+// (protège contre un lien piégé mis par un organisateur/établissement dans sa fiche)
+const safeUrl = u => {
+  if (!u) return ""
+  const s = String(u).trim()
+  if (/^(https?:|mailto:|tel:)/i.test(s)) return s
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return "" // schéma non autorisé → neutralisé
+  return "https://" + s // sans schéma → on force https
+}
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
 const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", community:"/communaute"}
 const PAGE_META = {
@@ -575,56 +584,129 @@ function ShareMenu({ ev, onClose }) {
   )
 }
 
-/* ── ReminderModal ────────────────────────────────── */
-function ReminderModal({ ev, user, onClose }) {
-  const types = [
-    {id:"pre_sale",   label:"Ouverture pré-vente"},
-    {id:"ticket_open",label:"Billetterie ouverte"},
-    {id:"j7",         label:"7 jours avant l'event"},
-    {id:"j1",         label:"La veille"},
-    {id:"day_of",     label:"Le jour J"},
-  ]
-  const [selected,setSelected] = useState([])
-  const [saved,setSaved]       = useState(false)
-  const [saving,setSaving]     = useState(false)
+/* ── Rappels : agenda (notif native du téléphone) + notif navigateur ── */
+const icsStamp = d => String(d).replace(/-/g,"")               // 2026-07-24 -> 20260724
+const nextDay  = ymd => { const d=new Date(ymd+"T00:00:00"); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10).replace(/-/g,"") }
+const gCalUrl = ev => {
+  const loc = [ev.location,ev.city].filter(Boolean).join(", ")
+  const p = new URLSearchParams({
+    action:"TEMPLATE",
+    text:ev.title||"Événement malagasy",
+    dates:`${icsStamp(ev.date)}/${nextDay(ev.date)}`,
+    details:`${ev.description||""}\n\nVu sur Malagasy Events — ${SITE_URL}`,
+    location:loc,
+  })
+  return "https://calendar.google.com/calendar/render?"+p.toString()
+}
+const downloadIcs = ev => {
+  const loc = [ev.location,ev.city].filter(Boolean).join(", ")
+  const esc = t => String(t||"").replace(/([,;\\])/g,"\\$1").replace(/\n/g,"\\n")
+  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Malagasy Events//FR","BEGIN:VEVENT",
+    `UID:${ev.id||Date.now()}@malagasy-events`,`DTSTAMP:${icsStamp(ev.date)}T090000Z`,
+    `DTSTART;VALUE=DATE:${icsStamp(ev.date)}`,`DTEND;VALUE=DATE:${nextDay(ev.date)}`,
+    `SUMMARY:${esc(ev.title)}`,`LOCATION:${esc(loc)}`,
+    `DESCRIPTION:${esc((ev.description||"")+"\n\nMalagasy Events — "+SITE_URL)}`,
+    "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:${esc(ev.title)}`,"END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].join("\r\n")
+  const url = URL.createObjectURL(new Blob([ics],{type:"text/calendar"}))
+  const a = document.createElement("a"); a.href=url; a.download=(ev.title||"evenement").replace(/[^\w]+/g,"-").toLowerCase()+".ics"
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
 
-  const toggle = id => setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])
-
-  const save = async () => {
-    if (!selected.length) return
-    setSaving(true)
-    await supabase.from('email_reminders').upsert({user_id:user.id,event_id:ev.id,event_title:ev.title,event_date:ev.date,email:user.email,types:selected},{onConflict:'user_id,event_id'})
-    setSaved(true); setSaving(false)
+/* ── ReportButton (signaler un contenu) ── */
+function ReportButton({ user, type, id, excerpt, onAuthRequired, small }) {
+  const [done,setDone] = useState(false)
+  const report = async () => {
+    if (!user) { onAuthRequired?.(); return }
+    const reason = window.prompt("Pourquoi signaler ce contenu ? (spam, insulte, faux…)")
+    if (reason===null) return
+    const {error} = await supabase.from('reports').insert({target_type:type,target_id:id,target_excerpt:(excerpt||"").slice(0,140),reason:reason.slice(0,200),reporter_id:user.id})
+    if (error) alert("⚠️ "+error.message); else setDone(true)
   }
+  if (done) return <span style={{fontSize:small?10:11,color:"#bbb"}}>✓ signalé</span>
+  return <button onClick={report} title="Signaler" style={{background:"none",border:"none",color:"#c9c9c9",fontSize:small?11:12,cursor:"pointer",fontWeight:600,padding:0}}>⚑ Signaler</button>
+}
 
+/* ── SubmitEventModal (proposer un événement — public) ── */
+function SubmitEventModal({ user, onClose }) {
+  const empty = {title:"",date:"",city:"",location:"",category:"Soirée",price:"",organizer:"",ticket_url:"",image:"",description:"",submitter_email:user?.email||""}
+  const [f,setF] = useState(empty)
+  const [sent,setSent] = useState(false)
+  const [saving,setSaving] = useState(false)
+  const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"10px 12px",fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"}
+  const submit = async () => {
+    if (!f.title.trim()||!f.date) { alert("Titre et date sont obligatoires."); return }
+    setSaving(true)
+    const {error} = await supabase.from('event_submissions').insert({...f,ticket_url:safeUrl(f.ticket_url),image:safeUrl(f.image),submitter_id:user?.id||null})
+    if (error) alert("⚠️ "+error.message); else setSent(true)
+    setSaving(false)
+  }
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:200,overflowY:"auto",padding:16}}>
+      <div style={{background:WHITE,borderRadius:20,padding:24,width:"100%",maxWidth:440,margin:"auto",boxShadow:"0 16px 48px rgba(0,0,0,0.25)"}}>
+        {sent ? (
+          <div style={{textAlign:"center",padding:"14px 0"}}>
+            <p style={{fontSize:38,margin:"0 0 8px"}}>🎉</p>
+            <h3 style={{fontWeight:800,fontSize:17,margin:"0 0 6px"}}>Merci !</h3>
+            <p style={{fontSize:13,color:"#777",lineHeight:1.5,margin:"0 0 16px"}}>Ta proposition a bien été envoyée. Elle sera publiée après validation par l'équipe.</p>
+            <button onClick={onClose} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:14,padding:"11px 28px",borderRadius:12,border:"none",cursor:"pointer"}}>Fermer</button>
+          </div>
+        ) : (<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <h3 style={{fontWeight:800,fontSize:17,margin:0}}>📣 Proposer un événement</h3>
+            <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,color:"#bbb",cursor:"pointer"}}>×</button>
+          </div>
+          <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} placeholder="Nom de l'événement *" style={inp}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <input type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})} style={inp}/>
+              <select value={f.category} onChange={e=>setF({...f,category:e.target.value})} style={inp}>
+                {["Soirée","Culture","Gastronomie","Sport","Religion","Autre"].map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+              <input value={f.city} onChange={e=>setF({...f,city:e.target.value})} placeholder="Ville" style={inp}/>
+              <input value={f.price} onChange={e=>setF({...f,price:e.target.value})} placeholder="Prix (ex: 15€)" style={inp}/>
+            </div>
+            <input value={f.location} onChange={e=>setF({...f,location:e.target.value})} placeholder="Lieu / salle" style={inp}/>
+            <input value={f.organizer} onChange={e=>setF({...f,organizer:e.target.value})} placeholder="Organisateur" style={inp}/>
+            <input value={f.ticket_url} onChange={e=>setF({...f,ticket_url:e.target.value})} placeholder="Lien billetterie (optionnel)" style={inp}/>
+            <input value={f.image} onChange={e=>setF({...f,image:e.target.value})} placeholder="Lien de l'affiche (optionnel)" style={inp}/>
+            <textarea value={f.description} onChange={e=>setF({...f,description:e.target.value})} placeholder="Description" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+            {!user && <input value={f.submitter_email} onChange={e=>setF({...f,submitter_email:e.target.value})} placeholder="Ton email (pour te recontacter)" style={inp}/>}
+            <button onClick={submit} disabled={saving} style={{background:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer",opacity:saving?0.6:1}}>{saving?"Envoi...":"Envoyer ma proposition"}</button>
+          </div>
+        </>)}
+      </div>
+    </div>
+  )
+}
+
+/* ── ReminderModal ────────────────────────────────── */
+function ReminderModal({ ev, onClose }) {
+  const [notif,setNotif] = useState(typeof Notification!=="undefined"?Notification.permission:"unsupported")
+  const askNotif = async () => {
+    if (typeof Notification==="undefined") return
+    const p = await Notification.requestPermission(); setNotif(p)
+    if (p==="granted") new Notification("Rappel activé 🇲🇬",{body:`On te préviendra pour « ${ev.title} »`})
+  }
+  const btn = (bg,children,onClick) => (
+    <button onClick={onClick} style={{width:"100%",background:bg,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{children}</button>
+  )
   return (
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
       <div style={{background:WHITE,borderRadius:20,padding:24,width:"100%",maxWidth:360,boxShadow:"0 16px 48px rgba(0,0,0,0.25)"}}>
-        <h3 style={{fontWeight:800,fontSize:16,margin:"0 0 6px",textAlign:"center"}}>🔔 Rappels par email</h3>
-        <p style={{fontSize:12,color:"#999",textAlign:"center",margin:"0 0 20px"}}>{ev.title}</p>
-        {saved ? (
-          <div style={{textAlign:"center",padding:"20px 0"}}>
-            <p style={{fontSize:32,margin:"0 0 8px"}}>✅</p>
-            <p style={{fontWeight:700,color:GREEN}}>Rappels enregistrés !</p>
-            <p style={{fontSize:12,color:"#999"}}>Tu recevras un email à {user.email}</p>
-            <button onClick={onClose} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"10px 24px",borderRadius:12,border:"none",cursor:"pointer",marginTop:12}}>Parfait</button>
-          </div>
-        ) : (
-          <>
-            <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
-              {types.map(t=>(
-                <label key={t.id} style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",background:selected.includes(t.id)?"#fde8ec":"#f8f8f8",borderRadius:12,padding:"12px 14px",border:selected.includes(t.id)?`1.5px solid ${RED}`:"1.5px solid transparent"}}>
-                  <input type="checkbox" checked={selected.includes(t.id)} onChange={()=>toggle(t.id)} style={{accentColor:RED,width:16,height:16}}/>
-                  <span style={{fontSize:14,fontWeight:600,color:selected.includes(t.id)?RED:"#333"}}>{t.label}</span>
-                </label>
-              ))}
-            </div>
-            <button onClick={save} disabled={!selected.length||saving} style={{width:"100%",background:selected.length?RED:"#ccc",color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:selected.length?"pointer":"not-allowed"}}>
-              {saving?"...":"Activer les rappels"}
-            </button>
-            <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:13,cursor:"pointer",marginTop:8}}>Annuler</button>
-          </>
-        )}
+        <h3 style={{fontWeight:800,fontSize:16,margin:"0 0 6px",textAlign:"center"}}>🔔 Me le rappeler</h3>
+        <p style={{fontSize:12,color:"#999",textAlign:"center",margin:"0 0 6px"}}>{ev.title}</p>
+        <p style={{fontSize:12,color:"#aaa",textAlign:"center",margin:"0 0 18px"}}>📅 {fmtShort(ev.date)}{ev.city?` · ${ev.city}`:""}</p>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {btn(GREEN,<>📅 Ajouter à Google Agenda</>,()=>window.open(gCalUrl(ev),"_blank","noreferrer"))}
+          {btn("#333",<>📥 Agenda iPhone / autre (.ics)</>,()=>downloadIcs(ev))}
+          <p style={{fontSize:11,color:"#999",textAlign:"center",lineHeight:1.5,margin:"2px 0"}}>Ton téléphone te préviendra tout seul, même appli fermée — c'est le rappel le plus fiable.</p>
+          {notif==="granted"
+            ? <div style={{textAlign:"center",fontSize:12,color:GREEN,fontWeight:700}}>✓ Notifications navigateur activées</div>
+            : notif!=="unsupported" && btn(RED,<>🔔 Activer les notifications ici</>,askNotif)}
+        </div>
+        <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:13,cursor:"pointer",marginTop:12}}>Fermer</button>
       </div>
     </div>
   )
@@ -831,6 +913,11 @@ function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDel
           📤
         </button>
       </div>
+      {(!user||post.user_id!==user.id) && (
+        <div style={{padding:"0 16px 10px",textAlign:"right"}}>
+          <ReportButton user={user} type="post" id={post.id} excerpt={post.content} onAuthRequired={onAuthRequired} small/>
+        </div>
+      )}
       {showCmts && (
         <div style={{padding:"0 16px 16px"}}>
           {cmts.map(c=>(
@@ -951,35 +1038,60 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
   const isMobile                 = useIsMobile()
 
   useEffect(()=>{
-    if (feedMode==="members") fetchMembers()
+    if (feedMode==="members") fetchMembers(memberSearch)
     else if (feedMode!=="entraide") fetchPosts()
   },[feedMode, user])
   useEffect(()=>{ if(user) fetchSuggested() },[user])
+  // Recherche de membres côté serveur (trouve TOUS les membres, pas que les 100 premiers)
+  useEffect(()=>{
+    if (feedMode!=="members") return
+    const t = setTimeout(()=>fetchMembers(memberSearch), 250)
+    return ()=>clearTimeout(t)
+  },[memberSearch])
+
+  // Rattache les profils si la jointure Supabase échoue (colonne/relation manquante)
+  const attachProfiles = async rows => {
+    const ids = [...new Set(rows.map(r=>r.user_id).filter(Boolean))]
+    if (!ids.length) return rows
+    const {data:profs} = await supabase.from('profiles').select('id,username,avatar_url,is_member').in('id',ids)
+    const map = Object.fromEntries((profs||[]).map(p=>[p.id,p]))
+    return rows.map(r=>({...r,profiles:r.profiles||map[r.user_id]||null}))
+  }
 
   const fetchPosts = async () => {
     setLoading(true)
+    let ids = null
     if (feedMode==="following" && user) {
       const {data:follows} = await supabase.from('follows').select('following_id').eq('follower_id',user.id)
-      const ids = (follows||[]).map(f=>f.following_id)
+      ids = (follows||[]).map(f=>f.following_id)
       if (ids.length===0) { setPosts([]); setLoading(false); return }
-      const {data} = await supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
-      setPosts(data||[])
-    } else {
-      const {data} = await supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').order('created_at',{ascending:false}).limit(30)
-      setPosts(data||[])
     }
+    let q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').order('created_at',{ascending:false}).limit(30)
+    if (ids) q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
+    let {data,error} = await q
+    if (error) {
+      console.warn("Jointure posts→profiles échouée, repli sans jointure :", error.message)
+      let q2 = supabase.from('posts').select('*').order('created_at',{ascending:false}).limit(30)
+      if (ids) q2 = supabase.from('posts').select('*').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
+      const r = await q2
+      if (r.error) console.error("Lecture des posts impossible :", r.error.message)
+      data = await attachProfiles(r.data||[])
+    }
+    setPosts(data||[])
     setLoading(false)
   }
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (term="") => {
     setMembersLoading(true)
-    const {data} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at').order('created_at',{ascending:false}).limit(100)
+    let q = supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at')
+    const t = term.trim()
+    if (t) q = q.ilike('username', "%"+t.replace(/\s+/g,"%")+"%") // "jean paul" → %jean%paul%
+    const {data,error} = await q.order('created_at',{ascending:false}).limit(100)
+    if (error) console.error("Lecture des membres impossible :", error.message)
     setMembers(data||[]); setMembersLoading(false)
   }
 
-  const filteredMembers = memberSearch.trim()
-    ? members.filter(m => (m.username||"").toLowerCase().replace(/_/g," ").includes(memberSearch.toLowerCase().replace(/_/g," ")))
-    : members
+  const filteredMembers = members
 
   const fetchSuggested = async () => {
     const {data:follows} = await supabase.from('follows').select('following_id').eq('follower_id',user.id)
@@ -1412,9 +1524,9 @@ function OrgaDetail({ o, isMobile, user, isAdmin, events, onOpenEvent, onClose, 
               </div>
             )}
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              {o.fb && <a href={o.fb} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
-              {o.insta && <a href={o.insta} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
-              {o.site && <a href={o.site} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:GREEN,color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>🌐 Site web</a>}
+              {o.fb && <a href={safeUrl(o.fb)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
+              {o.insta && <a href={safeUrl(o.insta)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
+              {o.site && <a href={safeUrl(o.site)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:GREEN,color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>🌐 Site web</a>}
             </div>
             {!o.owner_id && (
               <p style={{fontSize:12,color:"#aaa",margin:"16px 0 0",textAlign:"center"}}>C'est votre organisation ? Contactez-nous via la Communauté pour gérer cette fiche.</p>
@@ -1542,9 +1654,9 @@ function GastroDetail({ g, isMobile, onClose }) {
             )}
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {g.fb && <a href={g.fb} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
-            {g.insta && <a href={g.insta} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
-            {g.tiktok && <a href={g.tiktok} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#111",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>🎵 TikTok</a>}
+            {g.fb && <a href={safeUrl(g.fb)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#1565c0",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📘 Facebook</a>}
+            {g.insta && <a href={safeUrl(g.insta)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
+            {g.tiktok && <a href={safeUrl(g.tiktok)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:120,textAlign:"center",background:"#111",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 16px",borderRadius:12,textDecoration:"none"}}>🎵 TikTok</a>}
           </div>
         </div>
       </div>
@@ -1640,9 +1752,9 @@ function GastroPage({ isMobile, gastro = initialGastro }) {
               </div>
               {g.note && <p style={{fontSize:12,color:"#777",margin:0}}>{g.note}</p>}
               <div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:"auto"}}>
-                {g.fb && <a href={g.fb} target="_blank" rel="noreferrer" style={{background:"#eef4fc",color:"#1565c0",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📘 Facebook</a>}
-                {g.insta && <a href={g.insta} target="_blank" rel="noreferrer" style={{background:"#fdeef4",color:"#c2185b",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📸 Instagram</a>}
-                {g.tiktok && <a href={g.tiktok} target="_blank" rel="noreferrer" style={{background:"#f0f0f0",color:"#222",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>🎵 TikTok</a>}
+                {g.fb && <a href={safeUrl(g.fb)} target="_blank" rel="noreferrer" style={{background:"#eef4fc",color:"#1565c0",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📘 Facebook</a>}
+                {g.insta && <a href={safeUrl(g.insta)} target="_blank" rel="noreferrer" style={{background:"#fdeef4",color:"#c2185b",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>📸 Instagram</a>}
+                {g.tiktok && <a href={safeUrl(g.tiktok)} target="_blank" rel="noreferrer" style={{background:"#f0f0f0",color:"#222",fontSize:12,fontWeight:700,padding:"5px 12px",borderRadius:99,textDecoration:"none"}}>🎵 TikTok</a>}
                 {g.contact && <span style={{fontSize:12,color:"#999",marginLeft:"auto"}}>👤 {g.contact}</span>}
               </div>
             </div>
@@ -1868,7 +1980,7 @@ function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete })
           )}
           <button onClick={e=>{e.stopPropagation();setShowShare(true)}} style={{background:"#f5f5f5",color:"#666",fontWeight:700,fontSize:11,padding:"6px 10px",borderRadius:99,border:"none",cursor:"pointer",marginLeft:"auto"}}>📤</button>
           {event.ticketUrl && (
-            <a href={event.ticketUrl} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{background:RED,color:WHITE,fontWeight:700,fontSize:11,padding:"6px 12px",borderRadius:99,textDecoration:"none"}}>🎟️ Billets</a>
+            <a href={safeUrl(event.ticketUrl)} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{background:RED,color:WHITE,fontWeight:700,fontSize:11,padding:"6px 12px",borderRadius:99,textDecoration:"none"}}>🎟️ Billets</a>
           )}
         </div>
         {isAdmin && (
@@ -1879,7 +1991,7 @@ function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete })
       </div>
 
       {showShare && <ShareMenu ev={event} onClose={()=>setShowShare(false)}/>}
-      {showReminder && user && <ReminderModal ev={event} user={user} onClose={()=>setReminder(false)}/>}
+      {showReminder && <ReminderModal ev={event} onClose={()=>setReminder(false)}/>}
       {showReminder && !user && (onAuthRequired(), setReminder(false))}
     </>
   )
@@ -2148,14 +2260,14 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
               <button onClick={()=>downloadICS(event)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>📅 Calendrier</button>
               {!isPast(event.date) && <button onClick={()=>setReminder(true)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>🔔 Rappel</button>}
               <button onClick={()=>setShowShare(true)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>📤 Partager</button>
-              {event.ticketUrl && <a href={event.ticketUrl} target="_blank" rel="noreferrer" style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:12,textDecoration:"none"}}>🎟️ Acheter mes billets</a>}
+              {event.ticketUrl && <a href={safeUrl(event.ticketUrl)} target="_blank" rel="noreferrer" style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:12,textDecoration:"none"}}>🎟️ Acheter mes billets</a>}
             </div>
             </>)}
           </div>
         </div>
       </div>
       {showShare && <ShareMenu ev={event} onClose={()=>setShowShare(false)}/>}
-      {showReminder && user && <ReminderModal ev={event} user={user} onClose={()=>setReminder(false)}/>}
+      {showReminder && <ReminderModal ev={event} onClose={()=>setReminder(false)}/>}
     </>
   )
 }
@@ -2218,6 +2330,10 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const [allPosts,setAllPosts] = useState([])
   const [allCmts,setAllCmts]   = useState([])
   const [reminders,setReminders] = useState([])
+  const [submissions,setSubmissions] = useState([])
+  const [reports,setReports]   = useState([])
+  const [bannerText,setBannerText] = useState("")
+  const [bannerSaved,setBannerSaved] = useState(false)
   const [editId,setEditId]     = useState(null)
   const [editForm,setEditForm] = useState({})
   const [showVForm,setShowVForm] = useState(false)
@@ -2252,7 +2368,60 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     } else if (t==="reminders") {
       const {data} = await supabase.from('email_reminders').select('*').order('created_at',{ascending:false}).limit(200)
       setReminders(data||[])
+    } else if (t==="revenus") {
+      const {data} = await supabase.from('profiles').select('id,username,email,is_member,created_at').eq('is_member',true).order('created_at',{ascending:false})
+      setUsers(data||[])
+    } else if (t==="submissions") {
+      const {data} = await supabase.from('event_submissions').select('*').order('created_at',{ascending:false}).limit(200)
+      setSubmissions(data||[])
+    } else if (t==="reports") {
+      const {data} = await supabase.from('reports').select('*, profiles(username)').order('created_at',{ascending:false}).limit(200)
+      setReports(data||[])
+    } else if (t==="banner") {
+      const {data} = await supabase.from('site_settings').select('value').eq('key','banner').maybeSingle()
+      setBannerText(data?.value||"")
     }
+  }
+
+  const saveBanner = async () => {
+    await supabase.from('site_settings').upsert({key:'banner',value:bannerText,updated_at:new Date().toISOString()})
+    setBannerSaved(true); setTimeout(()=>setBannerSaved(false),2000)
+  }
+  const approveSubmission = async s => {
+    const payload = {title:s.title,date:s.date,city:s.city,location:s.location,category:s.category,price:s.price,organizer:s.organizer,ticketUrl:s.ticket_url,image:s.image,description:s.description,mediaUrls:[],createdAt:new Date().toISOString()}
+    const {data,error} = await supabase.from('events').insert(payload).select().single()
+    if (error) { alert("⚠️ "+error.message); return }
+    setEvents(e=>[...e,data])
+    await supabase.from('event_submissions').update({status:'approved'}).eq('id',s.id)
+    setSubmissions(list=>list.map(x=>x.id===s.id?{...x,status:'approved'}:x))
+  }
+  const rejectSubmission = async id => { await supabase.from('event_submissions').update({status:'rejected'}).eq('id',id); setSubmissions(l=>l.map(x=>x.id===id?{...x,status:'rejected'}:x)) }
+  const delSubmission = async id => { await supabase.from('event_submissions').delete().eq('id',id); setSubmissions(l=>l.filter(x=>x.id!==id)) }
+  const resolveReport = async id => { await supabase.from('reports').update({status:'resolved'}).eq('id',id); setReports(l=>l.map(x=>x.id===id?{...x,status:'resolved'}:x)) }
+  const delReportedContent = async r => {
+    const table = r.target_type==='post'?'posts':r.target_type==='post_comment'?'post_comments':'comments'
+    await supabase.from(table).delete().eq('id',r.target_id)
+    await supabase.from('reports').update({status:'resolved'}).eq('id',r.id)
+    setReports(l=>l.map(x=>x.id===r.id?{...x,status:'resolved'}:x))
+    alert("Contenu supprimé et signalement classé.")
+  }
+  const duplicateEvent = ev => {
+    const d = new Date(ev.date+"T00:00:00"); d.setFullYear(d.getFullYear()+1)
+    setEditId("new"); setEditForm({...ev,id:undefined,date:d.toISOString().slice(0,10),featured:false})
+    setTab("events")
+  }
+  const toggleFeatured = async (ev) => {
+    const val = !ev.featured
+    setEvents(list=>list.map(x=>x.id===ev.id?{...x,featured:val}:x))
+    await adminSave(supabase.from('events').update({featured:val}).eq('id',ev.id))
+  }
+  const exportMembersCsv = () => {
+    supabase.from('profiles').select('username,email,code_postal,is_member,created_at').order('created_at',{ascending:false}).then(({data})=>{
+      const rows = [["pseudo","email","code_postal","membre","inscrit_le"], ...(data||[]).map(u=>[u.username||"",u.email||"",u.code_postal||"",u.is_member?"oui":"non",(u.created_at||"").slice(0,10)])]
+      const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n")
+      const url = URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}))
+      const a=document.createElement("a"); a.href=url; a.download="membres-malagasy-events.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000)
+    })
   }
 
   const banUser   = async (id,banned) => { await supabase.from('profiles').update({is_banned:!banned}).eq('id',id); setUsers(u=>u.map(p=>p.id===id?{...p,is_banned:!banned}:p)) }
@@ -2281,7 +2450,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -2325,6 +2494,116 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
               <StatCard n={stats.messages} l="Messages" emoji="✉️"/>
               <StatCard n={stats.follows} l="Abonnements" emoji="🔗"/>
               <StatCard n={stats.rems} l="Rappels" emoji="🔔"/>
+            </div>
+          )}
+
+          {/* FORFAITS & REVENUS */}
+          {tab==="revenus" && (() => {
+            const proOrgas = orgas.filter(o=>o.plan==='pro')
+            const today = new Date().toISOString().slice(0,10)
+            const proActifs = proOrgas.filter(o=>!o.plan_until||o.plan_until>=today)
+            const expBientot = proOrgas.filter(o=>o.plan_until&&o.plan_until>=today).sort((a,b)=>(a.plan_until||"").localeCompare(b.plan_until||"")).slice(0,8)
+            const membres = users
+            const revMembres = membres.length*2.5
+            return (
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:16,marginBottom:24}}>
+                  <StatCard n={proActifs.length} l="Orgas PRO actifs" emoji="⭐"/>
+                  <StatCard n={membres.length} l="Membres payants" emoji="💚"/>
+                  <StatCard n={`${revMembres.toFixed(2)}€`} l="Revenu membres / mois" emoji="💰"/>
+                </div>
+                <h3 style={{fontSize:15,fontWeight:800,margin:"0 0 10px"}}>⏳ Forfaits PRO qui expirent bientôt</h3>
+                {expBientot.length===0 ? <p style={{fontSize:13,color:"#999"}}>Aucun forfait daté à surveiller.</p> : expBientot.map(o=>(
+                  <div key={o.id} style={row}>
+                    <div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:13,margin:0}}>{o.name}</p><p style={{fontSize:11,color:"#bbb",margin:0}}>{o.type} · {o.city||"?"}</p></div>
+                    <span style={{fontSize:12,fontWeight:700,color:o.plan_until<today?RED:"#b8860b",flexShrink:0}}>→ {fmtShort(o.plan_until)}</span>
+                  </div>
+                ))}
+                <h3 style={{fontSize:15,fontWeight:800,margin:"24px 0 10px"}}>💚 Membres payants ({membres.length})</h3>
+                {membres.map(u=>(
+                  <div key={u.id} style={row}>
+                    <div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:13,margin:0}}>{u.username||"—"}</p><p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email}</p></div>
+                    <span style={{fontSize:11,color:"#bbb",flexShrink:0}}>depuis {(u.created_at||"").slice(0,10)}</span>
+                  </div>
+                ))}
+                <p style={{fontSize:11,color:"#ccc",marginTop:16}}>💡 Les forfaits PRO des orgas s'activent dans l'onglet 🎪 Orgas. Le revenu total dépend aussi du prix que tu fixes pour le PRO.</p>
+              </div>
+            )
+          })()}
+
+          {/* SOUMISSIONS */}
+          {tab==="submissions" && (
+            <div>
+              <p style={{fontSize:12,color:"#999",marginBottom:12}}>{submissions.filter(s=>s.status==='pending').length} en attente · {submissions.length} au total</p>
+              {submissions.length===0 && <p style={{fontSize:13,color:"#999"}}>Aucune proposition pour l'instant. Le formulaire public alimente cette file.</p>}
+              {submissions.map(s=>(
+                <div key={s.id} style={{background:WHITE,borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",borderLeft:`4px solid ${s.status==='pending'?'#b8860b':s.status==='approved'?GREEN:'#ccc'}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
+                    <p style={{fontWeight:800,fontSize:14,margin:0}}>{s.title}</p>
+                    <span style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99,flexShrink:0,background:s.status==='pending'?'#faf6ec':s.status==='approved'?'#e6f4ed':'#f0f0f0',color:s.status==='pending'?'#b8860b':s.status==='approved'?GREEN:'#999'}}>{s.status==='pending'?'⏳ en attente':s.status==='approved'?'✓ publié':'✗ refusé'}</span>
+                  </div>
+                  <p style={{fontSize:12,color:"#666",margin:"0 0 4px"}}>📅 {fmtShort(s.date)} · {s.city||"?"} · {s.category} · {s.price||"gratuit"}</p>
+                  {s.organizer && <p style={{fontSize:12,color:"#888",margin:"0 0 4px"}}>👤 {s.organizer}</p>}
+                  {s.description && <p style={{fontSize:12,color:"#777",margin:"4px 0"}}>{s.description}</p>}
+                  <p style={{fontSize:11,color:"#bbb",margin:"4px 0 8px"}}>Proposé par {s.submitter_email||"anonyme"} · {ago(s.created_at)}</p>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {s.status==='pending' && <button onClick={()=>approveSubmission(s)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:12,padding:"7px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Publier</button>}
+                    {s.status==='pending' && <button onClick={()=>rejectSubmission(s.id)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,fontSize:12,padding:"7px 14px",borderRadius:10,border:"none",cursor:"pointer"}}>✗ Refuser</button>}
+                    {delBtn(()=>delSubmission(s.id))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* SIGNALEMENTS */}
+          {tab==="reports" && (
+            <div>
+              <p style={{fontSize:12,color:"#999",marginBottom:12}}>{reports.filter(r=>r.status==='open').length} ouvert(s) · {reports.length} au total</p>
+              {reports.length===0 && <p style={{fontSize:13,color:"#999"}}>Aucun signalement. 🎉</p>}
+              {reports.map(r=>(
+                <div key={r.id} style={{background:WHITE,borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",borderLeft:`4px solid ${r.status==='open'?RED:'#ccc'}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:10,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:"#888"}}>{r.target_type==='post'?'📝 Post':r.target_type==='post_comment'?'💬 Commentaire':'💬 Comm. événement'}</span>
+                    <span style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99,flexShrink:0,background:r.status==='open'?'#fde8ec':'#f0f0f0',color:r.status==='open'?RED:'#999'}}>{r.status==='open'?'⚠️ ouvert':'✓ classé'}</span>
+                  </div>
+                  {r.target_excerpt && <p style={{fontSize:13,color:"#222",margin:"0 0 4px",fontStyle:"italic"}}>« {r.target_excerpt} »</p>}
+                  {r.reason && <p style={{fontSize:12,color:RED,margin:"0 0 4px"}}>Motif : {r.reason}</p>}
+                  <p style={{fontSize:11,color:"#bbb",margin:"4px 0 8px"}}>Signalé par @{r.profiles?.username||"?"} · {ago(r.created_at)}</p>
+                  {r.status==='open' && (
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <button onClick={()=>delReportedContent(r)} style={{background:RED,color:WHITE,fontWeight:700,fontSize:12,padding:"7px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>🗑️ Supprimer le contenu</button>
+                      <button onClick={()=>resolveReport(r.id)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,fontSize:12,padding:"7px 14px",borderRadius:10,border:"none",cursor:"pointer"}}>Ignorer</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* À LA UNE / BANDEAU */}
+          {tab==="banner" && (
+            <div style={{maxWidth:640}}>
+              <h3 style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>📢 Bandeau d'annonce</h3>
+              <p style={{fontSize:12,color:"#999",margin:"0 0 10px"}}>Affiché en haut de tout le site. Laisse vide pour le masquer.</p>
+              <textarea value={bannerText} onChange={e=>setBannerText(e.target.value)} placeholder="Ex : 🎉 RNS ce week-end à Vichy — réservez vos billets !" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginTop:10}}>
+                <button onClick={saveBanner} style={{background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 22px",borderRadius:12,border:"none",cursor:"pointer"}}>Enregistrer</button>
+                {bannerSaved && <span style={{color:GREEN,fontWeight:700,fontSize:13}}>✓ Enregistré</span>}
+              </div>
+              {bannerText && <div style={{marginTop:16}}><p style={{fontSize:11,color:"#999",margin:"0 0 6px"}}>Aperçu :</p><div style={{background:RED,color:WHITE,padding:"10px 16px",borderRadius:10,fontSize:13,fontWeight:700,textAlign:"center"}}>{bannerText}</div></div>}
+
+              <h3 style={{fontSize:15,fontWeight:800,margin:"28px 0 6px"}}>⭐ Événements à la une</h3>
+              <p style={{fontSize:12,color:"#999",margin:"0 0 12px"}}>Épingle un événement en tête de l'accueil.</p>
+              {events.filter(e=>!isPast(e.date)).map(e=>(
+                <div key={e.id} style={row}>
+                  <div style={{flex:1,minWidth:0}}><p style={{fontWeight:700,fontSize:13,margin:0}}>{e.title}</p><p style={{fontSize:11,color:"#bbb",margin:0}}>{fmtShort(e.date)} · {e.city}</p></div>
+                  <button onClick={()=>toggleFeatured(e)} style={{background:e.featured?"#faf6ec":"#f0f0f0",color:e.featured?"#b8860b":"#888",fontWeight:700,fontSize:12,padding:"6px 14px",borderRadius:99,border:e.featured?"1.5px solid #e6d9a8":"1.5px solid transparent",cursor:"pointer",flexShrink:0}}>{e.featured?"⭐ À la une":"Épingler"}</button>
+                </div>
+              ))}
+
+              <h3 style={{fontSize:15,fontWeight:800,margin:"28px 0 6px"}}>📤 Export</h3>
+              <button onClick={exportMembersCsv} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer"}}>⬇️ Exporter les membres (CSV)</button>
             </div>
           )}
 
@@ -2405,6 +2684,8 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <p style={{fontSize:11,color:"#bbb",margin:0}}>par {ev.organizer||"—"}</p>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>toggleFeatured(ev)} title="À la une" style={{background:ev.featured?"#faf6ec":"#f0f0f0",color:ev.featured?"#b8860b":"#aaa",fontWeight:700,fontSize:11,padding:"5px 10px",borderRadius:99,border:"none",cursor:"pointer"}}>⭐</button>
+                        <button onClick={()=>duplicateEvent(ev)} title="Dupliquer (année suivante)" style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 10px",borderRadius:99,border:"none",cursor:"pointer"}}>⧉</button>
                         <button onClick={()=>{setEditId(ev.id);setEditForm({...ev})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delEvent(ev.id))}
                       </div>
@@ -2655,6 +2936,8 @@ export default function App() {
   const [showForm,setShowForm]         = useState(false)
   const [form,setForm]                 = useState(EMPTY_FORM)
   const [mediaInput,setMediaInput]     = useState("")
+  const [banner,setBanner]             = useState("")
+  const [showSubmit,setShowSubmit]     = useState(false)
   const [showPast,setShowPast]         = useState(false)
   const [isAdmin,setIsAdmin]           = useState(false)
   const [showLogin,setShowLogin]       = useState(false) // modal "ce compte n'est pas admin"
@@ -2741,6 +3024,8 @@ export default function App() {
     const og = await supabase.from('organisateurs').select('*').order('id')
     if (!og.error && og.data?.length) setOrgas(og.data)
     if (!vi.error && vi.data?.length) setVideos(vi.data)
+    const bn = await supabase.from('site_settings').select('value').eq('key','banner').maybeSingle()
+    if (bn.data?.value) setBanner(bn.data.value)
   }
 
   const fetchProfile = async id => {
@@ -2820,6 +3105,11 @@ export default function App() {
 
   return (
     <div style={{minHeight:"100vh",background:"#f6f6f6",fontFamily:"system-ui,sans-serif"}}>
+
+      {/* ── BANDEAU D'ANNONCE ── */}
+      {banner && (
+        <div style={{background:"#111",color:WHITE,padding:"9px 16px",fontSize:13,fontWeight:700,textAlign:"center",lineHeight:1.4}}>{banner}</div>
+      )}
 
       {/* ── HEADER ── */}
       <header style={{background:RED,padding:isMobile?"12px 16px":"14px 24px",boxShadow:"0 2px 12px rgba(0,0,0,0.15)",position:"sticky",top:0,zIndex:60}}>
@@ -3071,6 +3361,13 @@ export default function App() {
       )}
 
       {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} onClose={()=>setShowAdmin(false)}/>}
+
+      {showSubmit && <SubmitEventModal user={user} onClose={()=>setShowSubmit(false)}/>}
+
+      {/* Bouton flottant : proposer un événement */}
+      {(page==="home"||page==="community") && !showAdmin && (
+        <button onClick={()=>setShowSubmit(true)} title="Proposer un événement" style={{position:"fixed",right:isMobile?16:24,bottom:isMobile?16:24,zIndex:55,background:RED,color:WHITE,fontWeight:800,fontSize:14,padding:isMobile?"14px 16px":"14px 22px",borderRadius:99,border:"none",cursor:"pointer",boxShadow:"0 6px 20px rgba(200,16,46,0.4)"}}>➕ {isMobile?"":"Proposer un event"}</button>
+      )}
 
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
