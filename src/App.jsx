@@ -16,6 +16,20 @@ const PlanBadge = ({ plan, size=9 }) => {
 }
 // Seul l'Organisateur publie ses événements directement (le Pro est un membre premium, pas un orga)
 const canPublishDirect = profile => profile?.plan==="organisateur"
+// Badges fans (gagnés à l'activité, override admin possible)
+const FAN_TIERS = [
+  {min:50, key:"ray",      emoji:"👑", label:"Ray aman-dReny", bg:"#EEEDFE", color:"#3C3489"},
+  {min:20, key:"mafana",   emoji:"🔥", label:"Mpankafy Mafana", bg:"#FAECE7", color:"#993C1D"},
+  {min:5,  key:"mpankafy", emoji:"🎶", label:"Mpankafy",        bg:"#E6F1FB", color:"#185FA5"},
+  {min:0,  key:"vahiny",   emoji:"🌱", label:"Vahiny",          bg:"#EAF3DE", color:"#3B6D11"},
+]
+const fanTier = profile => profile?.fan_badge
+  ? FAN_TIERS.find(t=>t.key===profile.fan_badge)
+  : FAN_TIERS.find(t=>(profile?.fan_points||0)>=t.min)
+const FanBadge = ({ profile, size=9 }) => {
+  const t = fanTier(profile); if (!t) return null
+  return <span title={`Badge fan : ${t.label}`} style={{background:t.bg,color:t.color,fontSize:size,fontWeight:800,padding:"2px 6px",borderRadius:99,whiteSpace:"nowrap"}}>{t.emoji} {t.label}</span>
+}
 const SITE_URL = "https://malagasy-events.vercel.app"
 // Sécurité : n'autorise que http(s) et mailto/tel — bloque javascript:, data:, etc.
 // (protège contre un lien piégé mis par un organisateur/établissement dans sa fiche)
@@ -950,6 +964,7 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
               <span onClick={e=>{e.stopPropagation();onProfileClick&&onProfileClick(post.user_id,u?.username)}} style={{fontWeight:700,fontSize:14,color:isOfficial(u?.username)?RED:"#111",cursor:"pointer",textDecoration:"underline dotted"}}>{u?.username||"Anonyme"}</span>
               {isOfficial(u?.username) && <span style={{background:RED,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>✓ OFFICIEL</span>}
               {!isOfficial(u?.username) && <PlanBadge plan={u?.plan}/>}
+              {!isOfficial(u?.username) && <FanBadge profile={u}/>}
               {!isOfficial(u?.username) && !PLAN_BADGE[u?.plan] && u?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
             </div>
             <span style={{fontSize:11,color:"#bbb"}}>{ago(post.created_at)}</span>
@@ -1124,8 +1139,8 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
       ids = (follows||[]).map(f=>f.following_id)
       if (ids.length===0) { setPosts([]); setLoading(false); return }
     }
-    let q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan)').order('created_at',{ascending:false}).limit(30)
-    if (ids) q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
+    let q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan,fan_points,fan_badge)').order('created_at',{ascending:false}).limit(30)
+    if (ids) q = supabase.from('posts').select('*,profiles(username,avatar_url,is_member,plan,fan_points,fan_badge)').in('user_id',ids).order('created_at',{ascending:false}).limit(30)
     let {data,error} = await q
     if (error) {
       console.warn("Jointure posts→profiles échouée, repli sans jointure :", error.message)
@@ -1212,6 +1227,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
                         <span onClick={()=>onProfileClick&&onProfileClick(m.id,m.username)} style={{fontWeight:700,fontSize:14,color:isOfficial(m.username)?RED:"#111",cursor:"pointer"}}>{m.username||"Anonyme"}</span>
                         {isOfficial(m.username) && <span style={{background:RED,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>✓ OFFICIEL</span>}
                         {!isOfficial(m.username) && <PlanBadge plan={m.plan}/>}
+                        {!isOfficial(m.username) && <FanBadge profile={m}/>}
                         {!isOfficial(m.username) && !PLAN_BADGE[m.plan] && m.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99}}>MEMBRE</span>}
                       </div>
                       {m.code_postal && <p style={{fontSize:12,color:"#999",margin:0}}>📍 {m.code_postal}</p>}
@@ -1632,10 +1648,11 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
   const [selected,setSelected] = useState(null)
   const types = ["Tous",...Object.keys(ORGA_COLORS)]
   const base = filter==="Tous" ? orgas : orgas.filter(o=>o.type===filter)
-  // Priorité Pro : les fiches en forfait pro remontent en tête de l'annuaire
+  // Épinglés puis fiches Pro en tête de l'annuaire
   const today = new Date().toISOString().slice(0,10)
   const isProOrga = o => o.plan==='pro' && (!o.plan_until||o.plan_until>=today)
-  const list = [...base].sort((a,b)=>(isProOrga(b)?1:0)-(isProOrga(a)?1:0))
+  const rank = o => (o.featured?2:0)+(isProOrga(o)?1:0)
+  const list = [...base].sort((a,b)=>rank(b)-rank(a))
   const initials = nm => nm.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
 
   return (
@@ -1656,7 +1673,8 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
           const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
           const count = events.filter(e=>{const org=(e.organizer||"").toLowerCase();const first=o.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0];return first&&org.includes(first)}).length
           return (
-            <div key={o.id} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+            <div key={o.id} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:16,boxShadow:o.featured?"0 2px 14px rgba(184,134,11,0.25)":"0 2px 10px rgba(0,0,0,0.06)",border:o.featured?"1.5px solid #e6b31e":"none",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+              {o.featured && <span style={{alignSelf:"flex-start",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:99}}>⭐ À LA UNE</span>}
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(o.name)}</div>
                 <div style={{minWidth:0}}>
@@ -1745,7 +1763,7 @@ function GastroPage({ isMobile, gastro = initialGastro }) {
     const typeOk   = filter==="Tous" || g.type===filter
     const regionOk = regionFilter==="Toutes" || (regionFilter==="À localiser" ? !g.region : g.region===regionFilter)
     return typeOk && regionOk
-  })
+  }).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)) // épinglés en tête
   const located = gastro.filter(g=>g.lat&&g.lng)
 
   useEffect(()=>{
@@ -1808,7 +1826,8 @@ function GastroPage({ isMobile, gastro = initialGastro }) {
         {list.map(g=>{
           const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
           return (
-            <div key={g.id} onClick={()=>setSelected(g)} style={{background:WHITE,borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,0.06)",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+            <div key={g.id} onClick={()=>setSelected(g)} style={{background:WHITE,borderRadius:16,boxShadow:g.featured?"0 2px 14px rgba(184,134,11,0.25)":"0 2px 10px rgba(0,0,0,0.06)",border:g.featured?"1.5px solid #e6b31e":"none",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
+              {g.featured && <span style={{alignSelf:"flex-start",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:99}}>⭐ À LA UNE</span>}
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(g.name)}</div>
                 <div style={{minWidth:0}}>
@@ -1852,7 +1871,7 @@ function AfterMoviePage({ videos, events, user, userProfile, onAuthRequired, onB
     if (activeFilter==="Tous") return true
     if (cities.includes(activeFilter)) return v.city===activeFilter
     return new Date(v.date).getFullYear().toString()===activeFilter
-  })
+  }).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)) // épinglés en tête
 
   const featured = aftermovies[0]
 
@@ -1927,12 +1946,13 @@ function AfterMoviePage({ videos, events, user, userProfile, onAuthRequired, onB
       <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"0 12px 40px":"0 24px 60px"}}>
         <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:16}}>
           {filtered.map(v=>(
-            <div key={v.id} onClick={()=>setPlaying(v)} style={{background:"#1a1a1a",borderRadius:16,overflow:"hidden",cursor:"pointer"}}>
+            <div key={v.id} onClick={()=>setPlaying(v)} style={{background:"#1a1a1a",borderRadius:16,overflow:"hidden",cursor:"pointer",border:v.featured?"1.5px solid #e6b31e":"none"}}>
               <div style={{position:"relative"}}>
                 <img src={v.thumbnail} alt="" style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
                 <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,0.85)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>▶</div>
                 </div>
+                {v.featured && <span style={{position:"absolute",top:8,right:8,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:99}}>⭐ À LA UNE</span>}
                 {v.isTeaser && <span style={{position:"absolute",top:8,left:8,background:"#ff6b00",color:WHITE,fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:99}}>🎬 TEASER</span>}
                 {v.type==="communaute" && <span style={{position:"absolute",top:8,left:8,background:GREEN,color:WHITE,fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:99}}>👥 COMMUNAUTÉ</span>}
               </div>
@@ -2505,6 +2525,12 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     const {error} = await supabase.from('profiles').update({plan}).eq('id',id)
     if (error) alert("⚠️ "+error.message)
   }
+  const setUserFanBadge = async (id,val) => {
+    const fan_badge = val==="auto" ? null : val
+    setUsers(list=>list.map(u=>u.id===id?{...u,fan_badge}:u))
+    const {error} = await supabase.from('profiles').update({fan_badge}).eq('id',id)
+    if (error) alert("⚠️ "+error.message)
+  }
   const saveBanner = async () => {
     await supabase.from('site_settings').upsert({key:'banner',value:bannerText,updated_at:new Date().toISOString()})
     setBannerSaved(true); setTimeout(()=>setBannerSaved(false),2000)
@@ -2537,6 +2563,15 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     setEvents(list=>list.map(x=>x.id===ev.id?{...x,featured:val}:x))
     await adminSave(supabase.from('events').update({featured:val}).eq('id',ev.id))
   }
+  // Épinglage générique (gastro, organisateurs, vidéos)
+  const togglePin = async (table, item, setList) => {
+    const val = !item.featured
+    setList(list=>list.map(x=>x.id===item.id?{...x,featured:val}:x))
+    await adminSave(supabase.from(table).update({featured:val}).eq('id',item.id))
+  }
+  const pinBtn = on => (
+    <button onClick={on.onClick} title="Épingler / à la une" style={{background:on.active?"#faf6ec":"#f0f0f0",color:on.active?"#b8860b":"#aaa",fontWeight:700,fontSize:11,padding:"5px 10px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>⭐</button>
+  )
   const exportMembersCsv = () => {
     supabase.from('profiles').select('*').limit(1000).then(({data})=>{
       const rows = [["pseudo","email","code_postal","pack","membre","inscrit_le"], ...(data||[]).map(u=>[u.username||"",u.email||"",u.code_postal||"",u.plan||"free",u.is_member?"oui":"non",(u.created_at||"").slice(0,10)])]
@@ -2747,7 +2782,14 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                     <p style={{fontSize:11,color:"#bbb",margin:0}}>{u.email||u.id}</p>
                   </div>
                   <p style={{fontSize:11,color:"#bbb",flexShrink:0}}>{u.code_postal||""}</p>
-                  {u.is_member && <span style={{background:GREEN,color:WHITE,fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:99,flexShrink:0}}>MEMBRE</span>}
+                  <span style={{fontSize:11,color:"#bbb",flexShrink:0}} title="Points d'activité">{u.fan_points||0} pts</span>
+                  <select value={u.fan_badge||"auto"} onChange={e=>setUserFanBadge(u.id,e.target.value)} title="Badge fan" style={{fontSize:11,border:"1px solid #e5e5e5",borderRadius:8,padding:"4px 6px",flexShrink:0,cursor:"pointer"}}>
+                    <option value="auto">Auto</option>
+                    <option value="vahiny">🌱 Vahiny</option>
+                    <option value="mpankafy">🎶 Mpankafy</option>
+                    <option value="mafana">🔥 Mafana</option>
+                    <option value="ray">👑 Ray aman-dReny</option>
+                  </select>
                   <button onClick={()=>banUser(u.id,u.is_banned)} style={{background:u.is_banned?"#e6f4ed":"#fde8ec",color:u.is_banned?GREEN:RED,fontWeight:700,fontSize:11,padding:"4px 10px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>
                     {u.is_banned?"✓ Débannir":"🚫 Bannir"}
                   </button>
@@ -2869,6 +2911,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <p style={{fontSize:12,color:"#888",margin:0}}>{g.type} · {g.city||"ville ?"} · {g.region||"région ?"}{g.lat?" · 📍 sur la carte":""}</p>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        {pinBtn({active:g.featured,onClick:()=>togglePin('gastro',g,setGastro)})}
                         <button onClick={()=>{setGEditId(g.id);setGForm({...g,owner_username:"",plan:g.plan||"free"})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delGastro(g.id))}
                       </div>
@@ -2929,6 +2972,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}{o.owner_id?" · ✓ propriétaire relié":""}</p>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        {pinBtn({active:o.featured,onClick:()=>togglePin('organisateurs',o,setOrgas)})}
                         <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:"",plan:o.plan||"free",plan_until:o.plan_until||""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
                         {delBtn(()=>delOrga(o.id))}
                       </div>
@@ -2993,6 +3037,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                     <p style={{fontWeight:700,fontSize:13,color:"#111",margin:"0 0 2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.title}</p>
                     <p style={{fontSize:11,color:"#bbb",margin:0}}>{v.city||"—"} · {v.date} · 👁️ {(v.views||0).toLocaleString('fr-FR')}</p>
                   </div>
+                  {pinBtn({active:v.featured,onClick:()=>togglePin('videos',v,setVideos)})}
                   {delBtn(()=>delVideo(v.id))}
                 </div>
               ))}
