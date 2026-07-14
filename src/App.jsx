@@ -823,7 +823,14 @@ function UserProfileModal({ profileId, currentUser, onAuthRequired, onClose, onM
 }
 
 /* ── PostCard ─────────────────────────────────────── */
-function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDelete }) {
+function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileClick, onDeleted }) {
+  const canDelete = !!user && (user.id===post.user_id || isAdmin)
+  const deletePost = async () => {
+    if (!confirm("Supprimer ce post ?")) return
+    const {error} = await supabase.from('posts').delete().eq('id',post.id)
+    if (error) { alert("⚠️ "+error.message); return }
+    onDeleted?.(post.id)
+  }
   const [liked,setLiked]           = useState(false)
   const [likesCount,setLikesCount] = useState(0)
   const [showCmts,setShowCmts]     = useState(false)
@@ -913,9 +920,10 @@ function PostCard({ post, user, onAuthRequired, onMessage, onProfileClick, onDel
           📤
         </button>
       </div>
-      {(!user||post.user_id!==user.id) && (
-        <div style={{padding:"0 16px 10px",textAlign:"right"}}>
-          <ReportButton user={user} type="post" id={post.id} excerpt={post.content} onAuthRequired={onAuthRequired} small/>
+      {(canDelete || !user || post.user_id!==user.id) && (
+        <div style={{padding:"0 16px 12px",display:"flex",alignItems:"center",gap:14,justifyContent:"flex-end"}}>
+          {(!user||post.user_id!==user.id) && <ReportButton user={user} type="post" id={post.id} excerpt={post.content} onAuthRequired={onAuthRequired} small/>}
+          {canDelete && <button onClick={deletePost} style={{background:"none",border:"none",color:RED,fontSize:12,fontWeight:700,cursor:"pointer",padding:0}}>🗑️ Supprimer</button>}
         </div>
       )}
       {showCmts && (
@@ -1024,7 +1032,7 @@ function EntraideFeed({ user, onAuthRequired, onOpenEvent, events = initialEvent
   )
 }
 
-function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfileClick, onOpenEvent, events }) {
+function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, onProfileClick, onOpenEvent, events }) {
   const [posts,setPosts]         = useState([])
   const [content,setContent]     = useState("")
   const [imageUrl,setImageUrl]   = useState("")
@@ -1038,16 +1046,10 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
   const isMobile                 = useIsMobile()
 
   useEffect(()=>{
-    if (feedMode==="members") fetchMembers(memberSearch)
+    if (feedMode==="members") fetchMembers()
     else if (feedMode!=="entraide") fetchPosts()
   },[feedMode, user])
   useEffect(()=>{ if(user) fetchSuggested() },[user])
-  // Recherche de membres côté serveur (trouve TOUS les membres, pas que les 100 premiers)
-  useEffect(()=>{
-    if (feedMode!=="members") return
-    const t = setTimeout(()=>fetchMembers(memberSearch), 250)
-    return ()=>clearTimeout(t)
-  },[memberSearch])
 
   // Rattache les profils si la jointure Supabase échoue (colonne/relation manquante)
   const attachProfiles = async rows => {
@@ -1081,17 +1083,17 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
     setLoading(false)
   }
 
-  const fetchMembers = async (term="") => {
+  const fetchMembers = async () => {
     setMembersLoading(true)
-    let q = supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at')
-    const t = term.trim()
-    if (t) q = q.ilike('username', "%"+t.replace(/\s+/g,"%")+"%") // "jean paul" → %jean%paul%
-    const {data,error} = await q.order('created_at',{ascending:false}).limit(100)
+    const {data,error} = await supabase.from('profiles').select('id,username,avatar_url,is_member,code_postal,created_at').order('created_at',{ascending:false}).limit(500)
     if (error) console.error("Lecture des membres impossible :", error.message)
     setMembers(data||[]); setMembersLoading(false)
   }
 
-  const filteredMembers = members
+  const norm = s => (s||"").toLowerCase().replace(/[_\s]+/g," ").trim()
+  const filteredMembers = memberSearch.trim()
+    ? members.filter(m => norm(m.username).includes(norm(memberSearch)))
+    : members
 
   const fetchSuggested = async () => {
     const {data:follows} = await supabase.from('follows').select('following_id').eq('follower_id',user.id)
@@ -1166,8 +1168,8 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
           </div>
         )}
 
-        {/* Compose */}
-        {feedMode!=="members" && feedMode!=="entraide" && (user ? (
+        {/* Compose — uniquement dans "Tous" */}
+        {feedMode==="all" && (user ? (
           <div style={{background:WHITE,borderRadius:20,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",padding:20,marginBottom:16}}>
             <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
               <div style={{width:44,height:44,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
@@ -1191,6 +1193,9 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
         ))}
 
         {/* Feed */}
+        {feedMode==="following" && posts.length>0 && (
+          <p style={{fontSize:12,color:"#999",margin:"0 0 12px"}}>👥 Les publications des membres que tu suis. Pour publier, va dans l'onglet 🌍 Tous.</p>
+        )}
         {feedMode!=="members" && feedMode!=="entraide" && (loading ? (
           <div style={{textAlign:"center",padding:40,color:"#bbb"}}>Chargement...</div>
         ) : posts.length===0 ? (
@@ -1200,7 +1205,7 @@ function CommunityFeed({ user, userProfile, onAuthRequired, onMessage, onProfile
             {feedMode==="following" && <button onClick={()=>setFeedMode("all")} style={{background:RED,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:99,border:"none",cursor:"pointer",marginTop:8}}>Découvrir des membres</button>}
           </div>
         ) : (
-          posts.map(p=><PostCard key={p.id} post={p} user={user} onAuthRequired={onAuthRequired} onMessage={onMessage} onProfileClick={onProfileClick}/>)
+          posts.map(p=><PostCard key={p.id} post={p} user={user} isAdmin={isAdmin} onAuthRequired={onAuthRequired} onMessage={onMessage} onProfileClick={onProfileClick} onDeleted={id=>setPosts(list=>list.filter(x=>x.id!==id))}/>)
         ))}
       </div>
 
@@ -3240,7 +3245,7 @@ export default function App() {
             <h2 style={{fontWeight:900,fontSize:isMobile?20:28,color:"#111",margin:"0 0 4px"}}>👥 Communauté Malagasy</h2>
             <p style={{fontSize:14,color:"#888",margin:"0 0 20px"}}>Échangez, partagez, et rencontrez d'autres membres 🇲🇬</p>
           </div>
-          <CommunityFeed user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})} onOpenEvent={ev=>setSelectedEvent(ev)} events={events}/>
+          <CommunityFeed user={user} userProfile={userProfile} isAdmin={isAdmin} onAuthRequired={()=>setShowAuth(true)} onMessage={openMsg} onProfileClick={(id,name)=>setViewingProfile({id,name})} onOpenEvent={ev=>setSelectedEvent(ev)} events={events}/>
         </div>
       )}
 
