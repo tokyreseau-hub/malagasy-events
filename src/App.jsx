@@ -1330,10 +1330,8 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
 
   useEffect(()=>{
     fetchConvList()
-    // Demande permission notifications navigateur
-    if ('Notification' in window && Notification.permission==='default') {
-      Notification.requestPermission()
-    }
+    // (La permission notifications n'est PLUS demandée automatiquement :
+    //  ça déclenchait les protections de confidentialité de Safari.)
   },[])
 
   useEffect(()=>{ if(selectedUserId) fetchMsgs() },[selectedUserId])
@@ -3581,7 +3579,7 @@ export default function App() {
             <h2 style={{color:WHITE,fontWeight:900,fontSize:isMobile?24:36,lineHeight:1.15,margin:"10px 0 10px"}}>Tous les bons plans malagasy,<br/>au même endroit.</h2>
             <p style={{color:"rgba(255,255,255,0.9)",fontSize:isMobile?14:16,margin:"0 auto 18px",maxWidth:560,lineHeight:1.5}}>Soirées, concerts, restos, tournois, entraide… Ne rate plus jamais un événement de la diaspora. Trouve, partage, retrouve les tiens.</p>
             <div style={{display:"flex",gap:isMobile?8:12,flexWrap:"wrap",justifyContent:"center",marginBottom:22}}>
-              {["✅ 100% gratuit","📅 Events vérifiés","📤 Partage en 1 clic","🤝 Une vraie communauté"].map(t=>(
+              {["📅 Events vérifiés","🇲🇬 Toute la France","📤 Partage en 1 clic","🤝 Une vraie communauté"].map(t=>(
                 <span key={t} style={{background:"rgba(255,255,255,0.15)",color:WHITE,fontSize:12.5,fontWeight:600,padding:"6px 14px",borderRadius:99}}>{t}</span>
               ))}
             </div>
@@ -3633,7 +3631,6 @@ export default function App() {
               style={{maxWidth:420,width:"100%",padding:"12px 20px",borderRadius:99,border:"none",fontSize:14,outline:"none",boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}/>
             {!showOnboarding && (
               <div style={{display:"flex",justifyContent:"center",gap:isMobile?10:20,marginTop:18,flexWrap:"wrap"}}>
-                <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>✅ 100% gratuit</span>
                 <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>📅 Events vérifiés</span>
                 <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>🤝 Partout en France</span>
                 <span style={{color:"rgba(255,255,255,0.9)",fontSize:13,fontWeight:600}}>📤 Partage en 1 clic</span>
