@@ -31,6 +31,15 @@ const FanBadge = ({ profile, size=9 }) => {
   return <span title={`Badge fan : ${t.label}`} style={{background:t.bg,color:t.color,fontSize:size,fontWeight:800,padding:"2px 6px",borderRadius:99,whiteSpace:"nowrap"}}>{t.emoji} {t.label}</span>
 }
 const SITE_URL = "https://malagasy-events.vercel.app"
+// Avatar réutilisable : affiche la vraie photo si dispo, sinon l'initiale
+function Avatar({ url, name, size=40, bg, fontSize }) {
+  const letter = (name||"?")[0].toUpperCase()
+  return (
+    <div style={{width:size,height:size,borderRadius:"50%",background:bg||"#C8102E",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+      {url ? <img src={url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span style={{color:"#fff",fontWeight:800,fontSize:fontSize||Math.round(size*0.42)}}>{letter}</span>}
+    </div>
+  )
+}
 // Sécurité : n'autorise que http(s) et mailto/tel — bloque javascript:, data:, etc.
 // (protège contre un lien piégé mis par un organisateur/établissement dans sa fiche)
 const safeUrl = u => {
@@ -41,6 +50,17 @@ const safeUrl = u => {
   return "https://" + s // sans schéma → on force https
 }
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
+// Upload d'image r\u00e9utilisable (photos import\u00e9es \u2192 stockage Supabase, pas de liens)
+async function uploadImage(file, userId, folder="divers") {
+  if (!file) return {error:"no file"}
+  if (file.size > 5*1024*1024) return {error:"Image trop lourde (max 5 Mo)."}
+  if (!file.type.startsWith("image/")) return {error:"Choisis une image."}
+  const ext = (file.name.split(".").pop()||"jpg").toLowerCase()
+  const path = `${userId}/${folder}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:"3600"})
+  if (error) return {error:error.message}
+  return { url: supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl }
+}
 const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", pro:"/pro", premium:"/premium", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
@@ -1405,6 +1425,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
   const [posts,setPosts]         = useState([])
   const [content,setContent]     = useState("")
   const [imageUrl,setImageUrl]   = useState("")
+  const [imgUploading,setImgUploading] = useState(false)
   const [loading,setLoading]     = useState(false)
   const [posting,setPosting]     = useState(false)
   const [feedMode,setFeedMode]   = useState("all") // "all" | "following" | "members"
@@ -1555,7 +1576,16 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
               <form onSubmit={submitPost} style={{flex:1,display:"flex",flexDirection:"column",gap:10}}>
                 <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="Partage quelque chose avec la communauté 🇲🇬..." rows={3} style={{border:"1.5px solid #eee",borderRadius:14,padding:"10px 14px",fontSize:14,outline:"none",resize:"none",fontFamily:"system-ui,sans-serif",width:"100%",boxSizing:"border-box"}}/>
                 <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <input value={imageUrl} onChange={e=>setImageUrl(e.target.value)} placeholder="📷 Lien image (optionnel)" style={{flex:1,border:"1.5px solid #eee",borderRadius:10,padding:"7px 12px",fontSize:12,outline:"none"}}/>
+                  <label htmlFor="post-img" style={{flex:1,display:"flex",alignItems:"center",gap:6,border:"1.5px solid #eee",borderRadius:10,padding:"8px 12px",fontSize:12,color:imageUrl?GREEN:"#888",cursor:"pointer",fontWeight:600}}>
+                    {imgUploading?"⏳ Envoi...":imageUrl?"✓ Photo ajoutée":"📷 Ajouter une photo"}
+                  </label>
+                  <input id="post-img" type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{
+                    const f=e.target.files?.[0]; if(!f) return; setImgUploading(true)
+                    const r=await uploadImage(f,user.id,"posts")
+                    if(r.error) alert("⚠️ "+r.error); else setImageUrl(r.url)
+                    setImgUploading(false)
+                  }}/>
+                  {imageUrl && <button type="button" onClick={()=>setImageUrl("")} style={{background:"#f0f0f0",color:"#888",border:"none",borderRadius:10,padding:"8px 10px",fontSize:12,cursor:"pointer"}}>✕</button>}
                   <button type="submit" disabled={!content.trim()||posting} style={{background:content.trim()?RED:"#ccc",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 18px",borderRadius:12,border:"none",cursor:content.trim()?"pointer":"not-allowed"}}>
                     {posting?"...":"Publier"}
                   </button>
@@ -1716,6 +1746,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
   const CONV_EMOJIS = ["","🇲🇬","❤️","🌺","🎉","🔥","⭐","🤝"]
   const REACTS = ["❤️","😂","👍","😮","😢"]
   const bubbleColor = convColor || RED
+  const selAvatar = convList.find(c=>c.id===selectedUserId)?.avatar_url
 
   useEffect(()=>{ if (selectedUserId) { loadConvMeta(); setShowSettings(false); setReactingId(null) } },[selectedUserId])
   const loadConvMeta = async () => {
@@ -1802,7 +1833,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
                 <div style={{background:WHITE,border:"1px solid #eee",borderRadius:10,marginTop:4,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.1)"}}>
                   {results.map(r=>(
                     <div key={r.id} onClick={()=>selectUser(r.id,r.username,r.plan)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #f5f5f5"}}>
-                      <div style={{width:32,height:32,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:12}}>{(r.username||"?")[0].toUpperCase()}</div>
+                      <Avatar url={r.avatar_url} name={r.username} size={32}/>
                       <span style={{fontSize:13,fontWeight:600}}>{r.username}</span>
                       <PlanBadge plan={r.plan} size={8}/>
                       {!PLAN_BADGE[r.plan] && r.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
@@ -1815,7 +1846,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
               {convList.map(c=>(
                 <div key={c.id} onClick={()=>selectUser(c.id,c.username,c.plan)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px",cursor:"pointer",background:selectedUserId===c.id?"#fde8ec":c.unread?"#fff8f9":"transparent",borderBottom:"1px solid #f5f5f5"}}>
                   <div style={{position:"relative",flexShrink:0}}>
-                    <div style={{width:38,height:38,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800}}>{(c.username||"?")[0].toUpperCase()}</div>
+                    <Avatar url={c.avatar_url} name={c.username} size={38}/>
                     {c.unread && <span style={{position:"absolute",top:-1,right:-1,width:11,height:11,borderRadius:"50%",background:GREEN,border:"2px solid #fff"}}/>}
                   </div>
                   <div style={{minWidth:0,flex:1}}>
@@ -1838,7 +1869,9 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
                 <div style={{padding:"10px 16px",borderBottom:"1px solid #f0f0f0",display:"flex",alignItems:"center",gap:10}}>
                   {isMobile && <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:RED,fontWeight:700,cursor:"pointer"}}>←</button>}
                   <div onClick={()=>onProfileClick&&onProfileClick(selectedUserId,selectedName)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",minWidth:0,flex:1}} title="Voir le profil">
-                    <div style={{width:34,height:34,borderRadius:"50%",background:bubbleColor,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:13,flexShrink:0}}>{convEmoji||(selectedName||"?")[0].toUpperCase()}</div>
+                    {convEmoji
+                      ? <div style={{width:34,height:34,borderRadius:"50%",background:bubbleColor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{convEmoji}</div>
+                      : <Avatar url={selAvatar} name={selectedName} size={34} bg={bubbleColor}/>}
                     <span style={{fontWeight:700,fontSize:14,color:"#333",textDecoration:"underline dotted",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{selectedName}</span>
                     <PlanBadge plan={selPlan}/>
                   </div>
