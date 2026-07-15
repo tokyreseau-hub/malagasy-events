@@ -280,9 +280,10 @@ function InterestOnboarding({ user, userProfile, onSave, onSkip }) {
 
   const save = async () => {
     setSaving(true)
-    await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
-    onSave(selected)
+    const {error} = await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
     setSaving(false)
+    if (error) { alert("⚠️ Non enregistré : "+error.message); return }
+    onSave(selected)
   }
 
   return (
@@ -358,10 +359,11 @@ function InterestTabContent({ user, userProfile, onUpdate }) {
 
   const save = async () => {
     setSaving(true)
-    await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
+    const {error} = await supabase.from('profiles').update({categories:selected}).eq('id',user.id)
+    setSaving(false)
+    if (error) { alert("⚠️ Non enregistré : "+error.message); return }
     onUpdate({...userProfile,categories:selected})
-    setSaved(true); setSaving(false)
-    setTimeout(()=>setSaved(false),2000)
+    setSaved(true); setTimeout(()=>setSaved(false),2000)
   }
 
   return (
@@ -860,8 +862,10 @@ function CommentSection({ eventId, mediaId, postId, user, onAuthRequired }) {
     if (!user) { onAuthRequired(); return }
     if (!text.trim()) return
     setLoading(true)
-    await supabase.from('comments').insert({content:text.trim(),user_id:user.id,...(mediaId?{media_id:mediaId}:{event_id:eventId})})
-    setText(""); await fetchComments(); setLoading(false)
+    const {error} = await supabase.from('comments').insert({content:text.trim(),user_id:user.id,...(mediaId?{media_id:mediaId}:{event_id:eventId})})
+    setLoading(false)
+    if (error) { alert("⚠️ Commentaire non envoyé : "+error.message); return }
+    setText(""); await fetchComments()
   }
 
   const timeAgo = d => { const m=Math.floor((Date.now()-new Date(d))/60000); if(m<1)return"à l'instant"; if(m<60)return`${m}min`; if(m<1440)return`${Math.floor(m/60)}h`; return`${Math.floor(m/1440)}j` }
@@ -1244,11 +1248,13 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
   const toggleLike = async () => {
     if (!user) { onAuthRequired(); return }
     if (liked) {
-      await supabase.from('post_likes').delete().eq('post_id',post.id).eq('user_id',user.id)
       setLiked(false); setLikesCount(c=>c-1)
+      const {error}=await supabase.from('post_likes').delete().eq('post_id',post.id).eq('user_id',user.id)
+      if(error){ setLiked(true); setLikesCount(c=>c+1); alert("⚠️ "+error.message) }
     } else {
-      await supabase.from('post_likes').insert({post_id:post.id,user_id:user.id})
       setLiked(true); setLikesCount(c=>c+1)
+      const {error}=await supabase.from('post_likes').insert({post_id:post.id,user_id:user.id})
+      if(error){ setLiked(false); setLikesCount(c=>c-1); alert("⚠️ "+error.message) }
     }
   }
 
@@ -1263,7 +1269,8 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
     e.preventDefault()
     if (!user) { onAuthRequired(); return }
     if (!cmtText.trim()) return
-    await supabase.from('post_comments').insert({post_id:post.id,user_id:user.id,content:cmtText.trim()})
+    const {error} = await supabase.from('post_comments').insert({post_id:post.id,user_id:user.id,content:cmtText.trim()})
+    if (error) { alert("⚠️ Commentaire non envoyé : "+error.message); return }
     setCmtText(""); fetchCmts()
   }
 
@@ -2721,15 +2728,15 @@ function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete })
   const toggleFav = async e => {
     e.stopPropagation()
     if (!user) { onAuthRequired(); return }
-    if (fav) { await supabase.from('favorites').delete().eq('event_id',event.id).eq('user_id',user.id); setFav(false) }
-    else { await supabase.from('favorites').insert({event_id:event.id,user_id:user.id}); setFav(true) }
+    if (fav) { setFav(false); const {error}=await supabase.from('favorites').delete().eq('event_id',event.id).eq('user_id',user.id); if(error){setFav(true);alert("⚠️ "+error.message)} }
+    else { setFav(true); const {error}=await supabase.from('favorites').insert({event_id:event.id,user_id:user.id}); if(error){setFav(false);alert("⚠️ "+error.message)} }
   }
 
   const toggleInterest = async e => {
     e.stopPropagation()
     if (!user) { onAuthRequired(); return }
-    if (interested) { await supabase.from('event_interests').delete().eq('event_id',event.id).eq('user_id',user.id); setInterested(false); setCount(c=>c-1) }
-    else { await supabase.from('event_interests').insert({event_id:event.id,user_id:user.id}); setInterested(true); setCount(c=>c+1) }
+    if (interested) { setInterested(false); setCount(c=>c-1); const {error}=await supabase.from('event_interests').delete().eq('event_id',event.id).eq('user_id',user.id); if(error){setInterested(true);setCount(c=>c+1);alert("⚠️ "+error.message)} }
+    else { setInterested(true); setCount(c=>c+1); const {error}=await supabase.from('event_interests').insert({event_id:event.id,user_id:user.id}); if(error){setInterested(false);setCount(c=>c-1);alert("⚠️ "+error.message)} }
   }
 
   return (
@@ -2969,14 +2976,14 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
 
   const toggleFav = async () => {
     if (!user) { onAuthRequired(); return }
-    if (fav) { await supabase.from('favorites').delete().eq('event_id',event.id).eq('user_id',user.id); setFav(false) }
-    else { await supabase.from('favorites').insert({event_id:event.id,user_id:user.id}); setFav(true) }
+    if (fav) { setFav(false); const {error}=await supabase.from('favorites').delete().eq('event_id',event.id).eq('user_id',user.id); if(error){setFav(true);alert("⚠️ "+error.message)} }
+    else { setFav(true); const {error}=await supabase.from('favorites').insert({event_id:event.id,user_id:user.id}); if(error){setFav(false);alert("⚠️ "+error.message)} }
   }
 
   const toggleInterest = async () => {
     if (!user) { onAuthRequired(); return }
-    if (interested) { await supabase.from('event_interests').delete().eq('event_id',event.id).eq('user_id',user.id); setInterested(false); setCount(c=>c-1) }
-    else { await supabase.from('event_interests').insert({event_id:event.id,user_id:user.id}); setInterested(true); setCount(c=>c+1) }
+    if (interested) { setInterested(false); setCount(c=>c-1); const {error}=await supabase.from('event_interests').delete().eq('event_id',event.id).eq('user_id',user.id); if(error){setInterested(true);setCount(c=>c+1);alert("⚠️ "+error.message)} }
+    else { setInterested(true); setCount(c=>c+1); const {error}=await supabase.from('event_interests').insert({event_id:event.id,user_id:user.id}); if(error){setInterested(false);setCount(c=>c-1);alert("⚠️ "+error.message)} }
   }
 
   return (
