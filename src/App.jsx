@@ -41,7 +41,7 @@ const safeUrl = u => {
   return "https://" + s // sans schéma → on force https
 }
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
-const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", pro:"/pro", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
   aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
@@ -50,6 +50,7 @@ const PAGE_META = {
   eglises:    ["Églises malagasy en France — Malagasy Events","Annuaire des paroisses et communautés chrétiennes malagasy en France : FJKM, FLM, FPMA, catholiques. Paris, Meaux, Rennes, Orléans et plus."],
   boutiques:  ["Boutiques & épiceries malgaches en France — Malagasy Events","Où acheter des produits de Madagascar en France : épiceries, boutiques en ligne, vanille, épices et spécialités malgaches."],
   artisanat:  ["Artisanat malgache en France — Malagasy Events","Créateurs et boutiques d'artisanat malgache en France : raphia, vannerie, bijoux et objets faits main de Madagascar."],
+  pro:        ["Offres Pro pour organisateurs & commerces malagasy — Malagasy Events","Boostez vos événements malagasy : mise en avant, rappels aux intéressés, calendrier intégrable et fiches premium pour restaurants et boutiques."],
   community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
 }
 const setMeta = (title, desc) => {
@@ -365,7 +366,180 @@ function InterestTabContent({ user, userProfile, onUpdate }) {
 }
 
 /* ── ProfileModal ─────────────────────────────────── */
-function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
+const PAYMENT_LINKS = { boost:"", pro_mensuel:"", pro_annuel:"", premium_annuaire:"" } // ← coller ici les Stripe Payment Links
+
+function ProPage({ isMobile, user, onAuthRequired }) {
+  const pay = key => {
+    if (PAYMENT_LINKS[key]) { window.open(PAYMENT_LINKS[key],"_blank") }
+    else alert("💳 Le paiement en ligne arrive très bientôt !\nEn attendant, contacte-nous via la Communauté ou par message pour activer ton offre — activation en moins de 24h.")
+  }
+  const Card = ({emoji,title,price,sub,items,cta,color,featured,onClick}) => (
+    <div style={{background:WHITE,borderRadius:20,boxShadow:featured?"0 8px 30px rgba(184,134,11,0.25)":"0 3px 14px rgba(0,0,0,0.07)",border:featured?"2px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",display:"flex",flexDirection:"column",position:"relative"}}>
+      {featured && <span style={{position:"absolute",top:12,right:12,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"3px 10px",borderRadius:99}}>LE PLUS CHOISI</span>}
+      <div style={{background:color,padding:"22px 20px 16px",textAlign:"center"}}>
+        <p style={{fontSize:32,margin:"0 0 4px"}}>{emoji}</p>
+        <p style={{color:WHITE,fontWeight:800,fontSize:17,margin:0}}>{title}</p>
+        <p style={{color:"rgba(255,255,255,0.95)",fontWeight:900,fontSize:26,margin:"6px 0 0"}}>{price}</p>
+        <p style={{color:"rgba(255,255,255,0.75)",fontSize:12,margin:0}}>{sub}</p>
+      </div>
+      <div style={{padding:"16px 20px 20px",display:"flex",flexDirection:"column",gap:8,flex:1}}>
+        {items.map((it,i)=><p key={i} style={{fontSize:13,color:it.startsWith("🔒")?"#bbb":"#555",margin:0,lineHeight:1.5}}>{it.startsWith("🔒")?it:"✅ "+it}</p>)}
+        <button onClick={onClick} style={{marginTop:"auto",background:color,color:WHITE,fontWeight:800,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer"}}>{cta}</button>
+      </div>
+    </div>
+  )
+  return (
+    <div style={{maxWidth:960,margin:"0 auto",padding:isMobile?"24px 16px 60px":"40px 24px 80px"}}>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <h2 style={{fontWeight:900,fontSize:isMobile?24:32,color:"#111",margin:"0 0 8px"}}>💎 Boostez vos événements</h2>
+        <p style={{color:"#666",fontSize:15,margin:0,lineHeight:1.6}}>Plus de visibilité, plus de monde à vos soirées, tournois et concerts.<br/>La plateforme de la communauté malagasy travaille pour vous.</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3, 1fr)",gap:18}}>
+        <Card emoji="🚀" title="Boost événement" price="24 €" sub="une fois · 7 jours" color={RED}
+          items={["Votre événement ⭐ à la une en tête de liste","Bannière sur la page d'accueil","Rappel envoyé aux personnes intéressées","Sans abonnement — payez quand vous en avez besoin"]}
+          cta="Booster mon événement" onClick={()=>pay('boost')}/>
+        <Card emoji="🎪" title="Orga Pro" price="15 €/mois" sub="ou 149 €/an (2 mois offerts)" color="#b8860b" featured
+          items={["Tout le pack Organisateur (badge, fiche, actus, stats)","🔔 Rappels boostés à J-3 aux intéressés","📆 Calendrier intégrable sur votre site","🔁 Événements récurrents automatiques","📈 Statistiques avancées","⭐ 1 boost événement offert chaque mois"]}
+          cta="Passer Pro" onClick={()=>pay('pro_mensuel')}/>
+        <Card emoji="🏪" title="Fiche Premium" price="79 €/an" sub="restos, boutiques, artisans" color={GREEN}
+          items={["Fiche ⭐ épinglée en tête d'annuaire","Badge doré et mise en avant sur l'accueil","Photo et description enrichies","Statistiques de visites de votre fiche"]}
+          cta="Passer Premium" onClick={()=>pay('premium_annuaire')}/>
+      </div>
+      <div style={{background:"#f8f8f8",borderRadius:16,padding:"18px 22px",marginTop:26,textAlign:"center"}}>
+        <p style={{fontSize:13,color:"#666",margin:0,lineHeight:1.7}}>💬 <b>Une question ? Une association loi 1901 ?</b> Contactez-nous via la Communauté — tarifs adaptés pour les petites assos.<br/><span style={{fontSize:12,color:"#999"}}>Paiement sécurisé. Activation sous 24h. Sans engagement pour le mensuel.</span></p>
+      </div>
+    </div>
+  )
+}
+
+function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
+  const [q,setQ]           = useState("")
+  const [mode,setMode]     = useState("search") // search | create
+  const [saving,setSaving] = useState(false)
+  const [form,setForm]     = useState({name:"",type:"Organisateur",city:"",region:"",note:"",fb:"",insta:"",site:"",contact:""})
+  const results = q.trim().length<2 ? [] : orgas.filter(o=>o.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0,6)
+  const inp = {width:"100%",border:"1.5px solid #e5e5e5",borderRadius:12,padding:"10px 14px",fontSize:13,outline:"none",boxSizing:"border-box"}
+
+  const dismiss = () => { localStorage.setItem('orga_onboard_'+user.id,'1'); onClose() }
+
+  const claim = async o => {
+    setSaving(true)
+    const {error} = await supabase.from('organisateurs').update({owner_id:user.id}).eq('id',o.id).is('owner_id',null)
+    if (error) alert("⚠️ Impossible de prendre le contrôle ("+error.message+")")
+    else { setOrgas(list=>list.map(x=>x.id===o.id?{...x,owner_id:user.id}:x)); alert("🎉 Ta fiche « "+o.name+" » est à toi ! Retrouve-la dans l'onglet Organisateurs."); dismiss() }
+    setSaving(false)
+  }
+
+  const create = async e => {
+    e.preventDefault()
+    if (!form.name.trim()) return
+    setSaving(true)
+    const {data,error} = await supabase.from('organisateurs').insert({...form,name:form.name.trim(),owner_id:user.id}).select().single()
+    if (error) alert("⚠️ Création impossible ("+error.message+")")
+    else { setOrgas(list=>[...list,data]); alert("🎉 « "+data.name+" » est en ligne dans l'annuaire Organisateurs !"); dismiss() }
+    setSaving(false)
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:95,padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:460,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)"}}>
+        <div style={{background:`linear-gradient(135deg, ${RED} 0%, #6e0a16 55%, ${GREEN} 140%)`,borderRadius:"24px 24px 0 0",padding:"26px 24px 20px",textAlign:"center"}}>
+          <p style={{fontSize:34,margin:"0 0 6px"}}>🎪</p>
+          <h2 style={{color:WHITE,fontWeight:800,fontSize:19,margin:"0 0 4px"}}>Bienvenue en mode Organisateur !</h2>
+          <p style={{color:"rgba(255,255,255,0.85)",fontSize:13,margin:0}}>Relie ton compte à ton organisme pour activer ta fiche, ton badge et tes outils.</p>
+        </div>
+        <div style={{padding:24}}>
+          {mode==="search" ? (<>
+            <label style={{fontSize:12,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:6}}>Cherche ton organisme</label>
+            <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Ex : Fiesta Lyon, CSM, Que Calor..." style={inp}/>
+            <div style={{display:"flex",flexDirection:"column",gap:8,margin:"12px 0"}}>
+              {results.map(o=>(
+                <div key={o.id} style={{display:"flex",alignItems:"center",gap:10,background:"#f8f8f8",borderRadius:12,padding:"10px 14px"}}>
+                  <span style={{fontSize:18}}>{ORGA_EMOJI[o.type]||"🎪"}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontWeight:700,fontSize:13,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
+                    <p style={{fontSize:11,color:"#999",margin:0}}>{o.type}{o.city?" · "+o.city:""}</p>
+                  </div>
+                  {o.owner_id
+                    ? <span style={{fontSize:11,fontWeight:700,color:"#bbb",flexShrink:0}}>Déjà gérée</span>
+                    : <button disabled={saving} onClick={()=>claim(o)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>C'est le mien !</button>}
+                </div>
+              ))}
+              {q.trim().length>=2 && results.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"8px 0"}}>Aucun organisme trouvé pour « {q} »</p>}
+            </div>
+            <button onClick={()=>{setForm({...form,name:q.trim()});setMode("create")}} style={{width:"100%",background:RED,color:WHITE,fontWeight:700,fontSize:13.5,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer"}}>
+              ➕ Mon organisme n'existe pas — le créer
+            </button>
+            <button onClick={dismiss} style={{width:"100%",background:"none",color:"#999",fontWeight:600,fontSize:12.5,padding:"12px 0 0",border:"none",cursor:"pointer"}}>Plus tard</button>
+          </>) : (<>
+            <form onSubmit={create} style={{display:"flex",flexDirection:"column",gap:10}}>
+              <input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nom de l'organisme *" style={inp}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})} style={inp}>
+                  {Object.keys(ORGA_COLORS).map(t=><option key={t} value={t}>{t}</option>)}
+                </select>
+                <input value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Ville" style={inp}/>
+              </div>
+              <textarea value={form.note} onChange={e=>setForm({...form,note:e.target.value})} placeholder="Présentation (2-3 phrases)" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <input value={form.fb} onChange={e=>setForm({...form,fb:e.target.value})} placeholder="Lien Facebook" style={inp}/>
+                <input value={form.insta} onChange={e=>setForm({...form,insta:e.target.value})} placeholder="Lien Instagram" style={inp}/>
+              </div>
+              <button type="submit" disabled={saving} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer"}}>{saving?"...":"🎉 Créer ma fiche dans l'annuaire"}</button>
+              <button type="button" onClick={()=>setMode("search")} style={{background:"none",color:"#999",fontWeight:600,fontSize:12.5,padding:"4px 0",border:"none",cursor:"pointer"}}>← Retour à la recherche</button>
+            </form>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Statistiques orga (onglet profil) ────────────── */
+function OrgaStatsTab({ user, orgas, events }) {
+  const [stats,setStats] = useState(null)
+  const myOrga = orgas.find(o=>o.owner_id===user.id)
+  const myEvents = myOrga ? events.filter(e=>{const org=(e.organizer||"").toLowerCase();const first=myOrga.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0];return first&&org.includes(first)}) : []
+
+  useEffect(()=>{ fetchStats() },[])
+  const fetchStats = async () => {
+    const ids = myEvents.map(e=>e.id)
+    const [ints,cmts,rems,fols,actus] = await Promise.all([
+      ids.length?supabase.from('event_interests').select('*',{count:'exact',head:true}).in('event_id',ids):{count:0},
+      ids.length?supabase.from('comments').select('*',{count:'exact',head:true}).in('event_id',ids):{count:0},
+      ids.length?supabase.from('email_reminders').select('*',{count:'exact',head:true}).in('event_id',ids):{count:0},
+      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',user.id),
+      myOrga?supabase.from('orga_posts').select('*',{count:'exact',head:true}).eq('orga_id',myOrga.id):{count:0},
+    ])
+    setStats({ints:ints.count||0,cmts:cmts.count||0,rems:rems.count||0,fols:fols.count||0,actus:actus.count||0})
+  }
+
+  if (!myOrga) return <p style={{fontSize:13,color:"#999",textAlign:"center",padding:"20px 0"}}>Relie d'abord ton organisme (recharge la page pour relancer l'assistant 🎪).</p>
+
+  const Cell = ({n,l,e}) => (
+    <div style={{background:"#f8f8f8",borderRadius:14,padding:"14px 10px",textAlign:"center"}}>
+      <p style={{fontSize:20,margin:"0 0 2px"}}>{e}</p>
+      <p style={{fontWeight:900,fontSize:22,color:"#111",margin:0}}>{n??"…"}</p>
+      <p style={{fontSize:11,color:"#999",margin:0}}>{l}</p>
+    </div>
+  )
+  return (
+    <div>
+      <p style={{fontSize:13,fontWeight:800,color:"#111",margin:"0 0 10px"}}>🎪 {myOrga.name}</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Cell n={myEvents.length} l="Événements sur le site" e="📅"/>
+        <Cell n={stats?.ints} l="Personnes intéressées" e="👀"/>
+        <Cell n={stats?.rems} l="Rappels programmés" e="🔔"/>
+        <Cell n={stats?.cmts} l="Commentaires reçus" e="💬"/>
+        <Cell n={stats?.fols} l="Abonnés à ton compte" e="👥"/>
+        <Cell n={stats?.actus} l="Actus publiées" e="📣"/>
+      </div>
+      <p style={{fontSize:11,color:"#bbb",margin:"12px 0 0",textAlign:"center"}}>📈 Statistiques avancées (vues, clics billetterie, courbes) — bientôt avec le forfait Pro.</p>
+    </div>
+  )
+}
+
+function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas = [], events = [], onGoPro }) {
   const [tab,setTab]         = useState("profil")
   const [username,setUsername] = useState(userProfile?.username||"")
   const [avatarUrl,setAvatarUrl] = useState(userProfile?.avatar_url||"")
@@ -413,7 +587,9 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
         </div>
         <div style={{display:"flex",height:4}}><div style={{flex:1,background:"#eee"}}/><div style={{flex:2,background:RED}}/><div style={{flex:2,background:GREEN}}/></div>
         <div style={{display:"flex",padding:"16px 24px 0"}}>
-          {[["profil","👤 Mon profil"],["interets","🎯 Intérêts"],["compte","⚙️ Compte"]].map(([k,l])=>(
+          {(userProfile?.plan==="organisateur"
+            ? [["profil","👤 Mon profil"],["stats","📊 Statistiques"],["compte","⚙️ Compte"]]
+            : [["profil","👤 Mon profil"],["interets","🎯 Intérêts"],["compte","⚙️ Compte"]]).map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"8px 0",border:"none",cursor:"pointer",fontWeight:700,fontSize:13,background:"none",color:tab===k?RED:"#aaa",borderBottom:tab===k?`2px solid ${RED}`:"2px solid transparent"}}>{l}</button>
           ))}
         </div>
@@ -455,8 +631,11 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
               </button>
             </div>
           )}
-          {tab==="interets" && (
+          {tab==="interets" && userProfile?.plan!=="organisateur" && (
             <InterestTabContent user={user} userProfile={userProfile} onUpdate={onUpdate}/>
+          )}
+          {tab==="stats" && userProfile?.plan==="organisateur" && (
+            <OrgaStatsTab user={user} orgas={orgas} events={events}/>
           )}
           {tab==="compte" && (
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -470,13 +649,22 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
                     <li>Tu soutiens Malagasy Events 🇲🇬</li>
                   </ul></>
                 ) : userProfile?.plan==="organisateur" ? (
-                  <><p style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>🎪 Pack Organisateur</p>
+                  <><p style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>🎪 Pack Organisateur <span style={{fontSize:11,fontWeight:700,color:GREEN}}>· actif</span></p>
+                  <p style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"10px 0 4px"}}>✅ Tes 4 bénéfices inclus</p>
                   <ul style={{margin:0,paddingLeft:18,fontSize:12.5,color:"#666",lineHeight:1.7}}>
-                    <li>Badge 🎪 Organisateur</li>
-                    <li>Événements <b>publiés directement</b> et mis à la une</li>
-                    <li>Gérer sa fiche dans l'annuaire</li>
-                    <li>Publier des actus sur sa fiche</li>
-                  </ul></>
+                    <li>Badge 🎪 partout : posts, commentaires, discussions</li>
+                    <li>Ta fiche dans l'annuaire <b>Organisateurs</b>, gérée par toi</li>
+                    <li>Actus publiées sur ta fiche</li>
+                    <li>Onglet 📊 Statistiques de tes événements</li>
+                  </ul>
+                  <p style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"12px 0 4px"}}>🔒 À débloquer avec le forfait Pro</p>
+                  <ul style={{margin:0,paddingLeft:18,fontSize:12.5,color:"#aaa",lineHeight:1.7}}>
+                    <li>🔔 Rappels boostés aux intéressés à J-3</li>
+                    <li>📆 Calendrier intégrable sur ton site</li>
+                    <li>🔁 Événements récurrents automatiques</li>
+                    <li>📈 Statistiques avancées + 1 mise en avant ⭐/mois</li>
+                  </ul>
+                  <button onClick={()=>{onGoPro&&onGoPro();onClose()}} style={{width:"100%",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontWeight:800,fontSize:13,padding:"11px 0",borderRadius:12,border:"none",cursor:"pointer",marginTop:12}}>⭐ Découvrir le forfait Pro →</button></>
                 ) : (
                   <><p style={{fontSize:15,fontWeight:700,color:"#555",margin:"0 0 8px"}}>○ Compte gratuit</p>
                   <p style={{fontSize:12,color:"#999",margin:"0 0 6px",lineHeight:1.5}}>Passe en 🎪 Organisateur ou ⭐ Pro pour publier tes événements directement et gagner en visibilité.</p>
@@ -568,7 +756,7 @@ function CommentSection({ eventId, mediaId, postId, user, onAuthRequired }) {
   useEffect(()=>{ fetchComments() },[eventId,mediaId,postId])
 
   const fetchComments = async () => {
-    let q = supabase.from('comments').select('*,profiles(username,is_member)').order('created_at',{ascending:true})
+    let q = supabase.from('comments').select('*,profiles(username,is_member,plan)').order('created_at',{ascending:true})
     if (mediaId)  q = q.eq('media_id',mediaId)
     else if (eventId) q = q.eq('event_id',eventId)
     const {data} = await q; setComments(data||[])
@@ -596,7 +784,8 @@ function CommentSection({ eventId, mediaId, postId, user, onAuthRequired }) {
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                 <span style={{fontSize:12,fontWeight:700,color:isOfficial(c.profiles?.username)?RED:"#111"}}>{c.profiles?.username||"Anonyme"}</span>
                 {isOfficial(c.profiles?.username) && <span style={{background:RED,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>✓ OFFICIEL</span>}
-                {!isOfficial(c.profiles?.username) && c.profiles?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
+                {!isOfficial(c.profiles?.username) && <PlanBadge plan={c.profiles?.plan} size={8}/>}
+                {!isOfficial(c.profiles?.username) && !PLAN_BADGE[c.profiles?.plan] && c.profiles?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
                 <span style={{fontSize:11,color:"#bbb",marginLeft:"auto"}}>{timeAgo(c.created_at)}</span>
               </div>
               <p style={{fontSize:13,color:"#333",margin:0}}>{c.content}</p>
@@ -957,7 +1146,7 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
   }
 
   const fetchCmts = async () => {
-    const {data} = await supabase.from('post_comments').select('*,profiles(username,is_member)').eq('post_id',post.id).order('created_at',{ascending:true})
+    const {data} = await supabase.from('post_comments').select('*,profiles(username,is_member,plan)').eq('post_id',post.id).order('created_at',{ascending:true})
     setCmts(data||[])
   }
 
@@ -3595,6 +3784,7 @@ export default function App() {
     {key:"eglises",label:"⛪ Églises"},
     {key:"boutiques",label:"🛍️ Boutiques & artisanat"},
     ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
+    {key:"pro",label:"💎 Pro"},
   ]
 
   const dismissOnboarding = () => { localStorage.setItem('mev_visited','1'); setOnboarding(false) }
@@ -3710,6 +3900,10 @@ export default function App() {
 
       {page==="gastro" && (
         <GastroPage isMobile={isMobile} gastro={gastro}/>
+      )}
+
+      {page==="pro" && (
+        <ProPage isMobile={isMobile} user={user} onAuthRequired={()=>setShowAuth(true)}/>
       )}
 
       {page==="orgas" && (
@@ -3919,7 +4113,11 @@ export default function App() {
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
       {showProfile && user && (
-        <ProfileModal user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)}/>
+        <ProfileModal user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)} orgas={orgas} events={events} onGoPro={()=>setPage('pro')}/>
+      )}
+
+      {user && userProfile?.plan==="organisateur" && !orgas.some(o=>o.owner_id===user.id) && !localStorage.getItem('orga_onboard_'+user.id) && (
+        <OrgaOnboarding user={user} orgas={orgas} setOrgas={setOrgas} onClose={()=>setUserProfile(p=>({...p}))}/>
       )}
 
       {showMessages && user && (
