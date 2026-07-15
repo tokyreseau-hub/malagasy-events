@@ -1619,7 +1619,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
 }
 
 /* ── MessagesModal ────────────────────────────────── */
-function MessagesModal({ user, userProfile, onClose, initialRecipientId, initialRecipientName }) {
+function MessagesModal({ user, userProfile, onClose, initialRecipientId, initialRecipientName, onProfileClick }) {
   const [convList,setConvList]       = useState([])
   const [selectedUserId,setSelected] = useState(initialRecipientId||null)
   const [selectedName,setSelName]    = useState(initialRecipientName||"")
@@ -1686,6 +1686,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
   const fetchMsgs = async () => {
     const {data} = await supabase.from('messages').select('*').or(`and(sender_id.eq.${user.id},recipient_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},recipient_id.eq.${user.id})`).order('created_at',{ascending:true})
     setMsgs(data||[])
+    loadReactions((data||[]).map(m=>m.id))
     // mark as read
     await supabase.from('messages').update({read:true}).eq('recipient_id',user.id).eq('sender_id',selectedUserId)
     fetchConvList() // rafraîchit les gras "non lu"
@@ -1694,8 +1695,81 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
   const send = async e => {
     e.preventDefault()
     if (!text.trim()||!selectedUserId) return
-    await supabase.from('messages').insert({sender_id:user.id,recipient_id:selectedUserId,content:text.trim()})
+    if (iBlocked) { alert("🚫 Tu as bloqué "+selectedName+". Débloque-le/la dans ⚙️ pour écrire."); return }
+    const {error} = await supabase.from('messages').insert({sender_id:user.id,recipient_id:selectedUserId,content:text.trim()})
+    if (error) {
+      if ((error.message||"").includes("row-level security")) alert("🚫 Impossible d'envoyer — l'un de vous a bloqué l'autre.")
+      else alert("⚠️ "+error.message)
+      return
+    }
     setText(""); fetchMsgs(); fetchConvList()
+  }
+
+  /* ── Paramètres de discussion ── */
+  const [showSettings,setShowSettings] = useState(false)
+  const [convColor,setConvColor]       = useState("")
+  const [convEmoji,setConvEmoji]       = useState("")
+  const [iBlocked,setIBlocked]         = useState(false)
+  const [reactions,setReactions]       = useState({})
+  const [reactingId,setReactingId]     = useState(null)
+  const CONV_COLORS = ["#C8102E","#1565c0","#3C3489","#007A3D","#e65100","#c2185b","#222222"]
+  const CONV_EMOJIS = ["","🇲🇬","❤️","🌺","🎉","🔥","⭐","🤝"]
+  const REACTS = ["❤️","😂","👍","😮","😢"]
+  const bubbleColor = convColor || RED
+
+  useEffect(()=>{ if (selectedUserId) { loadConvMeta(); setShowSettings(false); setReactingId(null) } },[selectedUserId])
+  const loadConvMeta = async () => {
+    const [cs,bl] = await Promise.all([
+      supabase.from('conv_settings').select('*').eq('user_id',user.id).eq('other_id',selectedUserId).maybeSingle(),
+      supabase.from('blocks').select('id').eq('blocker_id',user.id).eq('blocked_id',selectedUserId).maybeSingle(),
+    ])
+    setConvColor(cs.data?.color||""); setConvEmoji(cs.data?.emoji||""); setIBlocked(!!bl.data)
+  }
+  const saveConvSetting = async patch => {
+    const next = { color: patch.color!==undefined?patch.color:convColor, emoji: patch.emoji!==undefined?patch.emoji:convEmoji }
+    setConvColor(next.color); setConvEmoji(next.emoji)
+    const {error} = await supabase.from('conv_settings').upsert({user_id:user.id,other_id:selectedUserId,...next},{onConflict:'user_id,other_id'})
+    if (error) alert("⚠️ Réglage non sauvegardé ("+error.message+") — as-tu exécuté le SQL messagerie ?")
+  }
+  const toggleBlock = async () => {
+    if (iBlocked) {
+      await supabase.from('blocks').delete().eq('blocker_id',user.id).eq('blocked_id',selectedUserId)
+      setIBlocked(false)
+    } else if (window.confirm("Bloquer "+selectedName+" ? Vous ne pourrez plus vous écrire (débloquable à tout moment).")) {
+      const {error} = await supabase.from('blocks').insert({blocker_id:user.id,blocked_id:selectedUserId})
+      if (error && error.code!=='23505') alert("⚠️ "+error.message)
+      else setIBlocked(true)
+    }
+  }
+  const reportConv = async () => {
+    const reason = window.prompt("Pourquoi signales-tu cette conversation ?")
+    if (reason===null) return
+    const excerpt = ("Conversation avec @"+selectedName+" — derniers messages : "+msgs.slice(-3).map(m=>(m.sender_id===user.id?"moi: ":"eux: ")+m.content).join(" | ")).slice(0,400)
+    const {error} = await supabase.from('reports').insert({target_type:'conversation',target_id:0,target_excerpt:excerpt,reason,reporter_id:user.id})
+    alert(error?"⚠️ "+error.message:"🚩 Signalement envoyé aux admins. Merci !")
+    setShowSettings(false)
+  }
+  const deleteConv = async () => {
+    if (!window.confirm("Supprimer toute la conversation avec "+selectedName+" ?\n(supprimée pour vous deux, irréversible)")) return
+    const {error} = await supabase.from('messages').delete().or(`and(sender_id.eq.${user.id},recipient_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},recipient_id.eq.${user.id})`)
+    if (error) alert("⚠️ "+error.message)
+    else { setMsgs([]); setReactions({}); setShowSettings(false); fetchConvList() }
+  }
+  const loadReactions = async ids => {
+    if (!ids.length) { setReactions({}); return }
+    const {data} = await supabase.from('message_reactions').select('*').in('message_id',ids)
+    const map = {}; (data||[]).forEach(r=>{ (map[r.message_id]=map[r.message_id]||[]).push(r) })
+    setReactions(map)
+  }
+  const react = async (msgId,emoji) => {
+    setReactingId(null)
+    const mine = (reactions[msgId]||[]).find(r=>r.user_id===user.id)
+    if (mine && mine.emoji===emoji) await supabase.from('message_reactions').delete().eq('id',mine.id)
+    else {
+      const {error} = await supabase.from('message_reactions').upsert({message_id:msgId,user_id:user.id,emoji},{onConflict:'message_id,user_id'})
+      if (error) { alert("⚠️ Réaction impossible ("+error.message+") — as-tu exécuté le SQL messagerie ?"); return }
+    }
+    loadReactions(msgs.map(m=>m.id))
   }
 
   const searchUsers = async val => {
@@ -1761,19 +1835,68 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             {selectedUserId ? (
               <>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid #f0f0f0",fontWeight:700,fontSize:14,color:"#333"}}>
-                  {isMobile && <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:RED,fontWeight:700,cursor:"pointer",marginRight:8}}>←</button>}
-                  {selectedName} <PlanBadge plan={selPlan}/>
+                <div style={{padding:"10px 16px",borderBottom:"1px solid #f0f0f0",display:"flex",alignItems:"center",gap:10}}>
+                  {isMobile && <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:RED,fontWeight:700,cursor:"pointer"}}>←</button>}
+                  <div onClick={()=>onProfileClick&&onProfileClick(selectedUserId,selectedName)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",minWidth:0,flex:1}} title="Voir le profil">
+                    <div style={{width:34,height:34,borderRadius:"50%",background:bubbleColor,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:13,flexShrink:0}}>{convEmoji||(selectedName||"?")[0].toUpperCase()}</div>
+                    <span style={{fontWeight:700,fontSize:14,color:"#333",textDecoration:"underline dotted",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{selectedName}</span>
+                    <PlanBadge plan={selPlan}/>
+                  </div>
+                  <button onClick={()=>setShowSettings(v=>!v)} title="Paramètres de la discussion" style={{background:showSettings?"#f0f0f0":"none",border:"none",fontSize:17,cursor:"pointer",borderRadius:99,padding:"4px 8px"}}>⚙️</button>
                 </div>
+                {showSettings && (
+                  <div style={{borderBottom:"1px solid #f0f0f0",padding:"12px 16px",background:"#fafafa",display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",width:70}}>Couleur</span>
+                      {CONV_COLORS.map(c=>(
+                        <button key={c} onClick={()=>saveConvSetting({color:c===convColor?"":c})} style={{width:24,height:24,borderRadius:"50%",background:c,border:convColor===c?"3px solid #b8860b":"2px solid #fff",boxShadow:"0 1px 4px rgba(0,0,0,0.2)",cursor:"pointer"}}/>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",width:70}}>Icône</span>
+                      {CONV_EMOJIS.map(em=>(
+                        <button key={em||"none"} onClick={()=>saveConvSetting({emoji:em})} style={{width:28,height:28,borderRadius:8,background:convEmoji===em?"#fde8ec":"#fff",border:convEmoji===em?"1.5px solid #C8102E":"1px solid #e5e5e5",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{em||"∅"}</button>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <button onClick={()=>onProfileClick&&onProfileClick(selectedUserId,selectedName)} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:12,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>👤 Voir le profil</button>
+                      <button onClick={toggleBlock} style={{background:iBlocked?"#e6f4ed":"#fff3e0",color:iBlocked?GREEN:"#b35c00",fontWeight:700,fontSize:12,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>{iBlocked?"✅ Débloquer":"🚫 Bloquer"}</button>
+                      <button onClick={reportConv} style={{background:"#f0f0f0",color:"#555",fontWeight:700,fontSize:12,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>🚩 Signaler</button>
+                      <button onClick={deleteConv} style={{background:"#fde8ec",color:RED,fontWeight:700,fontSize:12,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>🗑️ Supprimer la discussion</button>
+                    </div>
+                  </div>
+                )}
+                {iBlocked && (
+                  <div style={{background:"#fff3e0",padding:"8px 16px",fontSize:12,color:"#b35c00",fontWeight:600,display:"flex",alignItems:"center",gap:8}}>
+                    🚫 Tu as bloqué {selectedName} — vous ne pouvez plus vous écrire.
+                    <button onClick={toggleBlock} style={{background:"none",border:"none",color:GREEN,fontWeight:800,fontSize:12,cursor:"pointer",textDecoration:"underline"}}>Débloquer</button>
+                  </div>
+                )}
                 <div style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:8}}>
                   {msgs.map(m=>{
                     const mine = m.sender_id===user.id
+                    const rx = reactions[m.id]||[]
+                    const counts = rx.reduce((a,r)=>{a[r.emoji]=(a[r.emoji]||0)+1;return a},{})
                     return (
-                      <div key={m.id} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
-                        <div style={{maxWidth:"70%",background:mine?RED:"#f0f0f0",color:mine?WHITE:"#333",borderRadius:mine?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"9px 14px",fontSize:14}}>
+                      <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:mine?"flex-end":"flex-start"}}>
+                        {reactingId===m.id && (
+                          <div style={{display:"flex",gap:2,background:WHITE,border:"1px solid #eee",borderRadius:99,padding:"3px 6px",boxShadow:"0 4px 14px rgba(0,0,0,0.15)",marginBottom:3}}>
+                            {REACTS.map(em=>(
+                              <button key={em} onClick={()=>react(m.id,em)} style={{background:(rx.find(r=>r.user_id===user.id)?.emoji===em)?"#fde8ec":"none",border:"none",fontSize:17,cursor:"pointer",borderRadius:99,padding:"2px 4px"}}>{em}</button>
+                            ))}
+                          </div>
+                        )}
+                        <div onClick={()=>setReactingId(reactingId===m.id?null:m.id)} title="Réagir" style={{maxWidth:"70%",background:mine?bubbleColor:"#f0f0f0",color:mine?WHITE:"#333",borderRadius:mine?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"9px 14px",fontSize:14,cursor:"pointer"}}>
                           {m.content}
                           <div style={{fontSize:10,color:mine?"rgba(255,255,255,0.7)":"#bbb",marginTop:3,textAlign:"right"}}>{ago(m.created_at)}</div>
                         </div>
+                        {rx.length>0 && (
+                          <div style={{display:"flex",gap:4,marginTop:2}}>
+                            {Object.entries(counts).map(([em,c])=>(
+                              <span key={em} style={{background:WHITE,border:"1px solid #eee",borderRadius:99,fontSize:11,padding:"1px 7px",boxShadow:"0 1px 3px rgba(0,0,0,0.08)"}}>{em}{c>1?" "+c:""}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -4355,7 +4478,7 @@ export default function App() {
       )}
 
       {showMessages && user && (
-        <MessagesModal user={user} userProfile={userProfile} onClose={()=>{setShowMessages(false);fetchUnread()}} initialRecipientId={msgTarget.id} initialRecipientName={msgTarget.name}/>
+        <MessagesModal user={user} userProfile={userProfile} onClose={()=>{setShowMessages(false);fetchUnread()}} initialRecipientId={msgTarget.id} initialRecipientName={msgTarget.name} onProfileClick={(id,name)=>setViewingProfile({id,name})}/>
       )}
 
       {/* Admin login */}
