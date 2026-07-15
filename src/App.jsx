@@ -639,9 +639,12 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
 
   const handleSave = async () => {
     setSaving(true)
-    const { error } = await supabase.from('profiles').update({ username, avatar_url:avatarUrl, code_postal:codePostal }).eq('id',user.id)
-    if (!error) { setSaved(true); onUpdate({...userProfile,username,avatar_url:avatarUrl,code_postal:codePostal}); setTimeout(()=>setSaved(false),2000) }
+    const { data, error } = await supabase.from('profiles').update({ username, avatar_url:avatarUrl, code_postal:codePostal }).eq('id',user.id).select().single()
     setSaving(false)
+    if (error) { alert("⚠️ Non enregistré : "+error.message); return }
+    // On applique ce que la base a RÉELLEMENT enregistré (au cas où un garde-fou modifie un champ)
+    onUpdate({...userProfile, ...(data||{username,avatar_url:avatarUrl,code_postal:codePostal})})
+    setSaved(true); setTimeout(()=>setSaved(false),2000)
   }
 
   const handleUpload = async e => {
