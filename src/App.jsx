@@ -2693,6 +2693,14 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     } else if (t==="comments") {
       const {data} = await supabase.from('post_comments').select('*,profiles(username)').order('created_at',{ascending:false}).limit(200)
       setAllCmts(data||[])
+    } else if (t==="entraide") {
+      let {data,error} = await supabase.from('entraide').select('*,profiles(username)').order('created_at',{ascending:false}).limit(200)
+      if (error) { const r2 = await supabase.from('entraide').select('*').order('created_at',{ascending:false}).limit(200); data = r2.data }
+      setHelpAds(data||[])
+    } else if (t==="actus") {
+      let {data,error} = await supabase.from('orga_posts').select('*,profiles(username),organisateurs(name)').order('created_at',{ascending:false}).limit(200)
+      if (error) { const r2 = await supabase.from('orga_posts').select('*').order('created_at',{ascending:false}).limit(200); data = r2.data }
+      setActus(data||[])
     } else if (t==="reminders") {
       const {data} = await supabase.from('email_reminders').select('*').order('created_at',{ascending:false}).limit(200)
       setReminders(data||[])
@@ -2798,8 +2806,12 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   }
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
+  const [helpAds,setHelpAds] = useState([])
+  const [actus,setActus]     = useState([])
+  const delHelp = async id => { setHelpAds(h=>h.filter(x=>x.id!==id)); await adminSave(supabase.from('entraide').delete().eq('id',id)) }
+  const delActu = async id => { setActus(a=>a.filter(x=>x.id!==id)); await adminSave(supabase.from('orga_posts').delete().eq('id',id)) }
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"entraide",l:"🤝 Entraide"},{id:"actus",l:"📣 Actus orgas"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -2843,6 +2855,10 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
               <StatCard n={stats.messages} l="Messages" emoji="✉️"/>
               <StatCard n={stats.follows} l="Abonnements" emoji="🔗"/>
               <StatCard n={stats.rems} l="Rappels" emoji="🔔"/>
+              <StatCard n={gastro.length} l="Gastronomie" emoji="🍽️"/>
+              <StatCard n={orgas.length} l="Organisateurs" emoji="🎪"/>
+              <StatCard n={lieux.length} l="Lieux & boutiques" emoji="🛍️"/>
+              <StatCard n={videos.length} l="Vidéos" emoji="🎬"/>
             </div>
           )}
 
@@ -3313,6 +3329,46 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
           )}
 
           {/* RAPPELS */}
+          {tab==="entraide" && (
+            <div>
+              <p style={{fontSize:12,color:"#999",marginBottom:12}}>{helpAds.length} annonce(s) covoiturage / hébergement — supprime les annonces douteuses ou périmées.</p>
+              {helpAds.map(r=>{
+                const ev = events.find(e=>e.id===r.event_id)
+                return (
+                  <div key={r.id} style={row}>
+                    <span style={{fontSize:18,flexShrink:0}}>{r.category==="hebergement"?"🛏️":"🚗"}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontWeight:700,fontSize:13,color:"#222",margin:"0 0 2px"}}>
+                        {r.profiles?.username||"?"} {r.type==="propose"?"propose":"cherche"} · {r.places} place{r.places>1?"s":""} · {r.category==="hebergement"?"hébergement":"trajet"}
+                      </p>
+                      <p style={{fontSize:12,color:"#888",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.category==="trajet"?"Depuis":"À"} {r.city}{r.note?` · ${r.note}`:""}</p>
+                      <p style={{fontSize:11,color:"#bbb",margin:0}}>🎪 {ev?ev.title:"événement #"+r.event_id} · {ago(r.created_at)}</p>
+                    </div>
+                    {delBtn(()=>delHelp(r.id))}
+                  </div>
+                )
+              })}
+              {helpAds.length===0 && <p style={{fontSize:13,color:"#bbb",textAlign:"center",padding:24}}>Aucune annonce d'entraide.</p>}
+            </div>
+          )}
+
+          {tab==="actus" && (
+            <div>
+              <p style={{fontSize:12,color:"#999",marginBottom:12}}>{actus.length} actu(s) publiées par les organisateurs (forfait Pro).</p>
+              {actus.map(a=>(
+                <div key={a.id} style={row}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontWeight:700,fontSize:12,color:"#555",margin:"0 0 2px"}}>🎪 {a.organisateurs?.name||"orga #"+a.orga_id} <span style={{color:"#bbb",fontWeight:400}}>par @{a.profiles?.username||"?"}</span></p>
+                    <p style={{fontSize:13,color:"#222",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.content}</p>
+                    <p style={{fontSize:11,color:"#bbb",margin:0}}>{ago(a.created_at)}</p>
+                  </div>
+                  {delBtn(()=>delActu(a.id))}
+                </div>
+              ))}
+              {actus.length===0 && <p style={{fontSize:13,color:"#bbb",textAlign:"center",padding:24}}>Aucune actu d'organisateur.</p>}
+            </div>
+          )}
+
           {tab==="reminders" && (
             <div>
               <p style={{fontSize:12,color:"#999",marginBottom:12}}>{reminders.length} rappel(s)</p>
