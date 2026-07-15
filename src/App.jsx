@@ -1674,7 +1674,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
       if (m.recipient_id===user.id && !m.read) unread[other]=true // message reçu non lu
     })
     if (uniq.length===0) { setConvList([]); return }
-    const {data:profiles} = await supabase.from('profiles').select('id,username,avatar_url').in('id',uniq)
+    const {data:profiles} = await supabase.from('profiles').select('id,username,avatar_url,plan,is_member').in('id',uniq)
     // ordonné par dernier message, avec drapeau "non lu" et aperçu
     const ordered = uniq.map(id=>{
       const p=(profiles||[]).find(x=>x.id===id)||{id,username:"?"}
@@ -1701,11 +1701,15 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
   const searchUsers = async val => {
     setSearch(val)
     if (!val.trim()) { setResults([]); return }
-    const {data} = await supabase.from('profiles').select('id,username,avatar_url').ilike('username',`%${val}%`).neq('id',user.id).limit(5)
+    const {data} = await supabase.from('profiles').select('id,username,avatar_url,plan,is_member').ilike('username',`%${val}%`).neq('id',user.id).limit(5)
     setResults(data||[])
   }
 
-  const selectUser = (id,name) => { setSelected(id); setSelName(name); setSearch(""); setResults([]) }
+  const [selPlan,setSelPlan] = useState(null)
+  const selectUser = (id,name,plan) => { setSelected(id); setSelName(name); setSelPlan(plan||null); setSearch(""); setResults([]) }
+  useEffect(()=>{ // plan du destinataire initial (ouvert depuis un profil)
+    if (initialRecipientId && selPlan===null) supabase.from('profiles').select('plan').eq('id',initialRecipientId).maybeSingle().then(({data})=>setSelPlan(data?.plan||""))
+  },[initialRecipientId])
 
   return (
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:95,padding:16}}>
@@ -1723,9 +1727,11 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
               {results.length>0 && (
                 <div style={{background:WHITE,border:"1px solid #eee",borderRadius:10,marginTop:4,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.1)"}}>
                   {results.map(r=>(
-                    <div key={r.id} onClick={()=>selectUser(r.id,r.username)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #f5f5f5"}}>
+                    <div key={r.id} onClick={()=>selectUser(r.id,r.username,r.plan)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #f5f5f5"}}>
                       <div style={{width:32,height:32,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800,fontSize:12}}>{(r.username||"?")[0].toUpperCase()}</div>
                       <span style={{fontSize:13,fontWeight:600}}>{r.username}</span>
+                      <PlanBadge plan={r.plan} size={8}/>
+                      {!PLAN_BADGE[r.plan] && r.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
                     </div>
                   ))}
                 </div>
@@ -1733,13 +1739,15 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
             </div>
             <div style={{flex:1,overflowY:"auto"}}>
               {convList.map(c=>(
-                <div key={c.id} onClick={()=>selectUser(c.id,c.username)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px",cursor:"pointer",background:selectedUserId===c.id?"#fde8ec":c.unread?"#fff8f9":"transparent",borderBottom:"1px solid #f5f5f5"}}>
+                <div key={c.id} onClick={()=>selectUser(c.id,c.username,c.plan)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px",cursor:"pointer",background:selectedUserId===c.id?"#fde8ec":c.unread?"#fff8f9":"transparent",borderBottom:"1px solid #f5f5f5"}}>
                   <div style={{position:"relative",flexShrink:0}}>
                     <div style={{width:38,height:38,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",color:WHITE,fontWeight:800}}>{(c.username||"?")[0].toUpperCase()}</div>
                     {c.unread && <span style={{position:"absolute",top:-1,right:-1,width:11,height:11,borderRadius:"50%",background:GREEN,border:"2px solid #fff"}}/>}
                   </div>
                   <div style={{minWidth:0,flex:1}}>
                     <span style={{fontSize:13,fontWeight:c.unread?800:600,color:c.unread?"#111":(selectedUserId===c.id?RED:"#333")}}>{c.username}</span>
+                    <PlanBadge plan={c.plan} size={8}/>
+                    {!PLAN_BADGE[c.plan] && c.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
                     {c.preview && <p style={{fontSize:11,margin:"2px 0 0",color:c.unread?"#444":"#aaa",fontWeight:c.unread?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.incoming?"":"Toi : "}{c.preview}</p>}
                   </div>
                 </div>
@@ -1755,7 +1763,7 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
               <>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid #f0f0f0",fontWeight:700,fontSize:14,color:"#333"}}>
                   {isMobile && <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:RED,fontWeight:700,cursor:"pointer",marginRight:8}}>←</button>}
-                  {selectedName}
+                  {selectedName} <PlanBadge plan={selPlan}/>
                 </div>
                 <div style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:8}}>
                   {msgs.map(m=>{
