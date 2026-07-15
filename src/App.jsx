@@ -973,7 +973,7 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose, events
   const submit = async () => {
     if (!f.title.trim()||!f.date) { alert("Titre et date sont obligatoires."); return }
     const dup = events.find(e=>e.title.trim().toLowerCase()===f.title.trim().toLowerCase() && e.date===f.date)
-    if (dup) { alert("🔁 Cet événement est déjà sur le site (« "+dup.title+" » le "+fmtShort(dup.date)+").\nInutile de le reposter — il est visible sur l'accueil !"); return }
+    if (dup && !window.confirm("🔁 « "+dup.title+" » existe déjà sur le site le "+fmtShort(dup.date)+".\n\nSi c'est le même événement, il est déjà visible — inutile de le reposter.\nSi vous êtes co-organisateurs ou que c'est une autre édition, tu peux continuer.\n\nPublier quand même ?")) return
     setSaving(true)
     if (canDirect) {
       // Organisateur : publication directe + automatiquement à la une.
@@ -981,8 +981,7 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose, events
       const {data,error} = await supabase.from('events').insert(payload).select().single()
       if (error) {
         const m = error.message||""
-        if (m.includes("events_titre_date_unique")||m.includes("duplicate")) alert("🔁 Cet événement (même titre, même date) est déjà sur le site.")
-        else if (m.includes("row-level security")) alert("⏳ Limite atteinte : 3 publications d'événements par 24h.\nRéessaie demain, ou contacte les admins.")
+        if (m.includes("row-level security")) alert("⏳ Limite atteinte : 3 publications d'événements par 24h.\nRéessaie demain, ou contacte les admins.")
         else alert("⚠️ "+m)
         setSaving(false); return
       }
@@ -1019,7 +1018,7 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose, events
               🎪 Pack Organisateur — ton événement sera publié directement, sans validation, et mis à la une.
             </div>
           ) : (
-            <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie. Max 3 propositions/jour · 📢 pas de publicité (contacte les admins pour promouvoir une activité).</p>
+            <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie. Max 3 propositions/jour · 📢 publicité intensive interdite — contacte les admins pour promouvoir une activité.</p>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} placeholder="Nom de l'événement *" style={inp}/>
@@ -1479,7 +1478,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
     setPosting(true)
     const {error} = await supabase.from('posts').insert({user_id:user.id,content:content.trim(),image_url:imageUrl||null})
     if (error) {
-      if ((error.message||"").includes("row-level security")) alert("⏳ Pour garder un fil de qualité, chacun peut publier 1 post tous les 3 jours.\n\n📢 Besoin de faire de la publicité ou d'annoncer plus souvent ? Contacte les admins — des offres existent pour ça.")
+      if ((error.message||"").includes("row-level security")) alert("⏳ Pour garder un fil de qualité, chacun peut publier 1 post par jour.\n\n📢 Besoin d'annoncer plus souvent ou de faire de la publicité ? Contacte les admins — des offres existent pour ça.")
       else alert("⚠️ "+error.message)
     } else { setContent(""); setImageUrl(""); fetchPosts() }
     setPosting(false)
@@ -1559,7 +1558,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
                     {posting?"...":"Publier"}
                   </button>
                 </div>
-                <p style={{fontSize:11,color:"#bbb",margin:"2px 0 0"}}>1 post / 3 jours par membre · 📢 publicité interdite — contacte les admins pour promouvoir une activité</p>
+                <p style={{fontSize:11,color:"#bbb",margin:"2px 0 0"}}>1 post par jour et par membre · 📢 publicité intensive interdite — contacte les admins pour promouvoir une activité</p>
               </form>
             </div>
           </div>
