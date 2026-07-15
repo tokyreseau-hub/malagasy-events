@@ -131,9 +131,9 @@ const doShare = (ev, platform, setCopied) => {
   navigator.clipboard.writeText(text).then(()=>{ if(setCopied) setCopied(platform) })
 }
 
-function useIsMobile() {
-  const [m,setM] = useState(window.innerWidth<768)
-  useEffect(()=>{ const h=()=>setM(window.innerWidth<768); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h) },[])
+function useIsMobile(bp=768) {
+  const [m,setM] = useState(window.innerWidth<bp)
+  useEffect(()=>{ const h=()=>setM(window.innerWidth<bp); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h) },[bp])
   return m
 }
 
@@ -370,12 +370,27 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
   const [codePostal,setCodePostal] = useState(userProfile?.code_postal||"")
   const [saving,setSaving]   = useState(false)
   const [saved,setSaved]     = useState(false)
+  const [uploading,setUploading] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     const { error } = await supabase.from('profiles').update({ username, avatar_url:avatarUrl, code_postal:codePostal }).eq('id',user.id)
     if (!error) { setSaved(true); onUpdate({...userProfile,username,avatar_url:avatarUrl,code_postal:codePostal}); setTimeout(()=>setSaved(false),2000) }
     setSaving(false)
+  }
+
+  const handleUpload = async e => {
+    const file = e.target.files?.[0]; if (!file) return
+    if (file.size > 5*1024*1024) { alert("Photo trop lourde (max 5 Mo)."); return }
+    if (!file.type.startsWith("image/")) { alert("Choisis une image."); return }
+    setUploading(true)
+    const ext = (file.name.split(".").pop()||"jpg").toLowerCase()
+    const path = `${user.id}/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:"3600"})
+    if (error) { alert("⚠️ Envoi impossible ("+error.message+").\nAs-tu créé le bucket « avatars » dans Supabase ?"); setUploading(false); return }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    setAvatarUrl(data.publicUrl)
+    setUploading(false)
   }
 
   const initiale = (userProfile?.username||user?.email||"?")[0].toUpperCase()
@@ -414,9 +429,16 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate }) {
                     </div>
                   ))}
                 </div>
-                <label style={{...lbl,marginTop:6}}>Ou coller une URL photo perso</label>
-                <input value={AVATARS.includes(avatarUrl)?"":avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://ma-photo.com/moi.jpg" style={inp}/>
-                {avatarUrl && !AVATARS.includes(avatarUrl) && <img src={avatarUrl} alt="" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover",marginTop:8}}/>}
+                <label htmlFor="avatar-upload" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"11px 0",borderRadius:12,cursor:"pointer",marginTop:6}}>
+                  {uploading?"⏳ Envoi en cours...":"📷 Importer une photo"}
+                </label>
+                <input id="avatar-upload" type="file" accept="image/*" onChange={handleUpload} disabled={uploading} style={{display:"none"}}/>
+                <p style={{fontSize:11,color:"#bbb",margin:"6px 0 0",textAlign:"center"}}>JPG ou PNG, 5 Mo max — depuis ton téléphone ou ton ordi</p>
+                <details style={{marginTop:10}}>
+                  <summary style={{fontSize:12,color:"#999",cursor:"pointer"}}>Ou coller un lien d'image</summary>
+                  <input value={AVATARS.includes(avatarUrl)?"":avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://ma-photo.com/moi.jpg" style={{...inp,marginTop:8}}/>
+                </details>
+                {avatarUrl && !AVATARS.includes(avatarUrl) && <img src={avatarUrl} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",marginTop:10,border:"2px solid #eee"}}/>}
               </div>
               <div style={{background:"#f8f8f8",borderRadius:12,padding:14}}>
                 <p style={{fontSize:12,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"0 0 4px"}}>Email</p>
@@ -3324,6 +3346,7 @@ export default function App() {
   const [viewingProfile,setViewingProfile] = useState(null) // {id, name}
   const [pendingSlug,setPendingSlug]   = useState(null)
   const isMobile                       = useIsMobile()
+  const compactNav                     = useIsMobile(1024) // barre repliée en menu tant qu'il n'y a pas la place pour tous les onglets
 
   /* ── Admin = compte Supabase officiel connecté (la sécurité réelle est côté serveur, via RLS) ── */
   useEffect(()=>{ setIsAdmin(userProfile?.username===ADMIN_USERNAME) },[userProfile])
@@ -3499,17 +3522,17 @@ export default function App() {
 
       {/* ── HEADER ── */}
       <header style={{background:RED,padding:isMobile?"12px 16px":"14px 24px",boxShadow:"0 2px 12px rgba(0,0,0,0.15)",position:"sticky",top:0,zIndex:60}}>
-        <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div onClick={handleLogoClick} style={{cursor:"default",minWidth:0}}>
+        <div style={{maxWidth:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+          <div onClick={handleLogoClick} style={{cursor:"default",minWidth:0,flexShrink:1}}>
             <h1 style={{color:WHITE,fontWeight:800,fontSize:isMobile?17:22,margin:0,whiteSpace:"nowrap"}}>🇲🇬 Malagasy Events</h1>
-            {!isMobile && <p style={{color:"rgba(255,255,255,0.75)",fontSize:12,margin:"2px 0 0"}}>La communauté malagasy en France</p>}
+            {!compactNav && <p style={{color:"rgba(255,255,255,0.75)",fontSize:12,margin:"2px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>La communauté malagasy en France</p>}
           </div>
 
           {/* Nav desktop */}
-          {!isMobile && (
-            <div style={{display:"flex",gap:4}}>
+          {!compactNav && (
+            <div style={{display:"flex",gap:2,flexShrink:0}}>
               {navItems.map(n=>(
-                <button key={n.key} onClick={()=>setPage(n.key)} style={{background:page===n.key?"rgba(255,255,255,0.25)":"transparent",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 14px",borderRadius:10,border:"none",cursor:"pointer"}}>
+                <button key={n.key} onClick={()=>setPage(n.key)} style={{background:page===n.key?"rgba(255,255,255,0.25)":"transparent",color:WHITE,fontWeight:700,fontSize:13,padding:"8px 12px",borderRadius:10,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
                   {n.label}
                 </button>
               ))}
@@ -3539,15 +3562,15 @@ export default function App() {
               <button onClick={()=>setShowAuth(true)} style={{background:WHITE,color:RED,fontWeight:700,fontSize:12,padding:"8px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>Se connecter</button>
             )}
             {/* Hamburger mobile */}
-            {isMobile && (
+            {compactNav && (
               <button onClick={()=>setMobileMenu(m=>!m)} style={{background:"rgba(255,255,255,0.15)",color:WHITE,fontWeight:800,fontSize:18,padding:"6px 10px",borderRadius:10,border:"none",cursor:"pointer"}}>☰</button>
             )}
           </div>
         </div>
 
         {/* Mobile nav dropdown */}
-        {isMobile && mobileMenu && (
-          <div style={{maxWidth:900,margin:"12px auto 0",display:"flex",flexDirection:"column",gap:4}}>
+        {compactNav && mobileMenu && (
+          <div style={{maxWidth:1120,margin:"12px auto 0",display:"flex",flexDirection:"column",gap:4}}>
             {navItems.map(n=>(
               <button key={n.key} onClick={()=>{setPage(n.key);setMobileMenu(false)}} style={{background:page===n.key?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.1)",color:WHITE,fontWeight:700,fontSize:14,padding:"12px 16px",borderRadius:12,border:"none",cursor:"pointer",textAlign:"left"}}>
                 {n.label}

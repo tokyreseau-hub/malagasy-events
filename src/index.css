@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Forcer un rendu identique sur tous les appareils (empêche l'inversion
+   sombre automatique de certains Android / navigateurs) */
+:root { color-scheme: light only; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
