@@ -424,9 +424,9 @@ function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
 
   const claim = async o => {
     setSaving(true)
-    const {error} = await supabase.from('organisateurs').update({owner_id:user.id}).eq('id',o.id).is('owner_id',null)
-    if (error) alert("⚠️ Impossible de prendre le contrôle ("+error.message+")")
-    else { setOrgas(list=>list.map(x=>x.id===o.id?{...x,owner_id:user.id}:x)); alert("🎉 Ta fiche « "+o.name+" » est à toi ! Retrouve-la dans l'onglet Organisateurs."); dismiss() }
+    const {error} = await supabase.from('orga_claims').insert({orga_id:o.id,user_id:user.id})
+    if (error) alert("⚠️ Demande impossible ("+error.message+")"+(error.code==='23505'?"\n(Tu as déjà une demande en attente pour cette fiche.)":""))
+    else { alert("📨 Demande envoyée pour « "+o.name+" » !\nNotre équipe vérifie que tu représentes bien cet organisme et te confirme sous 24-48h."); dismiss() }
     setSaving(false)
   }
 
@@ -462,7 +462,7 @@ function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
                   </div>
                   {o.owner_id
                     ? <span style={{fontSize:11,fontWeight:700,color:"#bbb",flexShrink:0}}>Déjà gérée</span>
-                    : <button disabled={saving} onClick={()=>claim(o)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>C'est le mien !</button>}
+                    : <button disabled={saving} onClick={()=>claim(o)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>📨 Demander le contrôle</button>}
                 </div>
               ))}
               {q.trim().length>=2 && results.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"8px 0"}}>Aucun organisme trouvé pour « {q} »</p>}
@@ -1990,7 +1990,17 @@ function LieuxPage({ isMobile, page, lieux }) {
   )
 }
 
-function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated }) {
+function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated, gastro = [], lieux = [], onGoto }) {
+  const [famille,setFamille] = useState("evenementiel")
+  const boutiquesArt = lieux.filter(l=>l.category==="boutique"||l.category==="artisanat")
+  const eglises = lieux.filter(l=>l.category==="eglise")
+  const FAMILLES = [
+    ["evenementiel","🎪 Événementiel", orgas.length],
+    ["gastro","🍽️ Gastronomie", gastro.length],
+    ["boutiques","🛍️ Boutiques & artisanat", boutiquesArt.length],
+    ["eglises","⛪ Églises", eglises.length],
+  ]
+  const totalPros = orgas.length + gastro.length + lieux.length
   const [filter,setFilter] = useState("Tous")
   const [q,setQ] = useState("")
   const [selected,setSelected] = useState(null)
@@ -2011,8 +2021,41 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
       <h2 style={{fontWeight:800,fontSize:isMobile?22:28,color:"#111",margin:"0 0 4px"}}>🎪 Organisateurs & associations</h2>
-      <p style={{color:"#666",fontSize:14,margin:"0 0 16px"}}>Les acteurs de la communauté malagasy en France — {orgas.length} structures</p>
+      <p style={{color:"#666",fontSize:14,margin:"0 0 16px"}}>La base des pros de la communauté malagasy en France — <b>{totalPros} structures recensées</b>. Ta structure manque ? Crée ton compte et réclame ta fiche !</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18,background:WHITE,borderRadius:16,padding:8,boxShadow:"0 2px 10px rgba(0,0,0,0.06)"}}>
+        {FAMILLES.map(([k,l,c])=>(
+          <button key={k} onClick={()=>setFamille(k)} style={{flex:isMobile?"1 1 45%":1,background:famille===k?RED:"transparent",color:famille===k?WHITE:"#555",fontWeight:700,fontSize:12.5,padding:"10px 8px",borderRadius:12,border:"none",cursor:"pointer"}}>
+            {l} <span style={{opacity:.7}}>· {c}</span>
+          </button>
+        ))}
+      </div>
 
+      {famille!=="evenementiel" && (()=>{
+        const fam = famille==="gastro"
+          ? {items:gastro, page:"gastro", label:"Gastronomie", emoji:g=>GASTRO_EMOJI[g.type]||"🍽️", grad:g=>GASTRO_GRAD[g.type]||"linear-gradient(135deg,#C8102E,#7a0a1c)", sub:g=>g.type+(g.city?" · "+g.city:"")}
+          : famille==="boutiques"
+          ? {items:boutiquesArt, page:"boutiques", label:"Boutiques & artisanat", emoji:l=>l.category==="artisanat"?"🧵":"🛍️", grad:l=>l.category==="artisanat"?"linear-gradient(135deg,#007A3D,#044d27)":"linear-gradient(135deg,#7a0a1c,#4a0611)", sub:l=>(l.denom||l.category)+(l.city?" · "+l.city:"")}
+          : {items:eglises, page:"eglises", label:"Églises", emoji:()=>"⛪", grad:()=>"linear-gradient(135deg,#1565c0,#0C447C)", sub:l=>(l.denom||"")+(l.city?" · "+l.city:"")}
+        return (
+          <div>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(250px, 1fr))",gap:12,marginBottom:16}}>
+              {fam.items.map(it=>(
+                <div key={it.id} onClick={()=>onGoto&&onGoto(fam.page)} style={{background:WHITE,borderRadius:16,boxShadow:"0 3px 12px rgba(0,0,0,0.06)",border:"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:58,alignSelf:"stretch",background:fam.grad(it),display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{fam.emoji(it)}</div>
+                  <div style={{minWidth:0,padding:"12px 12px 12px 0",flex:1}}>
+                    <p style={{fontWeight:800,fontSize:14,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</p>
+                    <p style={{fontSize:11.5,color:"#999",margin:0}}>{fam.sub(it)}</p>
+                  </div>
+                  <span style={{fontSize:16,color:"#ccc",paddingRight:12}}>›</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>onGoto&&onGoto(fam.page)} style={{width:"100%",background:"#f5f5f5",color:"#555",fontWeight:700,fontSize:13,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer"}}>Ouvrir l'annuaire {fam.label} complet →</button>
+          </div>
+        )
+      })()}
+
+      {famille==="evenementiel" && (<>
       <div style={{position:"relative",marginBottom:14}}>
         <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"#aaa"}}>🔍</span>
         <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un organisateur, une association, une ville..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
@@ -2058,6 +2101,8 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
           )
         })}
       </div>
+
+      </>)}
 
       {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
     </div>
@@ -2859,6 +2904,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   useEffect(()=>{ loadTab(tab) },[tab])
 
   const loadTab = async t => {
+    if (t==="orgas") loadClaims()
     if (t==="dashboard") {
       const [
         {count:members},{count:posts},{count:cmts},{count:interests},
@@ -2882,6 +2928,8 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     } else if (t==="comments") {
       const {data} = await supabase.from('post_comments').select('*,profiles(username)').order('created_at',{ascending:false}).limit(200)
       setAllCmts(data||[])
+    } else if (t==="orgaclaims") {
+      /* chargé avec l'onglet orgas */
     } else if (t==="entraide") {
       let {data,error} = await supabase.from('entraide').select('*,profiles(username)').order('created_at',{ascending:false}).limit(200)
       if (error) { const r2 = await supabase.from('entraide').select('*').order('created_at',{ascending:false}).limit(200); data = r2.data }
@@ -2996,6 +3044,20 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
   const [helpAds,setHelpAds] = useState([])
+  const [claims,setClaims]   = useState([])
+  const loadClaims = async () => {
+    const {data} = await supabase.from('orga_claims').select('*,profiles(username,email),organisateurs(name)').order('created_at',{ascending:false})
+    setClaims(data||[])
+  }
+  const approveClaim = async c => {
+    const ok = await adminSave(supabase.from('organisateurs').update({owner_id:c.user_id}).eq('id',c.orga_id))
+    if (ok!==null) {
+      await supabase.from('orga_claims').delete().eq('id',c.id)
+      setOrgas(o=>o.map(x=>x.id===c.orga_id?{...x,owner_id:c.user_id}:x))
+      setClaims(list=>list.filter(x=>x.id!==c.id))
+    }
+  }
+  const rejectClaim = async c => { await adminSave(supabase.from('orga_claims').delete().eq('id',c.id)); setClaims(list=>list.filter(x=>x.id!==c.id)) }
   const [actus,setActus]     = useState([])
   const delHelp = async id => { setHelpAds(h=>h.filter(x=>x.id!==id)); await adminSave(supabase.from('entraide').delete().eq('id',id)) }
   const delActu = async id => { setActus(a=>a.filter(x=>x.id!==id)); await adminSave(supabase.from('orga_posts').delete().eq('id',id)) }
@@ -3329,6 +3391,21 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
           {/* ORGAS */}
           {tab==="orgas" && (
             <div>
+              {claims.length>0 && (
+                <div style={{background:"#fff8e6",border:"1.5px solid #f0dfa8",borderRadius:16,padding:"14px 18px",marginBottom:16}}>
+                  <p style={{fontWeight:800,fontSize:14,color:"#8a6d00",margin:"0 0 10px"}}>📨 {claims.length} demande{claims.length>1?"s":""} de contrôle de fiche en attente</p>
+                  {claims.map(c=>(
+                    <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #f0e6c8",flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:160}}>
+                        <p style={{fontWeight:700,fontSize:13,margin:0}}>@{c.profiles?.username||"?"} <span style={{color:"#999",fontWeight:400}}>demande</span> 🎪 {c.organisateurs?.name||"fiche #"+c.orga_id}</p>
+                        <p style={{fontSize:11,color:"#aaa",margin:0}}>{c.profiles?.email||""} · {ago(c.created_at)}</p>
+                      </div>
+                      <button onClick={()=>approveClaim(c)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>✓ Attribuer</button>
+                      <button onClick={()=>rejectClaim(c)} style={{background:"#fde8ec",color:RED,fontWeight:700,fontSize:11.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>✗ Refuser</button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <button onClick={()=>{setOEditId("new");setOForm({...ORGA_EMPTY})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter une structure</button>
               {(oEditId==="new"?[{id:"new"}]:[]).concat(orgas).map(o=>(
                 <div key={o.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
@@ -3907,7 +3984,7 @@ export default function App() {
       )}
 
       {page==="orgas" && (
-        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))}/>
+        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)}/>
       )}
 
       {page==="eglises" && (
