@@ -2064,7 +2064,7 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
         {types.map(t=>(
           <button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?RED:WHITE,color:filter===t?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:filter===t?"none":"1px solid #e0e0e0",cursor:"pointer"}}>
-            {t==="Tous"?"Tous":`${ORGA_EMOJI[t]||""} ${t}${t.endsWith("e")||t.endsWith("s")?"s":"s"}`}
+            {t==="Tous"?"Tous":`${ORGA_EMOJI[t]||""} ${t}`}
           </button>
         ))}
       </div>
