@@ -962,7 +962,7 @@ function ReportButton({ user, type, id, excerpt, onAuthRequired, small }) {
 }
 
 /* ── SubmitEventModal (proposer un événement — public) ── */
-function SubmitEventModal({ user, userProfile, onEventPublished, onClose }) {
+function SubmitEventModal({ user, userProfile, onEventPublished, onClose, events = [] }) {
   const empty = {title:"",date:"",city:"",location:"",category:"Soirée",price:"",organizer:"",ticket_url:"",image:"",description:"",submitter_email:user?.email||""}
   const [f,setF] = useState(empty)
   const [sent,setSent] = useState(false)
@@ -972,16 +972,29 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose }) {
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"10px 12px",fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"}
   const submit = async () => {
     if (!f.title.trim()||!f.date) { alert("Titre et date sont obligatoires."); return }
+    const dup = events.find(e=>e.title.trim().toLowerCase()===f.title.trim().toLowerCase() && e.date===f.date)
+    if (dup) { alert("🔁 Cet événement est déjà sur le site (« "+dup.title+" » le "+fmtShort(dup.date)+").\nInutile de le reposter — il est visible sur l'accueil !"); return }
     setSaving(true)
     if (canDirect) {
       // Organisateur : publication directe + automatiquement à la une.
       const payload = {title:f.title,date:f.date,city:f.city,location:f.location,category:f.category,price:f.price,organizer:f.organizer||userProfile?.username||"",ticketUrl:safeUrl(f.ticket_url),image:safeUrl(f.image),description:f.description,mediaUrls:[],featured:true,createdAt:new Date().toISOString(),owner_id:user.id}
       const {data,error} = await supabase.from('events').insert(payload).select().single()
-      if (error) { alert("⚠️ "+error.message); setSaving(false); return }
+      if (error) {
+        const m = error.message||""
+        if (m.includes("events_titre_date_unique")||m.includes("duplicate")) alert("🔁 Cet événement (même titre, même date) est déjà sur le site.")
+        else if (m.includes("row-level security")) alert("⏳ Limite atteinte : 3 publications d'événements par 24h.\nRéessaie demain, ou contacte les admins.")
+        else alert("⚠️ "+m)
+        setSaving(false); return
+      }
       onEventPublished?.(data); setDirect(true); setSent(true)
     } else {
       const {error} = await supabase.from('event_submissions').insert({...f,ticket_url:safeUrl(f.ticket_url),image:safeUrl(f.image),submitter_id:user?.id||null})
-      if (error) { alert("⚠️ "+error.message); setSaving(false); return }
+      if (error) {
+        const m = error.message||""
+        if (m.includes("row-level security")) alert("⏳ Limite atteinte : 3 propositions d'événements par 24h.\nRéessaie demain, ou contacte les admins.")
+        else alert("⚠️ "+m)
+        setSaving(false); return
+      }
       setSent(true)
     }
     setSaving(false)
@@ -1006,7 +1019,7 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose }) {
               🎪 Pack Organisateur — ton événement sera publié directement, sans validation, et mis à la une.
             </div>
           ) : (
-            <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie.</p>
+            <p style={{fontSize:12,color:"#999",margin:"0 0 16px"}}>Partage un événement malagasy — on le vérifie et on le publie. Max 3 propositions/jour · 📢 pas de publicité (contacte les admins pour promouvoir une activité).</p>
           )}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} placeholder="Nom de l'événement *" style={inp}/>
@@ -1464,8 +1477,12 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
     if (!user) { onAuthRequired(); return }
     if (!content.trim()) return
     setPosting(true)
-    await supabase.from('posts').insert({user_id:user.id,content:content.trim(),image_url:imageUrl||null})
-    setContent(""); setImageUrl(""); fetchPosts(); setPosting(false)
+    const {error} = await supabase.from('posts').insert({user_id:user.id,content:content.trim(),image_url:imageUrl||null})
+    if (error) {
+      if ((error.message||"").includes("row-level security")) alert("⏳ Pour garder un fil de qualité, chacun peut publier 1 post tous les 3 jours.\n\n📢 Besoin de faire de la publicité ou d'annoncer plus souvent ? Contacte les admins — des offres existent pour ça.")
+      else alert("⚠️ "+error.message)
+    } else { setContent(""); setImageUrl(""); fetchPosts() }
+    setPosting(false)
   }
 
   const initiale = (userProfile?.username||user?.email||"?")[0].toUpperCase()
@@ -1542,6 +1559,7 @@ function CommunityFeed({ user, userProfile, isAdmin, onAuthRequired, onMessage, 
                     {posting?"...":"Publier"}
                   </button>
                 </div>
+                <p style={{fontSize:11,color:"#bbb",margin:"2px 0 0"}}>1 post / 3 jours par membre · 📢 publicité interdite — contacte les admins pour promouvoir une activité</p>
               </form>
             </div>
           </div>
@@ -4310,7 +4328,7 @@ export default function App() {
 
       {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} lieux={lieux} setLieux={setLieux} onClose={()=>setShowAdmin(false)}/>}
 
-      {showSubmit && <SubmitEventModal user={user} userProfile={userProfile} onEventPublished={ev=>setEvents(list=>[...list,ev])} onClose={()=>setShowSubmit(false)}/>}
+      {showSubmit && <SubmitEventModal user={user} userProfile={userProfile} events={events} onEventPublished={ev=>setEvents(list=>[...list,ev])} onClose={()=>setShowSubmit(false)}/>}
 
       {/* Bouton flottant : proposer un événement */}
       {(page==="home"||page==="community") && !showAdmin && (
