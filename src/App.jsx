@@ -1076,7 +1076,7 @@ function ReminderModal({ ev, onClose }) {
 }
 
 /* ── FollowButton ─────────────────────────────────── */
-function FollowButton({ targetUserId, currentUser, onAuthRequired, small }) {
+function FollowButton({ targetUserId, currentUser, onAuthRequired, small, onChange }) {
   const [following, setFollowing] = useState(false)
   const [loading, setLoading] = useState(false)
   useEffect(() => { if (currentUser && targetUserId) check() }, [currentUser, targetUserId])
@@ -1089,11 +1089,13 @@ function FollowButton({ targetUserId, currentUser, onAuthRequired, small }) {
     if (!currentUser) { onAuthRequired(); return }
     setLoading(true)
     if (following) {
-      await supabase.from('follows').delete().eq('follower_id', currentUser.id).eq('following_id', targetUserId)
-      setFollowing(false)
+      const { error } = await supabase.from('follows').delete().eq('follower_id', currentUser.id).eq('following_id', targetUserId)
+      if (error) alert("⚠️ " + error.message)
+      else { setFollowing(false); onChange && onChange(-1) }
     } else {
-      await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: targetUserId })
-      setFollowing(true)
+      const { error } = await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: targetUserId })
+      if (error && error.code !== '23505') alert("⚠️ Abonnement impossible (" + error.message + ")")
+      else { setFollowing(true); onChange && onChange(1) }
     }
     setLoading(false)
   }
@@ -1158,7 +1160,7 @@ function UserProfileModal({ profileId, currentUser, onAuthRequired, onClose, onM
             </div>
             {/* Actions */}
             <div style={{ display: "flex", gap: 10, padding: "16px 20px", borderBottom: "1px solid #f0f0f0" }}>
-              <FollowButton targetUserId={profileId} currentUser={currentUser} onAuthRequired={onAuthRequired} />
+              <FollowButton targetUserId={profileId} currentUser={currentUser} onAuthRequired={onAuthRequired} onChange={d=>setFollowerCount(c=>Math.max(0,c+d))} />
               {currentUser && currentUser.id !== profileId && (
                 <button onClick={() => { onMessage(profileId, profile.username); onClose() }} style={{ background: "#f5f5f5", color: "#333", fontWeight: 700, fontSize: 13, padding: "8px 16px", borderRadius: 99, border: "none", cursor: "pointer" }}>✉️ Message</button>
               )}
@@ -1249,7 +1251,7 @@ function PostCard({ post, user, isAdmin, onAuthRequired, onMessage, onProfileCli
   return (
     <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{background:WHITE,borderRadius:20,boxShadow:hover?"0 8px 32px rgba(0,0,0,0.12)":"0 2px 12px rgba(0,0,0,0.07)",transition:"all .2s",marginBottom:16,overflow:"hidden",border:isProPost?"1.5px solid #e6b31e":"none"}}>
-      {isProPost && <div style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"4px 16px",letterSpacing:0.5}}>⭐ MEMBRE PRO — mis en avant</div>}
+      {isProPost && <div style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"4px 16px",letterSpacing:0.5}}>⭐ MEMBRE PRO</div>}
       <div style={{padding:"16px 16px 12px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
           <div style={{width:42,height:42,borderRadius:"50%",background:RED,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
