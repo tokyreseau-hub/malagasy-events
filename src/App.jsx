@@ -1682,25 +1682,36 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
   )
 }
 
-const LIEUX_META = {
-  eglise:   {emoji:"⛪", title:"Églises malagasy", sub:"Paroisses et communautés chrétiennes malagasy en France"},
-  boutique: {emoji:"🛍️", title:"Boutiques malagasy", sub:"Produits et épiceries malagasy en France"},
-  artisanat:{emoji:"🧵", title:"Artisanat malagasy", sub:"Créateurs et artisans malagasy en France"},
+const CAT_STYLE = {
+  eglise:   {emoji:"⛪", label:"Église",    color:"#185FA5", bg:"#eef4fc", grad:"linear-gradient(135deg,#185FA5,#0C447C)"},
+  boutique: {emoji:"🛍️", label:"Boutique",  color:"#993556", bg:"#fbeaf0", grad:"linear-gradient(135deg,#993556,#72243E)"},
+  artisanat:{emoji:"🧵", label:"Artisanat", color:"#3B6D11", bg:"#eaf3de", grad:"linear-gradient(135deg,#3B6D11,#27500A)"},
 }
-function LieuxPage({ isMobile, category, lieux }) {
-  const meta = LIEUX_META[category]||LIEUX_META.eglise
-  const items = lieux.filter(l=>l.category===category)
+const LIEUX_PAGES = {
+  eglise:   {emoji:"⛪", title:"Églises malagasy",             sub:"Paroisses et communautés chrétiennes malagasy en France", filterBy:"denom"},
+  shopping: {emoji:"🛍️", title:"Boutiques & artisanat malagasy", sub:"Produits, épiceries et artisanat de Madagascar en France", filterBy:"category", cats:["boutique","artisanat"]},
+}
+function LieuxPage({ isMobile, page, lieux }) {
+  const meta = LIEUX_PAGES[page]||LIEUX_PAGES.eglise
+  const cats = meta.cats||[page]
+  const items = lieux.filter(l=>cats.includes(l.category))
   const [q,setQ] = useState("")
-  const [denom,setDenom] = useState("Tous")
+  const [filter,setFilter] = useState("Tous")
   const [selected,setSelected] = useState(null)
-  const denoms = ["Tous",...[...new Set(items.map(l=>l.denom).filter(Boolean))].sort()]
+
+  // Filtres propres, sans doublon : par catégorie (Boutiques/Artisanat) ou par obédience (églises)
+  const chips = meta.filterBy==="category"
+    ? ["Tous",...cats.filter(c=>items.some(l=>l.category===c))]
+    : ["Tous",...[...new Set(items.map(l=>l.denom).filter(Boolean))].sort()]
+  const chipLabel = c => c==="Tous" ? "Tous" : (CAT_STYLE[c] ? `${CAT_STYLE[c].emoji} ${CAT_STYLE[c].label}s` : c)
+  const matchFilter = l => filter==="Tous" || (meta.filterBy==="category" ? l.category===filter : l.denom===filter)
+
   const nq = q.trim().toLowerCase()
   const list = items.filter(l=>{
-    const dOk = denom==="Tous" || l.denom===denom
-    const qOk = !nq || [l.name,l.city,l.address,l.note].some(v=>(v||"").toLowerCase().includes(nq))
-    return dOk && qOk
+    const qOk = !nq || [l.name,l.city,l.address,l.note,l.denom].some(v=>(v||"").toLowerCase().includes(nq))
+    return matchFilter(l) && qOk
   }).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0))
-  const initials = nm => nm.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
+  const st = l => CAT_STYLE[l.category]||CAT_STYLE.eglise
 
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px 60px":"32px 24px 80px"}}>
@@ -1716,49 +1727,58 @@ function LieuxPage({ isMobile, category, lieux }) {
       ) : (<>
         <div style={{position:"relative",marginBottom:14}}>
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"#aaa"}}>🔍</span>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder={`Rechercher par nom ou ville...`} style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher par nom ou ville..." style={{width:"100%",border:"1.5px solid #e5e5e5",borderRadius:14,padding:"11px 14px 11px 40px",fontSize:14,outline:"none",boxSizing:"border-box",background:WHITE}}/>
         </div>
-        {denoms.length>2 && (
+        {chips.length>2 && (
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
-            {denoms.map(d=>(
-              <button key={d} onClick={()=>setDenom(d)} style={{background:denom===d?RED:WHITE,color:denom===d?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:denom===d?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{d}</button>
+            {chips.map(c=>(
+              <button key={c} onClick={()=>setFilter(c)} style={{background:filter===c?RED:WHITE,color:filter===c?WHITE:"#444",fontWeight:700,fontSize:13,padding:"8px 16px",borderRadius:99,border:filter===c?"none":"1px solid #e0e0e0",cursor:"pointer"}}>{chipLabel(c)}</button>
             ))}
           </div>
         )}
         {list.length===0 && <p style={{color:"#bbb",fontSize:13,textAlign:"center",padding:"30px 0"}}>Aucun résultat pour « {q} »</p>}
-        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
-          {list.map(l=>(
-            <div key={l.id} onClick={()=>setSelected(l)} style={{background:WHITE,borderRadius:16,boxShadow:l.featured?"0 2px 14px rgba(184,134,11,0.25)":"0 2px 10px rgba(0,0,0,0.06)",border:l.featured?"1.5px solid #e6b31e":"none",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
-              {l.featured && <span style={{alignSelf:"flex-start",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:99}}>⭐ À LA UNE</span>}
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:44,height:44,borderRadius:"50%",background:"#eef4fc",color:"#185FA5",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(l.name)}</div>
-                <div style={{minWidth:0}}>
-                  <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{l.name}</p>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(280px, 1fr))",gap:16}}>
+          {list.map(l=>{
+            const s = st(l)
+            const online = /en ligne/i.test(l.city||"")
+            return (
+              <div key={l.id} onClick={()=>setSelected(l)} style={{background:WHITE,borderRadius:18,boxShadow:l.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:l.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",transition:"transform .15s",display:"flex",flexDirection:"column"}}>
+                {/* Bandeau coloré par catégorie */}
+                <div style={{height:70,background:s.grad,position:"relative",display:"flex",alignItems:"center",padding:"0 16px"}}>
+                  <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,0.92)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{s.emoji}</div>
+                  {l.featured && <span style={{position:"absolute",top:8,right:8,background:"rgba(255,255,255,0.95)",color:"#b8860b",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ À LA UNE</span>}
+                  {online && <span style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,0.25)",color:WHITE,fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99}}>🌐 en ligne</span>}
+                </div>
+                <div style={{padding:"12px 16px 14px",display:"flex",flexDirection:"column",gap:8,flex:1}}>
+                  <p style={{fontWeight:800,fontSize:15.5,color:"#111",margin:0,lineHeight:1.25}}>{l.name}</p>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                    {l.denom && <span style={{background:"#eef4fc",color:"#185FA5",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{l.denom}</span>}
-                    {l.city && <span style={{fontSize:12,color:"#888"}}>📍 {l.city}</span>}
+                    {l.denom && <span style={{background:s.bg,color:s.color,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:99}}>{l.denom}</span>}
+                    {l.city && <span style={{fontSize:12,color:"#888",fontWeight:600}}>📍 {l.city}</span>}
+                  </div>
+                  {l.note && <p style={{fontSize:12.5,color:"#777",margin:0,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{l.note}</p>}
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginTop:"auto",paddingTop:4}}>
+                    {l.followers && <span style={{fontSize:12,color:"#999",fontWeight:600}}>👥 {l.followers}</span>}
+                    <span style={{marginLeft:"auto",fontSize:12,fontWeight:800,color:s.color}}>Voir →</span>
                   </div>
                 </div>
               </div>
-              {l.note && <p style={{fontSize:12,color:"#777",margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{l.note}</p>}
-              {l.followers && <span style={{fontSize:12,color:"#999",fontWeight:600,marginTop:"auto"}}>👥 {l.followers}</span>}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </>)}
 
-      {selected && (
+      {selected && (() => { const s = st(selected); return (
         <div onClick={e=>e.target===e.currentTarget&&setSelected(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:80,overflowY:"auto",padding:16}}>
           <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:520,margin:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)",overflow:"hidden"}}>
-            <div style={{position:"relative",height:isMobile?130:150,background:`linear-gradient(135deg, ${RED} 0%, #6e0a16 55%, ${GREEN} 140%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+            <div style={{position:"relative",height:isMobile?130:150,background:s.grad,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
               <button onClick={()=>setSelected(null)} style={{position:"absolute",top:14,right:14,background:"rgba(0,0,0,0.4)",color:WHITE,fontWeight:800,fontSize:20,width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer"}}>×</button>
-              <div style={{width:60,height:60,borderRadius:"50%",background:WHITE,color:"#185FA5",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:20}}>{initials(selected.name)}</div>
-              <span style={{color:"rgba(255,255,255,0.9)",fontWeight:800,fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>{meta.emoji} {meta.title}</span>
+              <div style={{width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.95)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>{s.emoji}</div>
+              <span style={{color:"rgba(255,255,255,0.9)",fontWeight:800,fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>{s.emoji} {s.label} malagasy</span>
             </div>
             <div style={{padding:isMobile?"18px 20px 24px":"22px 28px 30px"}}>
               <h2 style={{fontWeight:800,fontSize:20,color:"#111",margin:"0 0 8px"}}>{selected.name}</h2>
               <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
-                {selected.denom && <span style={{background:"#eef4fc",color:"#185FA5",fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{selected.denom}</span>}
+                {selected.denom && <span style={{background:s.bg,color:s.color,fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{selected.denom}</span>}
                 {selected.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {selected.city}</span>}
                 {selected.followers && <span style={{fontSize:13,color:"#999"}}>👥 {selected.followers}</span>}
               </div>
@@ -1770,11 +1790,11 @@ function LieuxPage({ isMobile, category, lieux }) {
                 {selected.insta && <a href={safeUrl(selected.insta)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:"#c2185b",color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>📸 Instagram</a>}
                 {selected.site && <a href={safeUrl(selected.site)} target="_blank" rel="noreferrer" style={{flex:1,minWidth:110,textAlign:"center",background:GREEN,color:WHITE,fontSize:13,fontWeight:700,padding:"11px 14px",borderRadius:12,textDecoration:"none"}}>🌐 Site web</a>}
               </div>
-              <p style={{fontSize:12,color:"#aaa",margin:"16px 0 0",textAlign:"center"}}>C'est votre {category==="eglise"?"paroisse":"structure"} ? Contactez-nous pour compléter cette fiche.</p>
+              <p style={{fontSize:12,color:"#aaa",margin:"16px 0 0",textAlign:"center"}}>C'est votre {selected.category==="eglise"?"paroisse":"structure"} ? Contactez-nous pour compléter cette fiche.</p>
             </div>
           </div>
         </div>
-      )}
+      )})()}
     </div>
   )
 }
@@ -3509,8 +3529,7 @@ export default function App() {
     {key:"gastro",label:"🍽️ Gastronomie"},
     {key:"orgas",label:"🎪 Organisateurs"},
     {key:"eglises",label:"⛪ Églises"},
-    {key:"boutiques",label:"🛍️ Boutiques"},
-    {key:"artisanat",label:"🧵 Artisanat"},
+    {key:"boutiques",label:"🛍️ Boutiques & artisanat"},
     ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
   ]
 
@@ -3634,15 +3653,11 @@ export default function App() {
       )}
 
       {page==="eglises" && (
-        <LieuxPage isMobile={isMobile} category="eglise" lieux={lieux}/>
+        <LieuxPage isMobile={isMobile} page="eglise" lieux={lieux}/>
       )}
 
-      {page==="boutiques" && (
-        <LieuxPage isMobile={isMobile} category="boutique" lieux={lieux}/>
-      )}
-
-      {page==="artisanat" && (
-        <LieuxPage isMobile={isMobile} category="artisanat" lieux={lieux}/>
+      {(page==="boutiques"||page==="artisanat") && (
+        <LieuxPage isMobile={isMobile} page="shopping" lieux={lieux}/>
       )}
 
       {page==="community" && (
@@ -3695,7 +3710,7 @@ export default function App() {
           {/* ACCÈS RAPIDE AUX ANNUAIRES */}
           <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"16px 12px 0":"24px 24px 0"}}>
             <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4}}>
-              {[["eglises","⛪","Églises","#185FA5","#eef4fc"],["gastro","🍽️","Gastronomie","#e65100","#fff3e0"],["boutiques","🛍️","Boutiques","#7a243e","#fbeaf0"],["artisanat","🧵","Artisanat","#3b6d11","#eaf3de"]].map(([k,emo,lab,c,bg])=>(
+              {[["eglises","⛪","Églises","#185FA5","#eef4fc"],["gastro","🍽️","Gastronomie","#e65100","#fff3e0"],["boutiques","🛍️","Boutiques & artisanat","#7a243e","#fbeaf0"]].map(([k,emo,lab,c,bg])=>(
                 <button key={k} onClick={()=>setPage(k)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:8,background:bg,color:c,fontWeight:800,fontSize:13,padding:"10px 16px",borderRadius:14,border:"none",cursor:"pointer"}}>
                   <span style={{fontSize:18}}>{emo}</span> {lab} <span style={{opacity:0.6}}>→</span>
                 </button>
