@@ -41,7 +41,7 @@ const safeUrl = u => {
   return "https://" + s // sans schéma → on force https
 }
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
-const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", pro:"/pro", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", pro:"/pro", premium:"/premium", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
   aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
@@ -51,6 +51,7 @@ const PAGE_META = {
   boutiques:  ["Boutiques & épiceries malgaches en France — Malagasy Events","Où acheter des produits de Madagascar en France : épiceries, boutiques en ligne, vanille, épices et spécialités malgaches."],
   artisanat:  ["Artisanat malgache en France — Malagasy Events","Créateurs et boutiques d'artisanat malgache en France : raphia, vannerie, bijoux et objets faits main de Madagascar."],
   pro:        ["Offres Pro pour organisateurs & commerces malagasy — Malagasy Events","Boostez vos événements malagasy : mise en avant, rappels aux intéressés, calendrier intégrable et fiches premium pour restaurants et boutiques."],
+  premium:    ["Membre Premium — avantages exclusifs dans la communauté malagasy","Devenez Membre Premium Malagasy Events : badge doré, réductions chez les restaurants et boutiques malgaches partenaires, accès prioritaire aux billets et tombolas exclusives."],
   community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
 }
 const setMeta = (title, desc) => {
@@ -366,7 +367,75 @@ function InterestTabContent({ user, userProfile, onUpdate }) {
 }
 
 /* ── ProfileModal ─────────────────────────────────── */
-const PAYMENT_LINKS = { boost:"", pro_mensuel:"", pro_annuel:"", premium_annuaire:"" } // ← coller ici les Stripe Payment Links
+const PAYMENT_LINKS = { boost:"", pro_mensuel:"", pro_annuel:"", premium_annuaire:"", premium_membre:"" } // ← coller ici les Stripe Payment Links
+
+function PremiumPage({ isMobile, user, userProfile, onAuthRequired }) {
+  const [perks,setPerks] = useState([])
+  const isPremium = userProfile?.plan==="pro"
+  useEffect(()=>{ (async()=>{ const {data} = await supabase.from('perks').select('*').eq('active',true).order('id'); setPerks(data||[]) })() },[])
+  const pay = () => {
+    if (!user) { onAuthRequired(); return }
+    if (PAYMENT_LINKS.premium_membre) window.open(PAYMENT_LINKS.premium_membre,"_blank")
+    else alert("💳 Le paiement en ligne arrive très bientôt !\nContacte-nous via la Communauté pour activer ton Premium — activation en moins de 24h.")
+  }
+  return (
+    <div style={{maxWidth:880,margin:"0 auto",padding:isMobile?"24px 16px 60px":"40px 24px 80px"}}>
+      <div style={{background:"linear-gradient(135deg,#3C3489,#26215C)",borderRadius:24,padding:isMobile?"28px 20px":"40px 36px",textAlign:"center",marginBottom:24,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:5,display:"flex"}}>
+          <div style={{flex:1,background:WHITE}}/><div style={{flex:1,background:RED}}/><div style={{flex:1,background:GREEN}}/>
+        </div>
+        <p style={{fontSize:40,margin:"0 0 8px"}}>💜</p>
+        <h2 style={{color:WHITE,fontWeight:900,fontSize:isMobile?24:30,margin:"0 0 8px"}}>Membre Premium</h2>
+        <p style={{color:"rgba(255,255,255,0.85)",fontSize:15,margin:"0 0 4px",lineHeight:1.6}}>Soutiens la plateforme de la communauté 🇲🇬 et profite d'avantages exclusifs.</p>
+        <p style={{color:WHITE,fontWeight:900,fontSize:30,margin:"14px 0 2px"}}>2,50 €<span style={{fontSize:15,fontWeight:700,opacity:.8}}>/mois</span></p>
+        <p style={{color:"rgba(255,255,255,0.6)",fontSize:12,margin:"0 0 18px"}}>sans engagement · le prix d'un café</p>
+        {isPremium
+          ? <span style={{display:"inline-block",background:"rgba(255,255,255,0.95)",color:"#3C3489",fontWeight:800,fontSize:14,padding:"12px 28px",borderRadius:99}}>✓ Tu es Membre Premium</span>
+          : <button onClick={pay} style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontWeight:800,fontSize:15,padding:"13px 32px",borderRadius:99,border:"none",cursor:"pointer",boxShadow:"0 6px 20px rgba(0,0,0,0.3)"}}>💜 Devenir Premium</button>}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2, 1fr)",gap:14,marginBottom:28}}>
+        {[
+          ["⭐","Badge doré","Ton badge Premium visible partout : profil, posts, commentaires, discussions."],
+          ["📣","Mis en avant","Tes publications remontent en tête du fil de la communauté."],
+          ["🏷️","Réductions partenaires","Des offres exclusives chez les restos, boutiques et artisans malagasy de nos annuaires."],
+          ["🎟️","Priorité billets & tombolas","Accès prioritaire aux billets des événements partenaires et tombolas réservées aux Premium."],
+        ].map(([e,t,d])=>(
+          <div key={t} style={{background:WHITE,borderRadius:16,padding:"18px 20px",boxShadow:"0 3px 12px rgba(0,0,0,0.06)",border:"1px solid #f0f0f0"}}>
+            <p style={{fontSize:26,margin:"0 0 6px"}}>{e}</p>
+            <p style={{fontWeight:800,fontSize:15,color:"#111",margin:"0 0 4px"}}>{t}</p>
+            <p style={{fontSize:13,color:"#777",margin:0,lineHeight:1.55}}>{d}</p>
+          </div>
+        ))}
+      </div>
+
+      <h3 style={{fontWeight:800,fontSize:18,color:"#111",margin:"0 0 4px"}}>🏷️ Les avantages partenaires</h3>
+      <p style={{color:"#888",fontSize:13,margin:"0 0 14px"}}>{perks.length>0?`${perks.length} avantage${perks.length>1?"s":""} actif${perks.length>1?"s":""} — présente ton code Premium chez le partenaire.`:"Les premiers partenariats sont en cours de signature avec les restos et boutiques de nos annuaires — ils apparaîtront ici."}</p>
+      {perks.length>0 && (
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(260px, 1fr))",gap:12,marginBottom:20}}>
+          {perks.map(pk=>(
+            <div key={pk.id} style={{background:WHITE,borderRadius:16,overflow:"hidden",boxShadow:"0 3px 12px rgba(0,0,0,0.06)",border:"1px solid #f0f0f0"}}>
+              <div style={{background:"linear-gradient(135deg,#3C3489,#26215C)",padding:"12px 16px"}}>
+                <p style={{color:WHITE,fontWeight:800,fontSize:14,margin:0}}>{pk.offer}</p>
+                <p style={{color:"rgba(255,255,255,0.75)",fontSize:12,margin:0}}>{pk.partner}{pk.city?" · "+pk.city:""}</p>
+              </div>
+              <div style={{padding:"12px 16px"}}>
+                {pk.description && <p style={{fontSize:12.5,color:"#777",margin:"0 0 10px",lineHeight:1.5}}>{pk.description}</p>}
+                {pk.code && (isPremium
+                  ? <p style={{background:"#f0edff",color:"#3C3489",fontWeight:900,fontSize:15,padding:"8px 0",borderRadius:10,textAlign:"center",margin:0,letterSpacing:2}}>{pk.code}</p>
+                  : <p onClick={pay} style={{background:"#f5f5f5",color:"#aaa",fontWeight:800,fontSize:13,padding:"8px 0",borderRadius:10,textAlign:"center",margin:0,cursor:"pointer"}}>🔒 Code réservé aux Premium</p>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{background:"#f8f8f8",borderRadius:16,padding:"16px 20px",textAlign:"center"}}>
+        <p style={{fontSize:13,color:"#666",margin:0,lineHeight:1.7}}>🏪 <b>Tu as un resto, une boutique ?</b> Propose un avantage aux membres Premium : on t'amène des clients de la communauté, gratuitement. Contacte-nous via la Communauté.</p>
+      </div>
+    </div>
+  )
+}
 
 function ProPage({ isMobile, user, onAuthRequired }) {
   const pay = key => {
@@ -539,7 +608,7 @@ function OrgaStatsTab({ user, orgas, events }) {
   )
 }
 
-function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas = [], events = [], onGoPro }) {
+function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas = [], events = [], onGoPro, onGoPremium }) {
   const [tab,setTab]         = useState("profil")
   const [username,setUsername] = useState(userProfile?.username||"")
   const [avatarUrl,setAvatarUrl] = useState(userProfile?.avatar_url||"")
@@ -668,7 +737,8 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
                 ) : (
                   <><p style={{fontSize:15,fontWeight:700,color:"#555",margin:"0 0 8px"}}>○ Compte gratuit</p>
                   <p style={{fontSize:12,color:"#999",margin:"0 0 6px",lineHeight:1.5}}>Passe en 🎪 Organisateur ou ⭐ Pro pour publier tes événements directement et gagner en visibilité.</p>
-                  <p style={{fontSize:11,color:"#bbb",margin:0}}>Contacte-nous via la Communauté pour activer un pack.</p></>
+                  <button onClick={()=>{onGoPremium&&onGoPremium();onClose()}} style={{width:"100%",background:"linear-gradient(135deg,#3C3489,#26215C)",color:WHITE,fontWeight:800,fontSize:13,padding:"11px 0",borderRadius:12,border:"none",cursor:"pointer",marginTop:8}}>💜 Découvrir Membre Premium — 2,50 €/mois</button>
+                  <p style={{fontSize:11,color:"#bbb",margin:"8px 0 0"}}>Organisateur ? Contacte-nous via la Communauté pour activer ton pack 🎪.</p></>
                 )}
               </div>
               <button onClick={()=>{onSignOut();onClose()}} style={{background:"#f5f5f5",color:"#e53935",fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:14,border:"none",cursor:"pointer",marginTop:8}}>Se déconnecter</button>
@@ -905,7 +975,7 @@ function SubmitEventModal({ user, userProfile, onEventPublished, onClose }) {
     setSaving(true)
     if (canDirect) {
       // Organisateur : publication directe + automatiquement à la une.
-      const payload = {title:f.title,date:f.date,city:f.city,location:f.location,category:f.category,price:f.price,organizer:f.organizer||userProfile?.username||"",ticketUrl:safeUrl(f.ticket_url),image:safeUrl(f.image),description:f.description,mediaUrls:[],featured:true,createdAt:new Date().toISOString()}
+      const payload = {title:f.title,date:f.date,city:f.city,location:f.location,category:f.category,price:f.price,organizer:f.organizer||userProfile?.username||"",ticketUrl:safeUrl(f.ticket_url),image:safeUrl(f.image),description:f.description,mediaUrls:[],featured:true,createdAt:new Date().toISOString(),owner_id:user.id}
       const {data,error} = await supabase.from('events').insert(payload).select().single()
       if (error) { alert("⚠️ "+error.message); setSaving(false); return }
       onEventPublished?.(data); setDirect(true); setSent(true)
@@ -2905,6 +2975,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
 
   const loadTab = async t => {
     if (t==="orgas") loadClaims()
+    if (t==="perks") loadPerks()
     if (t==="dashboard") {
       const [
         {count:members},{count:posts},{count:cmts},{count:interests},
@@ -3045,6 +3116,24 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
   const [helpAds,setHelpAds] = useState([])
   const [claims,setClaims]   = useState([])
+  const PERK_EMPTY = {partner:"",offer:"",description:"",code:"",category:"Restaurant",city:"",active:false}
+  const [perksAdm,setPerksAdm] = useState([])
+  const [pkEditId,setPkEditId] = useState(null)
+  const [pkForm,setPkForm]     = useState(PERK_EMPTY)
+  const loadPerks = async () => { const {data} = await supabase.from('perks').select('*').order('id'); setPerksAdm(data||[]) }
+  const savePerk = async () => {
+    const payload = {...pkForm}; delete payload.id
+    if (pkEditId==="new") {
+      const {data,error} = await supabase.from('perks').insert(payload).select().single()
+      if (error) alert("⚠️ "+error.message); else setPerksAdm(l=>[...l,data])
+    } else {
+      setPerksAdm(l=>l.map(x=>x.id===pkEditId?{...x,...payload,id:pkEditId}:x))
+      await adminSave(supabase.from('perks').update(payload).eq('id',pkEditId))
+    }
+    setPkEditId(null)
+  }
+  const delPerk = async id => { setPerksAdm(l=>l.filter(x=>x.id!==id)); await adminSave(supabase.from('perks').delete().eq('id',id)) }
+  const togglePerk = async pk => { setPerksAdm(l=>l.map(x=>x.id===pk.id?{...x,active:!pk.active}:x)); await adminSave(supabase.from('perks').update({active:!pk.active}).eq('id',pk.id)) }
   const loadClaims = async () => {
     const {data} = await supabase.from('orga_claims').select('*,profiles(username,email),organisateurs(name)').order('created_at',{ascending:false})
     setClaims(data||[])
@@ -3062,7 +3151,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const delHelp = async id => { setHelpAds(h=>h.filter(x=>x.id!==id)); await adminSave(supabase.from('entraide').delete().eq('id',id)) }
   const delActu = async id => { setActus(a=>a.filter(x=>x.id!==id)); await adminSave(supabase.from('orga_posts').delete().eq('id',id)) }
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"entraide",l:"🤝 Entraide"},{id:"actus",l:"📣 Actus orgas"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"entraide",l:"🤝 Entraide"},{id:"actus",l:"📣 Actus orgas"},{id:"perks",l:"💜 Avantages"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -3595,6 +3684,42 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
           )}
 
           {/* RAPPELS */}
+          {tab==="perks" && (
+            <div>
+              <p style={{fontSize:12,color:"#999",marginBottom:12}}>Les avantages <b>actifs</b> apparaissent sur la page 💜 Premium. Active un avantage quand le partenariat est confirmé.</p>
+              <button onClick={()=>{setPkEditId("new");setPkForm({...PERK_EMPTY})}} style={{background:RED,color:WHITE,fontWeight:700,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",marginBottom:16}}>+ Ajouter un avantage</button>
+              {(pkEditId==="new"?[{id:"new"}]:[]).concat(perksAdm).map(pk=>(
+                <div key={pk.id} style={{background:WHITE,borderRadius:16,padding:16,marginBottom:12,boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>
+                  {pkEditId===pk.id ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                        <input value={pkForm.partner||""} onChange={e=>setPkForm({...pkForm,partner:e.target.value})} placeholder="Partenaire (ex: Le Tana) *" style={inp}/>
+                        <input value={pkForm.offer||""} onChange={e=>setPkForm({...pkForm,offer:e.target.value})} placeholder="Offre (ex: -10%) *" style={inp}/>
+                        <input value={pkForm.code||""} onChange={e=>setPkForm({...pkForm,code:e.target.value})} placeholder="Code (ex: PREMIUM10)" style={inp}/>
+                        <input value={pkForm.city||""} onChange={e=>setPkForm({...pkForm,city:e.target.value})} placeholder="Ville" style={inp}/>
+                      </div>
+                      <textarea value={pkForm.description||""} onChange={e=>setPkForm({...pkForm,description:e.target.value})} placeholder="Conditions / description" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={savePerk} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
+                        <button onClick={()=>setPkEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{pk.offer} <span style={{color:"#888",fontWeight:400}}>· {pk.partner}</span></p>
+                        <p style={{fontSize:12,color:"#888",margin:0}}>{pk.code?"Code "+pk.code+" · ":""}{pk.city||""}</p>
+                      </div>
+                      <button onClick={()=>togglePerk(pk)} style={{background:pk.active?"#e6f4ed":"#f0f0f0",color:pk.active?GREEN:"#999",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>{pk.active?"✓ Actif":"Inactif"}</button>
+                      <button onClick={()=>{setPkEditId(pk.id);setPkForm({...pk})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>✏️</button>
+                      {delBtn(()=>delPerk(pk.id))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {tab==="entraide" && (
             <div>
               <p style={{fontSize:12,color:"#999",marginBottom:12}}>{helpAds.length} annonce(s) covoiturage / hébergement — supprime les annonces douteuses ou périmées.</p>
@@ -3861,6 +3986,7 @@ export default function App() {
     {key:"eglises",label:"⛪ Églises"},
     {key:"boutiques",label:"🛍️ Boutiques & artisanat"},
     ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
+    {key:"premium",label:"💜 Premium"},
     {key:"pro",label:"💎 Pro"},
   ]
 
@@ -3981,6 +4107,10 @@ export default function App() {
 
       {page==="pro" && (
         <ProPage isMobile={isMobile} user={user} onAuthRequired={()=>setShowAuth(true)}/>
+      )}
+
+      {page==="premium" && (
+        <PremiumPage isMobile={isMobile} user={user} userProfile={userProfile} onAuthRequired={()=>setShowAuth(true)}/>
       )}
 
       {page==="orgas" && (
@@ -4190,7 +4320,7 @@ export default function App() {
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
       {showProfile && user && (
-        <ProfileModal user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)} orgas={orgas} events={events} onGoPro={()=>setPage('pro')}/>
+        <ProfileModal user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)} orgas={orgas} events={events} onGoPro={()=>setPage('pro')} onGoPremium={()=>setPage('premium')}/>
       )}
 
       {user && userProfile?.plan==="organisateur" && !orgas.some(o=>o.owner_id===user.id) && !localStorage.getItem('orga_onboard_'+user.id) && (
