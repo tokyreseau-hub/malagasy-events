@@ -41,13 +41,15 @@ const safeUrl = u => {
   return "https://" + s // sans schéma → on force https
 }
 const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")
-const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", eglises:"/eglises", community:"/communaute"}
+const PAGE_PATHS = {home:"/", aftermovies:"/after-movies", gastro:"/gastronomie", orgas:"/organisateurs", eglises:"/eglises", boutiques:"/boutiques", artisanat:"/artisanat", community:"/communaute"}
 const PAGE_META = {
   home:       ["Malagasy Events — Tous les événements malagasy en France","Soirées, concerts, tournois sportifs et culture malgache : l'agenda de la communauté malagasy en France. Paris, Lyon, Marseille, Toulouse et plus."],
   aftermovies:["After-movies & vidéos — Malagasy Events","Revivez les événements malagasy de France en vidéo : after-movies, teasers et portraits de la communauté."],
   gastro:     ["Restaurants & traiteurs malgaches en France — Malagasy Events","L'annuaire de la gastronomie malagasy en France : restaurants, traiteurs et food trucks, avec carte, adresses et contacts."],
   orgas:      ["Organisateurs & associations malagasy en France — Malagasy Events","Annuaire des associations sportives et culturelles, organisateurs de soirées, médias et groupes de la communauté malagasy en France."],
   eglises:    ["Églises malagasy en France — Malagasy Events","Annuaire des paroisses et communautés chrétiennes malagasy en France : FJKM, FLM, FPMA, catholiques. Paris, Meaux, Rennes, Orléans et plus."],
+  boutiques:  ["Boutiques & épiceries malgaches en France — Malagasy Events","Où acheter des produits de Madagascar en France : épiceries, boutiques en ligne, vanille, épices et spécialités malgaches."],
+  artisanat:  ["Artisanat malgache en France — Malagasy Events","Créateurs et boutiques d'artisanat malgache en France : raphia, vannerie, bijoux et objets faits main de Madagascar."],
   community:  ["Communauté & entraide — Malagasy Events","Covoiturage et hébergement pour les événements malagasy, discussions et membres de la communauté malagasy de France."],
 }
 const setMeta = (title, desc) => {
@@ -3507,6 +3509,8 @@ export default function App() {
     {key:"gastro",label:"🍽️ Gastronomie"},
     {key:"orgas",label:"🎪 Organisateurs"},
     {key:"eglises",label:"⛪ Églises"},
+    {key:"boutiques",label:"🛍️ Boutiques"},
+    {key:"artisanat",label:"🧵 Artisanat"},
     ...(user ? [{key:"community",label:"👥 Communauté"}] : []),
   ]
 
@@ -3633,6 +3637,14 @@ export default function App() {
         <LieuxPage isMobile={isMobile} category="eglise" lieux={lieux}/>
       )}
 
+      {page==="boutiques" && (
+        <LieuxPage isMobile={isMobile} category="boutique" lieux={lieux}/>
+      )}
+
+      {page==="artisanat" && (
+        <LieuxPage isMobile={isMobile} category="artisanat" lieux={lieux}/>
+      )}
+
       {page==="community" && (
         !user ? <LoginGate title="👥 Communauté réservée aux membres" text="Connecte-toi pour échanger, publier et rencontrer la communauté malagasy." onLogin={()=>setShowAuth(true)}/> :
         <div style={{maxWidth:900,margin:"0 auto"}}>
@@ -3677,6 +3689,17 @@ export default function App() {
                 )}
                 {CATEGORIES.map(c=><FilterBtn key={c} label={c} active={catFilter===c} onClick={()=>setCatFilter(c)}/>)}
               </div>
+            </div>
+          </div>
+
+          {/* ACCÈS RAPIDE AUX ANNUAIRES */}
+          <div style={{maxWidth:900,margin:"0 auto",padding:isMobile?"16px 12px 0":"24px 24px 0"}}>
+            <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4}}>
+              {[["eglises","⛪","Églises","#185FA5","#eef4fc"],["gastro","🍽️","Gastronomie","#e65100","#fff3e0"],["boutiques","🛍️","Boutiques","#7a243e","#fbeaf0"],["artisanat","🧵","Artisanat","#3b6d11","#eaf3de"]].map(([k,emo,lab,c,bg])=>(
+                <button key={k} onClick={()=>setPage(k)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:8,background:bg,color:c,fontWeight:800,fontSize:13,padding:"10px 16px",borderRadius:14,border:"none",cursor:"pointer"}}>
+                  <span style={{fontSize:18}}>{emo}</span> {lab} <span style={{opacity:0.6}}>→</span>
+                </button>
+              ))}
             </div>
           </div>
 
