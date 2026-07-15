@@ -1517,6 +1517,7 @@ const GASTRO_COLORS = {"Restaurant":{bg:"#FAECE7",color:"#712B13"},"Traiteur":{b
 const GASTRO_EMOJI  = {"Restaurant":"🍽️","Traiteur":"👨‍🍳","Food truck":"🚚"}
 
 const ORGA_COLORS = {"Association sportive":{bg:"#e3f2fd",color:"#1565c0"},"Association":{bg:"#e6f4ed",color:GREEN},"Organisateur":{bg:"#fde8ec",color:RED},"DJ & artistes":{bg:"#FBEAF0",color:"#72243E"},"Média":{bg:"#EEEDFE",color:"#3C3489"},"Groupe":{bg:"#fff3e0",color:"#b35c00"}}
+const ORGA_GRAD = {"Association sportive":"linear-gradient(135deg,#1565c0,#0C447C)","Association":"linear-gradient(135deg,#007A3D,#044d27)","Organisateur":"linear-gradient(135deg,#C8102E,#7a0a1c)","DJ & artistes":"linear-gradient(135deg,#72243E,#4B1528)","Média":"linear-gradient(135deg,#3C3489,#26215C)","Groupe":"linear-gradient(135deg,#b35c00,#7a3d00)"}
 const ORGA_EMOJI  = {"Association sportive":"🏆","Association":"🤝","Organisateur":"🎪","DJ & artistes":"🎧","Média":"📰","Groupe":"👥"}
 
 function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEvent, onClose, onUpdated }) {
@@ -1839,26 +1840,29 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
         {list.map(o=>{
           const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
+          const grad = ORGA_GRAD[o.type]||"linear-gradient(135deg,#555,#333)"
+          const isPro = o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10))
           const count = events.filter(e=>{const org=(e.organizer||"").toLowerCase();const first=o.name.toLowerCase().split(/[ —-]+/).filter(w=>w.length>3)[0];return first&&org.includes(first)}).length
           return (
-            <div key={o.id} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:16,boxShadow:o.featured?"0 2px 14px rgba(184,134,11,0.25)":"0 2px 10px rgba(0,0,0,0.06)",border:o.featured?"1.5px solid #e6b31e":"none",padding:16,display:"flex",flexDirection:"column",gap:10,cursor:"pointer"}}>
-              {o.featured && <span style={{alignSelf:"flex-start",background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:99}}>⭐ À LA UNE</span>}
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:44,height:44,borderRadius:"50%",background:col.bg,color:col.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,flexShrink:0}}>{initials(o.name)}</div>
-                <div style={{minWidth:0}}>
-                  <p style={{fontWeight:800,fontSize:14.5,color:"#111",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
-                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                    <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
-                    {o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10)) && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
-                    {o.city && <span style={{fontSize:12,color:"#888"}}>📍 {o.city}</span>}
-                  </div>
-                </div>
+            <div key={o.id} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:18,boxShadow:o.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:o.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
+              <div style={{height:70,background:grad,position:"relative",display:"flex",alignItems:"center",padding:"0 16px"}}>
+                <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,0.92)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{ORGA_EMOJI[o.type]||"🎪"}</div>
+                {o.featured && <span style={{position:"absolute",top:8,right:8,background:"rgba(255,255,255,0.95)",color:"#b8860b",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ À LA UNE</span>}
+                {isPro && !o.featured && <span style={{position:"absolute",top:8,right:8,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
               </div>
-              {o.note && <p style={{fontSize:12,color:"#777",margin:0,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{o.note}</p>}
-              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:"auto"}}>
-                {o.followers && <span style={{fontSize:12,color:"#999",fontWeight:600}}>👥 {o.followers}</span>}
-                {count>0 && <span style={{fontSize:11,fontWeight:700,background:"#fde8ec",color:RED,padding:"3px 10px",borderRadius:99}}>🎪 {count} événement{count>1?"s":""}</span>}
-                {o.owner_id && <span style={{fontSize:11,fontWeight:700,background:"#e6f4ed",color:GREEN,padding:"3px 10px",borderRadius:99,marginLeft:"auto"}}>✓ Gérée par l'orga</span>}
+              <div style={{padding:"12px 16px 14px",display:"flex",flexDirection:"column",gap:8,flex:1}}>
+                <p style={{fontWeight:800,fontSize:15.5,color:"#111",margin:0,lineHeight:1.25}}>{o.name}</p>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
+                  {o.city && <span style={{fontSize:12,color:"#888",fontWeight:600}}>📍 {o.city}</span>}
+                </div>
+                {o.note && <p style={{fontSize:12.5,color:"#777",margin:0,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{o.note}</p>}
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:"auto",paddingTop:4}}>
+                  {o.followers && <span style={{fontSize:12,color:"#999",fontWeight:600}}>👥 {o.followers}</span>}
+                  {count>0 && <span style={{fontSize:11,fontWeight:700,background:"#fde8ec",color:RED,padding:"3px 10px",borderRadius:99}}>🎪 {count} évén.{count>1?"s":""}</span>}
+                  {o.owner_id && <span style={{fontSize:11,fontWeight:700,background:"#e6f4ed",color:GREEN,padding:"3px 8px",borderRadius:99}}>✓ orga</span>}
+                  <span style={{marginLeft:"auto",fontSize:12,fontWeight:800,color:col.color}}>Voir →</span>
+                </div>
               </div>
             </div>
           )
