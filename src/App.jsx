@@ -14,6 +14,10 @@ const PlanBadge = ({ plan, size=9 }) => {
   const b = PLAN_BADGE[plan]; if (!b) return null
   return <span style={{background:b.bg,color:b.color,fontSize:size,fontWeight:800,padding:"2px 6px",borderRadius:99,whiteSpace:"nowrap"}}>{b.emoji} {b.label}</span>
 }
+// Badge du compte officiel (onDark : sur fond rouge/foncé)
+const OfficialBadge = ({ size=9, onDark }) => (
+  <span style={{background:onDark?"#fff":"#C8102E",color:onDark?"#C8102E":"#fff",fontSize:size,fontWeight:800,padding:"2px 6px",borderRadius:99,whiteSpace:"nowrap"}}>✓ OFFICIEL</span>
+)
 // Seul l'Organisateur publie ses événements directement (le Pro est un membre premium, pas un orga)
 const canPublishDirect = profile => profile?.plan==="organisateur"
 // Badges fans (gagnés à l'activité, override admin possible)
@@ -1844,9 +1848,8 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
                   {results.map(r=>(
                     <div key={r.id} onClick={()=>selectUser(r.id,r.username,r.plan)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #f5f5f5"}}>
                       <Avatar url={r.avatar_url} name={r.username} size={32}/>
-                      <span style={{fontSize:13,fontWeight:600}}>{r.username}</span>
-                      <PlanBadge plan={r.plan} size={8}/>
-                      {!PLAN_BADGE[r.plan] && r.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
+                      <span style={{fontSize:13,fontWeight:600,color:isOfficial(r.username)?RED:"#111"}}>{r.username}</span>
+                      {isOfficial(r.username) ? <OfficialBadge size={8}/> : <><PlanBadge plan={r.plan} size={8}/>{!PLAN_BADGE[r.plan] && r.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}</>}
                     </div>
                   ))}
                 </div>
@@ -1860,9 +1863,8 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
                     {c.unread && <span style={{position:"absolute",top:-1,right:-1,width:11,height:11,borderRadius:"50%",background:GREEN,border:"2px solid #fff"}}/>}
                   </div>
                   <div style={{minWidth:0,flex:1}}>
-                    <span style={{fontSize:13,fontWeight:c.unread?800:600,color:c.unread?"#111":(selectedUserId===c.id?RED:"#333")}}>{c.username}</span>
-                    <PlanBadge plan={c.plan} size={8}/>
-                    {!PLAN_BADGE[c.plan] && c.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}
+                    <span style={{fontSize:13,fontWeight:c.unread?800:600,color:isOfficial(c.username)?RED:(c.unread?"#111":(selectedUserId===c.id?RED:"#333"))}}>{c.username}</span>
+                    {isOfficial(c.username) ? <OfficialBadge size={8}/> : <><PlanBadge plan={c.plan} size={8}/>{!PLAN_BADGE[c.plan] && c.is_member && <span style={{background:GREEN,color:WHITE,fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:99}}>MEMBRE</span>}</>}
                     {c.preview && <p style={{fontSize:11,margin:"2px 0 0",color:c.unread?"#444":"#aaa",fontWeight:c.unread?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.incoming?"":"Toi : "}{c.preview}</p>}
                   </div>
                 </div>
@@ -1882,8 +1884,8 @@ function MessagesModal({ user, userProfile, onClose, initialRecipientId, initial
                     {convEmoji
                       ? <div style={{width:34,height:34,borderRadius:"50%",background:bubbleColor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{convEmoji}</div>
                       : <Avatar url={selAvatar} name={selectedName} size={34} bg={bubbleColor}/>}
-                    <span style={{fontWeight:700,fontSize:14,color:"#333",textDecoration:"underline dotted",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{selectedName}</span>
-                    <PlanBadge plan={selPlan}/>
+                    <span style={{fontWeight:700,fontSize:14,color:isOfficial(selectedName)?RED:"#333",textDecoration:"underline dotted",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{selectedName}</span>
+                    {isOfficial(selectedName) ? <OfficialBadge/> : <PlanBadge plan={selPlan}/>}
                   </div>
                   <button onClick={()=>setShowSettings(v=>!v)} title="Paramètres de la discussion" style={{background:showSettings?"#f0f0f0":"none",border:"none",fontSize:17,cursor:"pointer",borderRadius:99,padding:"4px 8px"}}>⚙️</button>
                 </div>
