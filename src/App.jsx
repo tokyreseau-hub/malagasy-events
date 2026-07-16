@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import QRCode from "qrcode"
 import { supabase } from './supabase'
 
 const RED = "#C8102E", GREEN = "#007A3D", WHITE = "#FFFFFF"
@@ -782,6 +783,55 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
 }
 
 /* ── AuthModal ────────────────────────────────────── */
+/* ── TicketModal : billet QR à usage unique (events partenaires) ── */
+function TicketModal({ event, user, onClose, onAuthRequired }) {
+  const [ticket,setTicket] = useState(null)
+  const [qr,setQr] = useState("")
+  const [loading,setLoading] = useState(true)
+  const [err,setErr] = useState("")
+  useEffect(()=>{
+    if (!user) { onAuthRequired?.(); onClose(); return }
+    (async()=>{
+      // Récupère le billet existant, sinon en crée un
+      let {data} = await supabase.from('tickets').select('*').eq('event_id',event.id).eq('user_id',user.id).maybeSingle()
+      if (!data) {
+        const code = "MEV-"+event.id+"-"+(crypto.randomUUID?crypto.randomUUID().slice(0,8):Math.random().toString(36).slice(2,10)).toUpperCase()
+        const ins = await supabase.from('tickets').insert({event_id:event.id,user_id:user.id,code}).select().single()
+        if (ins.error) { setErr(ins.error.message); setLoading(false); return }
+        data = ins.data
+      }
+      setTicket(data)
+      try { setQr(await QRCode.toDataURL("MEV-TICKET:"+data.code, {width:260,margin:1,color:{dark:"#111111",light:"#ffffff"}})) } catch(e){ setErr("QR indisponible") }
+      setLoading(false)
+    })()
+  },[event.id])
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:120,padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:360,padding:26,boxShadow:"0 24px 80px rgba(0,0,0,0.3)",textAlign:"center"}}>
+        <button onClick={onClose} style={{position:"absolute",top:0,right:0,background:"none",border:"none",fontSize:24,color:"#bbb",cursor:"pointer",padding:16}}>×</button>
+        <p style={{fontSize:11,fontWeight:800,letterSpacing:2,color:RED,textTransform:"uppercase",margin:"0 0 4px"}}>🎟️ Billet partenaire</p>
+        <h3 style={{fontWeight:800,fontSize:17,color:"#111",margin:"0 0 2px"}}>{event.title}</h3>
+        <p style={{fontSize:12,color:"#888",margin:"0 0 16px"}}>{fmtShort(event.date)} · {event.city}</p>
+        {loading ? <p style={{color:"#bbb",padding:"40px 0"}}>Génération du billet…</p>
+         : err ? <p style={{color:RED,fontSize:13,padding:"20px 0"}}>⚠️ {err}</p>
+         : ticket?.used ? (
+            <div style={{padding:"20px 0"}}>
+              <p style={{fontSize:40,margin:"0 0 8px"}}>✅</p>
+              <p style={{fontWeight:800,color:GREEN,fontSize:16}}>Billet déjà utilisé</p>
+              <p style={{fontSize:12,color:"#999"}}>Validé le {ticket.used_at?new Date(ticket.used_at).toLocaleString('fr-FR'):""}</p>
+            </div>
+         ) : (<>
+            <div style={{display:"inline-block",padding:14,background:WHITE,border:"2px solid #f0f0f0",borderRadius:18}}>
+              <img src={qr} alt="QR billet" style={{width:220,height:220,display:"block"}}/>
+            </div>
+            <p style={{fontSize:13,color:"#555",margin:"14px 0 2px",fontWeight:700}}>Code : {ticket?.code}</p>
+            <p style={{fontSize:12,color:"#999",margin:0,lineHeight:1.5}}>Présente ce QR à l'entrée. Il est <b>personnel</b> et <b>à usage unique</b>.</p>
+          </>)}
+      </div>
+    </div>
+  )
+}
+
 function ResetPasswordModal({ onClose }) {
   const [pw,setPw] = useState("")
   const [pw2,setPw2] = useState("")
@@ -3006,6 +3056,7 @@ function EntraideSection({ event, user, onAuthRequired }) {
 function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
   const [showShare,setShowShare]   = useState(false)
   const [showReminder,setReminder] = useState(false)
+  const [showTicket,setShowTicket] = useState(false)
   const [interested,setInterested] = useState(false)
   const [fav,setFav]               = useState(false)
   const [count,setCount]           = useState(0)
@@ -3117,6 +3168,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
               <button onClick={()=>downloadICS(event)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>📅 Calendrier</button>
               {!isPast(event.date) && <button onClick={()=>setReminder(true)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>🔔 Rappel</button>}
               <button onClick={()=>setShowShare(true)} style={{background:"#f5f5f5",color:"#333",fontWeight:700,fontSize:13,padding:"10px 14px",borderRadius:12,border:"none",cursor:"pointer"}}>📤 Partager</button>
+              {event.partner && !isPast(event.date) && <button onClick={()=>user?setShowTicket(true):onAuthRequired()} style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontWeight:800,fontSize:13,padding:"10px 18px",borderRadius:12,border:"none",cursor:"pointer"}}>🎟️ Mon billet QR</button>}
               {event.ticketUrl && <a href={safeUrl(event.ticketUrl)} target="_blank" rel="noreferrer" style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 18px",borderRadius:12,textDecoration:"none"}}>🎟️ Acheter mes billets</a>}
             </div>
             </>)}
@@ -3125,6 +3177,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
       </div>
       {showShare && <ShareMenu ev={event} onClose={()=>setShowShare(false)}/>}
       {showReminder && <ReminderModal ev={event} onClose={()=>setReminder(false)}/>}
+      {showTicket && <TicketModal event={event} user={user} onAuthRequired={onAuthRequired} onClose={()=>setShowTicket(false)}/>}
     </>
   )
 }
@@ -3209,6 +3262,20 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const [bannerSaved,setBannerSaved] = useState(false)
   const [editId,setEditId]     = useState(null)
   const [editForm,setEditForm] = useState({})
+  const [ticketCode,setTicketCode] = useState("")
+  const [ticketResult,setTicketResult] = useState(null)
+  const validateTicket = async () => {
+    const raw = ticketCode.trim().replace(/^MEV-TICKET:/i,"").trim()
+    if (!raw) return
+    const {data,error} = await supabase.from('tickets').select('*, profiles(username)').eq('code',raw).maybeSingle()
+    if (error) { setTicketResult({type:"err",msg:error.message}); return }
+    if (!data) { setTicketResult({type:"err",msg:"Billet introuvable — code invalide."}); return }
+    if (data.used) { setTicketResult({type:"used",msg:`Déjà utilisé le ${new Date(data.used_at).toLocaleString('fr-FR')} (@${data.profiles?.username||"?"})`}); return }
+    const upd = await supabase.from('tickets').update({used:true,used_at:new Date().toISOString()}).eq('id',data.id)
+    if (upd.error) { setTicketResult({type:"err",msg:upd.error.message}); return }
+    setTicketResult({type:"ok",msg:`✅ Valide ! Entrée autorisée pour @${data.profiles?.username||"membre"}.`})
+    setTicketCode("")
+  }
   const [evtImgUp,setEvtImgUp] = useState(false)
   const evtImgImport = (
     <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -3400,7 +3467,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const delHelp = async id => { setHelpAds(h=>h.filter(x=>x.id!==id)); await adminSave(supabase.from('entraide').delete().eq('id',id)) }
   const delActu = async id => { setActus(a=>a.filter(x=>x.id!==id)); await adminSave(supabase.from('orga_posts').delete().eq('id',id)) }
 
-  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"entraide",l:"🤝 Entraide"},{id:"actus",l:"📣 Actus orgas"},{id:"perks",l:"💜 Avantages"},{id:"reminders",l:"🔔 Rappels"}]
+  const TABS = [{id:"dashboard",l:"📊 Dashboard"},{id:"revenus",l:"💰 Forfaits"},{id:"submissions",l:"📥 Soumissions"},{id:"reports",l:"🚩 Signalements"},{id:"banner",l:"📢 À la une"},{id:"users",l:"👥 Membres"},{id:"events",l:"📅 Événements"},{id:"billets",l:"🎟️ Billets"},{id:"gastro",l:"🍽️ Gastro"},{id:"orgas",l:"🎪 Orgas"},{id:"lieux",l:"⛪ Lieux"},{id:"posts",l:"📝 Posts"},{id:"videos",l:"🎬 Vidéos"},{id:"comments",l:"💬 Commentaires"},{id:"entraide",l:"🤝 Entraide"},{id:"actus",l:"📣 Actus orgas"},{id:"perks",l:"💜 Avantages"},{id:"reminders",l:"🔔 Rappels"}]
 
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"8px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
   const row = {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}
@@ -3666,6 +3733,26 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* BILLETS — validation QR partenaires */}
+          {tab==="billets" && (
+            <div style={{maxWidth:520}}>
+              <h3 style={{fontSize:15,fontWeight:800,margin:"0 0 6px"}}>🎟️ Valider un billet partenaire</h3>
+              <p style={{fontSize:12,color:"#999",margin:"0 0 14px"}}>Scanne le QR du membre avec l'appareil photo du téléphone, ou tape/colle son code ci-dessous, puis valide. Un billet ne peut être validé qu'<b>une seule fois</b>.</p>
+              <div style={{display:"flex",gap:8}}>
+                <input value={ticketCode} onChange={e=>{setTicketCode(e.target.value);setTicketResult(null)}} placeholder="Code du billet (ex: MEV-9001-A1B2C3D4)" style={{...inp,flex:1}}/>
+                <button onClick={validateTicket} style={{background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"10px 20px",borderRadius:12,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>Valider</button>
+              </div>
+              {ticketResult && (
+                <div style={{marginTop:14,padding:"14px 16px",borderRadius:12,fontWeight:700,fontSize:14,
+                  background:ticketResult.type==="ok"?"#e6f4ed":ticketResult.type==="used"?"#fff3e0":"#fde8ec",
+                  color:ticketResult.type==="ok"?GREEN:ticketResult.type==="used"?"#b35c00":RED}}>
+                  {ticketResult.type==="used"?"⚠️ ":ticketResult.type==="err"?"❌ ":""}{ticketResult.msg}
+                </div>
+              )}
+              <p style={{fontSize:11,color:"#ccc",marginTop:16}}>💡 Pour tester : ouvre l'événement « 🎟️ Soirée Partenaire — DÉMO QR », clique « Mon billet QR », puis recopie le code ici et valide. Revalide-le une 2e fois → il sera refusé (usage unique).</p>
             </div>
           )}
 
