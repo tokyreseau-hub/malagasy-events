@@ -57,6 +57,8 @@ const slugify = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\
 // Upload d'image r\u00e9utilisable (photos import\u00e9es \u2192 stockage Supabase, pas de liens)
 async function uploadImage(file, userId, folder="divers") {
   if (!file) return {error:"no file"}
+  if (!userId) { const {data}=await supabase.auth.getUser(); userId=data?.user?.id }
+  if (!userId) return {error:"Connecte-toi pour importer une image."}
   if (file.size > 5*1024*1024) return {error:"Image trop lourde (max 5 Mo)."}
   if (!file.type.startsWith("image/")) return {error:"Choisis une image."}
   const ext = (file.name.split(".").pop()||"jpg").toLowerCase()
@@ -780,6 +782,37 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
 }
 
 /* ── AuthModal ────────────────────────────────────── */
+function ResetPasswordModal({ onClose }) {
+  const [pw,setPw] = useState("")
+  const [pw2,setPw2] = useState("")
+  const [msg,setMsg] = useState("")
+  const [saving,setSaving] = useState(false)
+  const inp = {width:"100%",border:"1.5px solid #e5e5e5",borderRadius:12,padding:"10px 14px",fontSize:14,outline:"none",boxSizing:"border-box"}
+  const submit = async e => {
+    e.preventDefault()
+    if (pw.length<6) { setMsg("Le mot de passe doit faire au moins 6 caractères."); return }
+    if (pw!==pw2) { setMsg("Les deux mots de passe ne correspondent pas."); return }
+    setSaving(true)
+    const {error} = await supabase.auth.updateUser({ password: pw })
+    setSaving(false)
+    if (error) setMsg("⚠️ "+error.message)
+    else { alert("✅ Mot de passe modifié ! Tu es connecté."); onClose() }
+  }
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:120,padding:16}}>
+      <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:380,padding:32,boxShadow:"0 24px 80px rgba(0,0,0,0.3)"}}>
+        <div style={{textAlign:"center",marginBottom:20}}><p style={{fontSize:34,margin:"0 0 8px"}}>🔑</p><h2 style={{fontWeight:800,fontSize:19,color:"#111",margin:0}}>Nouveau mot de passe</h2><p style={{fontSize:13,color:"#888",margin:"6px 0 0"}}>Choisis ton nouveau mot de passe.</p></div>
+        <form onSubmit={submit} style={{display:"flex",flexDirection:"column",gap:12}}>
+          <input required type="password" value={pw} onChange={e=>{setPw(e.target.value);setMsg("")}} placeholder="Nouveau mot de passe" style={inp}/>
+          <input required type="password" value={pw2} onChange={e=>{setPw2(e.target.value);setMsg("")}} placeholder="Confirmer le mot de passe" style={inp}/>
+          {msg && <p style={{fontSize:12,color:RED,textAlign:"center",margin:0}}>{msg}</p>}
+          <button type="submit" disabled={saving} style={{background:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer",opacity:saving?.7:1}}>{saving?"...":"Enregistrer"}</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function AuthModal({ onClose, onSuccess }) {
   const [tab,setTab]         = useState("login")
   const [email,setEmail]     = useState("")
@@ -817,6 +850,15 @@ function AuthModal({ onClose, onSuccess }) {
     setLoading(false)
   }
 
+  const forgotPassword = async () => {
+    if (!email.trim()) { setError("Entre ton email ci-dessus, puis reclique sur « Mot de passe oublié »."); return }
+    setLoading(true); setError("")
+    const {error} = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: SITE_URL })
+    setLoading(false)
+    if (error) setError(error.message)
+    else setError("✅ Email envoyé ! Regarde ta boîte mail (et les spams) pour réinitialiser ton mot de passe.")
+  }
+
   const inp = {width:"100%",border:"1.5px solid #e5e5e5",borderRadius:12,padding:"10px 14px",fontSize:14,outline:"none",boxSizing:"border-box"}
 
   return (
@@ -839,6 +881,7 @@ function AuthModal({ onClose, onSuccess }) {
           <button type="submit" disabled={loading} style={{background:RED,color:WHITE,fontWeight:700,fontSize:14,padding:"12px 0",borderRadius:12,border:"none",cursor:"pointer",marginTop:4,opacity:loading?.7:1}}>
             {loading?"...":tab==="login"?"Se connecter":"Créer mon compte"}
           </button>
+          {tab==="login" && <button type="button" onClick={forgotPassword} style={{background:"none",border:"none",color:"#888",fontSize:12.5,cursor:"pointer",textDecoration:"underline",marginTop:2}}>Mot de passe oublié ?</button>}
         </form>
         <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:13,cursor:"pointer",marginTop:12}}>Annuler</button>
       </div>
@@ -1988,6 +2031,7 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
   const [posts,setPosts] = useState([])
   const [postText,setPostText] = useState("")
   const [postImg,setPostImg] = useState("")
+  const [postImgUp,setPostImgUp] = useState(false)
   const [posting,setPosting] = useState(false)
   useEffect(()=>{
     supabase.from('orga_posts').select('*, profiles(username)').eq('orga_id',o.id).order('created_at',{ascending:false}).limit(20)
@@ -2056,8 +2100,10 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
                 {canPost && (
                   <div style={{background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:12,marginBottom:10}}>
                     <textarea value={postText} onChange={e=>setPostText(e.target.value)} placeholder="Annoncez un événement, une promo, une actualité…" rows={2} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif",marginBottom:8}}/>
-                    <div style={{display:"flex",gap:8}}>
-                      <input value={postImg} onChange={e=>setPostImg(e.target.value)} placeholder="URL d'image (optionnel)" style={{...inp,flex:1}}/>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <label htmlFor={`orga-img-${o.id}`} style={{flex:1,display:"flex",alignItems:"center",gap:6,border:"1.5px solid #e6d9a8",borderRadius:10,padding:"9px 12px",fontSize:12,color:postImg?GREEN:"#7a5c00",cursor:"pointer",fontWeight:600,background:WHITE}}>{postImgUp?"⏳ Envoi...":postImg?"✓ Photo ajoutée":"📷 Ajouter une photo"}</label>
+                      <input id={`orga-img-${o.id}`} type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setPostImgUp(true);const r=await uploadImage(f,user.id,"orga");if(r.error)alert("⚠️ "+r.error);else setPostImg(r.url);setPostImgUp(false)}}/>
+                      {postImg && <button onClick={()=>setPostImg("")} style={{background:"#f0f0f0",color:"#888",border:"none",borderRadius:10,padding:"9px 10px",fontSize:12,cursor:"pointer"}}>✕</button>}
                       <button onClick={publish} disabled={posting||!postText.trim()} style={{background:RED,color:WHITE,fontWeight:700,fontSize:13,padding:"9px 18px",borderRadius:10,border:"none",cursor:"pointer",opacity:posting||!postText.trim()?0.5:1,whiteSpace:"nowrap"}}>{posting?"...":"📣 Publier"}</button>
                     </div>
                   </div>
@@ -3163,6 +3209,14 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const [bannerSaved,setBannerSaved] = useState(false)
   const [editId,setEditId]     = useState(null)
   const [editForm,setEditForm] = useState({})
+  const [evtImgUp,setEvtImgUp] = useState(false)
+  const evtImgImport = (
+    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+      <label htmlFor="evt-img" style={{flex:1,display:"flex",alignItems:"center",gap:6,border:"1.5px solid #e5e5e5",borderRadius:12,padding:"9px 12px",fontSize:13,color:editForm.image?GREEN:"#888",cursor:"pointer",fontWeight:600}}>{evtImgUp?"⏳ Envoi...":editForm.image?"✓ Affiche importée":"📷 Importer l'affiche"}</label>
+      <input id="evt-img" type="file" accept="image/*" style={{display:"none"}} onChange={async e=>{const f=e.target.files?.[0];if(!f)return;setEvtImgUp(true);const r=await uploadImage(f,null,"events");if(r.error)alert("⚠️ "+r.error);else setEditForm(ef=>({...ef,image:r.url}));setEvtImgUp(false)}}/>
+      {editForm.image && <img src={editForm.image} alt="" style={{width:38,height:38,borderRadius:8,objectFit:"cover"}}/>}
+    </div>
+  )
   const [showVForm,setShowVForm] = useState(false)
   const [vForm,setVForm]       = useState({title:"",youtubeUrl:"",thumbnail:"",city:"",date:"",description:"",isTeaser:false,type:"aftermovie",views:0})
 
@@ -3284,9 +3338,9 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     })
   }
 
-  const banUser   = async (id,banned) => { await supabase.from('profiles').update({is_banned:!banned}).eq('id',id); setUsers(u=>u.map(p=>p.id===id?{...p,is_banned:!banned}:p)) }
-  const delPost   = async id => { await supabase.from('posts').delete().eq('id',id); setAllPosts(p=>p.filter(x=>x.id!==id)) }
-  const delCmt    = async id => { await supabase.from('post_comments').delete().eq('id',id); setAllCmts(c=>c.filter(x=>x.id!==id)) }
+  const banUser   = async (id,banned) => { const {error}=await supabase.from('profiles').update({is_banned:!banned}).eq('id',id); if(error){alert("⚠️ "+error.message);return} setUsers(u=>u.map(p=>p.id===id?{...p,is_banned:!banned}:p)) }
+  const delPost   = async id => { const {error}=await supabase.from('posts').delete().eq('id',id); if(error){alert("⚠️ "+error.message);return} setAllPosts(p=>p.filter(x=>x.id!==id)) }
+  const delCmt    = async id => { const {error}=await supabase.from('post_comments').delete().eq('id',id); if(error){alert("⚠️ "+error.message);return} setAllCmts(c=>c.filter(x=>x.id!==id)) }
   const delEvent  = async id => { setEvents(e=>e.filter(x=>x.id!==id)); await adminSave(supabase.from('events').delete().eq('id',id)) }
   const delVideo  = async id => { setVideos(v=>v.filter(x=>x.id!==id)); await adminSave(supabase.from('videos').delete().eq('id',id)) }
   const saveEvent = async () => {
@@ -3566,7 +3620,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                     <input value={editForm.organizer||""} onChange={e=>setEditForm({...editForm,organizer:e.target.value})} placeholder="Organisateur" style={inp}/>
                   </div>
                   <input value={editForm.ticketUrl||""} onChange={e=>setEditForm({...editForm,ticketUrl:e.target.value})} placeholder="URL billetterie" style={inp}/>
-                  <input value={editForm.image||""} onChange={e=>setEditForm({...editForm,image:e.target.value})} placeholder="URL affiche/image" style={inp}/>
+                  {evtImgImport}
                   <textarea value={editForm.description||""} onChange={e=>setEditForm({...editForm,description:e.target.value})} placeholder="Description" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={saveEvent} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Créer l'événement</button>
@@ -3587,7 +3641,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <input value={editForm.city||""} onChange={e=>setEditForm({...editForm,city:e.target.value})} placeholder="Ville" style={inp}/>
                         <input value={editForm.ticketUrl||""} onChange={e=>setEditForm({...editForm,ticketUrl:e.target.value})} placeholder="URL billets" style={inp}/>
                       </div>
-                      <input value={editForm.image||""} onChange={e=>setEditForm({...editForm,image:e.target.value})} placeholder="URL image" style={inp}/>
+                      {evtImgImport}
                       <textarea value={editForm.description||""} onChange={e=>setEditForm({...editForm,description:e.target.value})} placeholder="Description" rows={3} style={{...inp,resize:"vertical",fontFamily:"system-ui,sans-serif"}}/>
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={saveEvent} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
@@ -4004,6 +4058,7 @@ export default function App() {
   const [mediaInput,setMediaInput]     = useState("")
   const [banner,setBanner]             = useState("")
   const [showSubmit,setShowSubmit]     = useState(false)
+  const [showResetPw,setShowResetPw]   = useState(false)
   const [homeView,setHomeView]         = useState("list") // "list" | "calendar"
   const [showPast,setShowPast]         = useState(false)
   const [isAdmin,setIsAdmin]           = useState(false)
@@ -4082,7 +4137,7 @@ export default function App() {
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id) })
-    const {data:{subscription}} = supabase.auth.onAuthStateChange((_e,session)=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id); else setUserProfile(null) })
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_e,session)=>{ setUser(session?.user??null); if(session?.user) fetchProfile(session.user.id); else setUserProfile(null); if(_e==="PASSWORD_RECOVERY") setShowResetPw(true) })
     fetchStats()
     loadDb()
     return()=>subscription.unsubscribe()
@@ -4506,6 +4561,8 @@ export default function App() {
       {showAdmin && <AdminPanel events={events} setEvents={setEvents} videos={videos} setVideos={setVideos} gastro={gastro} setGastro={setGastro} orgas={orgas} setOrgas={setOrgas} lieux={lieux} setLieux={setLieux} onClose={()=>setShowAdmin(false)}/>}
 
       {showSubmit && <SubmitEventModal user={user} userProfile={userProfile} events={events} onEventPublished={ev=>setEvents(list=>[...list,ev])} onClose={()=>setShowSubmit(false)}/>}
+
+      {showResetPw && <ResetPasswordModal onClose={()=>setShowResetPw(false)}/>}
 
       {/* Bouton flottant : proposer un événement */}
       {(page==="home"||page==="community") && !showAdmin && (
