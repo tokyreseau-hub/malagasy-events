@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /notifications
+Disallow: /administration
 
-Sitemap: https://malagasy-events.vercel.app/sitemap.xml
+Sitemap: https://www.malagasy-events.com/sitemap.xml

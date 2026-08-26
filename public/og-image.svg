@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C8102E"/>
+      <stop offset=".62" stop-color="#8D0B20"/>
+      <stop offset="1" stop-color="#560611"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#FFE29B"/>
+      <stop offset="1" stop-color="#F4C34E"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <path d="M930 630h270V355L925 630z" fill="#007A3D"/>
+  <path d="M0 0h400v15H0z" fill="#fff"/>
+  <path d="M400 0h400v15H400z" fill="#F4C34E"/>
+  <path d="M800 0h400v15H800z" fill="#007A3D"/>
+  <circle cx="1040" cy="130" r="185" fill="#fff" opacity=".045"/>
+  <circle cx="1070" cy="110" r="105" fill="#fff" opacity=".05"/>
+  <g transform="translate(92 82)">
+    <rect width="84" height="84" rx="22" fill="#fff"/>
+    <path d="M0 0h84v9H0z" fill="#fff"/>
+    <path d="M0 9h84v33H0z" fill="#C8102E"/>
+    <path d="M0 42h84v42H0z" fill="#007A3D"/>
+    <path d="M0 9h20v75H0z" fill="#fff"/>
+    <path d="M32 23h27c8 0 15 6 15 14s-7 14-15 14H46v15H32V23zm14 11v7h11c2 0 4-2 4-4s-2-3-4-3H46z" fill="#fff"/>
+  </g>
+  <text x="198" y="122" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="700" letter-spacing="3">LA COMMUNAUTÉ MALAGASY EN FRANCE</text>
+  <text x="92" y="270" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="86" font-weight="900">MALAGASY</text>
+  <text x="92" y="357" fill="url(#gold)" font-family="Arial,Helvetica,sans-serif" font-size="86" font-weight="900">EVENTS</text>
+  <text x="92" y="430" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="700">Tous les événements malagasy, au même endroit.</text>
+  <text x="92" y="485" fill="#fff" opacity=".9" font-family="Arial,Helvetica,sans-serif" font-size="27">Soirées · Concerts · Sport · Gastronomie · Communauté</text>
+  <rect x="92" y="532" width="520" height="62" rx="31" fill="#fff"/>
+  <text x="126" y="574" fill="#A20C25" font-family="Arial,Helvetica,sans-serif" font-size="29" font-weight="700">www.malagasy-events.com</text>
+</svg>

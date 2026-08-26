@@ -1,0 +1,21 @@
+{
+  "name": "Malagasy Events",
+  "short_name": "Malagasy Events",
+  "description": "L’agenda des événements et des bonnes adresses de la communauté malagasy en France.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#B80F2E",
+  "icons": [
+    {
+      "src": "/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
