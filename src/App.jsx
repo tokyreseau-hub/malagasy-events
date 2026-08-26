@@ -256,6 +256,24 @@ const initialOrgas = [
   {id:36,name:"Le Bon Coin Gasy de France",type:"Groupe",city:"National",region:"",followers:"25 600",note:"Groupe d'annonces communautaire.",fb:"https://www.facebook.com/groups/2072223663014016",insta:"",site:"",contact:""},
 ]
 
+const normalizeOrgaName = value => (value||"")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .toLowerCase().replace(/[^a-z0-9]+/g," ").trim()
+
+const findOrganizerProfile = (organizerName, orgas) => {
+  const wanted = normalizeOrgaName(organizerName)
+  if (!wanted) return null
+  const exact = orgas.find(o=>normalizeOrgaName(o.name)===wanted)
+  if (exact) return exact
+  const wantedWords = wanted.split(" ").filter(w=>w.length>=3)
+  return orgas.find(o=>{
+    const candidateWords = normalizeOrgaName(o.name).split(" ").filter(w=>w.length>=3)
+    return wantedWords.some(w=>candidateWords.includes(w)) &&
+      (wantedWords.length===1 || candidateWords.length===1 || wantedWords.filter(w=>candidateWords.includes(w)).length>=2 ||
+        (wantedWords[0]===candidateWords[0] && wantedWords[0].length<=4))
+  }) || null
+}
+
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
 const CAT_EMOJI = {Soirée:"🎉",Culture:"🎭",Gastronomie:"🍽️",Sport:"🏆",Religion:"⛪",Autre:"📌"}
 
@@ -2351,7 +2369,7 @@ function LieuxPage({ isMobile, page, lieux }) {
   )
 }
 
-function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated, gastro = [], lieux = [], onGoto }) {
+function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated, requestedOrgaId, onRequestedOrgaClosed, gastro = [], lieux = [], onGoto }) {
   const [famille,setFamille] = useState("evenementiel")
   const boutiquesArt = lieux.filter(l=>l.category==="boutique"||l.category==="artisanat")
   const eglises = lieux.filter(l=>l.category==="eglise")
@@ -2365,6 +2383,7 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
   const [filter,setFilter] = useState("Tous")
   const [q,setQ] = useState("")
   const [selected,setSelected] = useState(null)
+  const displayedSelected = (requestedOrgaId && orgas.find(o=>o.id===requestedOrgaId)) || selected
   const types = ["Tous",...Object.keys(ORGA_COLORS)]
   const nq = q.trim().toLowerCase()
   const base = orgas.filter(o=>{
@@ -2465,7 +2484,7 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
 
       </>)}
 
-      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
+      {displayedSelected && <OrgaDetail o={displayedSelected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>{setSelected(null);onRequestedOrgaClosed?.()}} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}}/>}
     </div>
   )
 }
@@ -3053,7 +3072,7 @@ function EntraideSection({ event, user, onAuthRequired }) {
   )
 }
 
-function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
+function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, organizerProfile, onOpenOrganizer }) {
   const [showShare,setShowShare]   = useState(false)
   const [showReminder,setReminder] = useState(false)
   const [showTicket,setShowTicket] = useState(false)
@@ -3127,7 +3146,11 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin }) {
               ].map(({emoji,label,val})=>(
                 <div key={label} style={{background:"#f8f8f8",borderRadius:14,padding:"12px 14px"}}>
                   <p style={{fontSize:11,fontWeight:700,color:"#999",textTransform:"uppercase",margin:"0 0 2px"}}>{emoji} {label}</p>
-                  <p style={{fontSize:14,fontWeight:600,color:"#333",margin:0}}>{val}</p>
+                  {label==="Organisateur" && organizerProfile ? (
+                    <button onClick={()=>onOpenOrganizer(organizerProfile)} aria-label={`Voir le profil de ${val}`} style={{display:"inline-flex",alignItems:"center",gap:6,background:"none",border:"none",padding:0,color:RED,fontSize:14,fontWeight:800,cursor:"pointer",textAlign:"left",textDecoration:"underline",textUnderlineOffset:3}}>
+                      {val} <span aria-hidden="true">→</span>
+                    </button>
+                  ) : <p style={{fontSize:14,fontWeight:600,color:"#333",margin:0}}>{val}</p>}
                 </div>
               ))}
             </div>
@@ -4152,6 +4175,7 @@ export default function App() {
   const [showLogin,setShowLogin]       = useState(false) // modal "ce compte n'est pas admin"
   const [logoClicks,setLogoClicks]     = useState(0)
   const [selectedEvent,setSelectedEvent] = useState(null)
+  const [requestedOrgaId,setRequestedOrgaId] = useState(null)
   const [showOnboarding,setOnboarding] = useState(!localStorage.getItem('mev_visited'))
   const [showInterestOnboarding,setShowInterestOnboarding] = useState(false)
   const [showLoginIntent,setShowLoginIntent]               = useState(false)
@@ -4451,7 +4475,7 @@ export default function App() {
       )}
 
       {page==="orgas" && (
-        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)}/>
+        <OrgaPage isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} requestedOrgaId={requestedOrgaId} onRequestedOrgaClosed={()=>setRequestedOrgaId(null)} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)}/>
       )}
 
       {page==="eglises" && (
@@ -4613,7 +4637,7 @@ export default function App() {
 
       {/* ── MODALS ── */}
       {selectedEvent && (
-        <EventDetail event={selectedEvent} onClose={()=>setSelectedEvent(null)} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin}/>
+        <EventDetail event={selectedEvent} onClose={()=>setSelectedEvent(null)} user={user} onAuthRequired={()=>setShowAuth(true)} isAdmin={isAdmin} organizerProfile={findOrganizerProfile(selectedEvent.organizer,orgas)} onOpenOrganizer={o=>{setSelectedEvent(null);setRequestedOrgaId(o.id);setPage("orgas")}}/>
       )}
 
       {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={async(isNew)=>{
