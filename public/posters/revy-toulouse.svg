@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Arial Black, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#02160d"/>
+      <stop offset="0.55" stop-color="#025430"/>
+      <stop offset="1" stop-color="#007A3D"/>
+    </linearGradient>
+    <radialGradient id="spot" cx="0.2" cy="0.15" r="0.8">
+      <stop offset="0" stop-color="#7dffc0" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7dffc0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg2)"/>
+  <rect width="800" height="500" fill="url(#spot)"/>
+  <g opacity="0.5" stroke="#9dffcf" stroke-width="3" fill="none">
+    <path d="M660 470 V 210 M660 210 Q600 170 570 200 M660 210 Q610 130 640 100 M660 210 Q705 130 690 95 M660 210 Q725 165 745 190"/>
+    <path d="M660 210 Q640 250 600 255 M660 210 Q690 255 730 250" />
+  </g>
+  <g fill="#ffffff" opacity="0.14">
+    <path d="M120 70 l6 14 15 2 -11 10 3 15 -13 -8 -13 8 3 -15 -11 -10 15 -2 z"/>
+    <path d="M710 330 l5 11 12 2 -9 8 2 12 -10 -6 -11 6 3 -12 -9 -8 12 -2 z"/>
+    <circle cx="250" cy="440" r="3"/><circle cx="330" cy="60" r="2"/><circle cx="80" cy="330" r="2"/>
+  </g>
+  <text x="52" y="130" fill="#9dffcf" font-size="28" letter-spacing="5" font-weight="900">REVY REVY VACANCES ☀️</text>
+  <text x="48" y="215" fill="#ffffff" font-size="64" font-weight="900" letter-spacing="-1">PRINCIO</text>
+  <text x="48" y="285" fill="#ffffff" font-size="64" font-weight="900" letter-spacing="-1">✕ NJARA MARCEL</text>
+  <rect x="52" y="325" width="440" height="58" rx="29" fill="#ffffff"/>
+  <text x="80" y="364" fill="#007A3D" font-size="30" font-weight="900">VEN 24 JUILLET • 21H</text>
+  <text x="52" y="440" fill="#9dffcf" font-size="26" font-weight="800" letter-spacing="2">📍 SALLE CLIMATISÉE XERACO — TOULOUSE</text>
+  <g>
+    <rect x="0" y="0" width="266" height="10" fill="#ffffff"/>
+    <rect x="266" y="0" width="267" height="10" fill="#C8102E"/>
+    <rect x="533" y="0" width="267" height="10" fill="#007A3D"/>
+  </g>
+  <text x="748" y="480" fill="#ffffff" opacity="0.7" font-size="16" font-weight="800" text-anchor="end" letter-spacing="2">🇲🇬 MALAGASY EVENTS</text>
+</svg>

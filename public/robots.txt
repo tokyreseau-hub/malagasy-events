@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /notifications
+Disallow: /administration
+
+Sitemap: https://www.malagasy-events.com/sitemap.xml

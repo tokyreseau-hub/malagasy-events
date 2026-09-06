@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────────────
+# .vercelignore — limite ce qui est envoyé à Vercel
+# Créé le 2026-09-06 — motif : 10,59 GB de Deployment Storage
+# ─────────────────────────────────────────────────────────────
+
+# Vidéos de travail (434 MB) — aucune référence dans src/, index.html ni dist/
+public/social/video-guide
+
+# Dossiers temporaires de production vidéo (478 MB)
+.tmp-*
+
+# Exports vidéo locaux (273 MB)
+exports
+
+# Build : Vercel le régénère lui-même via `npm run build`
+dist
+node_modules
+
+# Sauvegardes locales
+_sauvegarde-*
+
+# macOS
+.DS_Store

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">MIDNIGHT Open Air à Aubergarden</title>
+  <desc id="desc">Événement du 23 août 2026 de 18 heures à minuit avec Only Tithy et Nawer.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4b8bff"/>
+      <stop offset="0.6" stop-color="#99dfff"/>
+      <stop offset="1" stop-color="#062c3b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop stop-color="#ffcf29"/><stop offset="1" stop-color="#f6a800"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity=".25"/></filter>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#sky)"/>
+  <circle cx="880" cy="165" r="110" fill="#ffe163" opacity=".9"/>
+  <path d="M0 1040 C180 940 350 1015 530 955 C710 895 850 955 1080 850 V1350 H0Z" fill="#043d31"/>
+  <path d="M0 1110 C190 1000 360 1100 570 1010 C770 930 900 990 1080 930 V1350 H0Z" fill="#00291f" opacity=".9"/>
+  <g fill="#ffd12b" filter="url(#shadow)">
+    <rect x="95" y="112" width="890" height="185" rx="32"/>
+    <rect x="165" y="355" width="750" height="110" rx="24"/>
+  </g>
+  <text x="540" y="190" text-anchor="middle" fill="#092f54" font-family="Arial,sans-serif" font-size="42" font-weight="900" letter-spacing="5">MIDNIGHT PRÉSENTE</text>
+  <text x="540" y="262" text-anchor="middle" fill="#092f54" font-family="Arial,sans-serif" font-size="70" font-weight="900">OPEN AIR</text>
+  <text x="540" y="427" text-anchor="middle" fill="#092f54" font-family="Arial,sans-serif" font-size="47" font-weight="900">ONLY TITHY • NAWER</text>
+  <text x="540" y="570" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="96" font-weight="900">23 AOÛT</text>
+  <text x="540" y="640" text-anchor="middle" fill="#082f52" font-family="Arial,sans-serif" font-size="47" font-weight="900">18 H — MINUIT</text>
+  <g filter="url(#shadow)">
+    <rect x="90" y="720" width="900" height="180" rx="32" fill="#072d50" stroke="#ffd12b" stroke-width="6"/>
+    <text x="540" y="790" text-anchor="middle" fill="#ffd12b" font-family="Arial,sans-serif" font-size="46" font-weight="900">AUBERGARDEN</text>
+    <text x="540" y="848" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="31" font-weight="700">210 avenue des Magasins Généraux</text>
+    <text x="540" y="888" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="31" font-weight="700">93300 Aubervilliers</text>
+  </g>
+  <text x="540" y="1015" text-anchor="middle" fill="#ffd12b" font-family="Arial,sans-serif" font-size="34" font-weight="900">AFRO • AMAPIANO • SHATTA • GASY</text>
+  <text x="540" y="1065" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="31" font-weight="800">DANCEHALL • KOMPA • ZOUK • SALEGY</text>
+  <rect x="180" y="1155" width="720" height="92" rx="46" fill="url(#gold)"/>
+  <text x="540" y="1215" text-anchor="middle" fill="#082f52" font-family="Arial,sans-serif" font-size="35" font-weight="900">BILLETTERIE À CONFIRMER</text>
+  <text x="540" y="1300" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="29" font-weight="700">malagasy-events.com</text>
+</svg>
