@@ -42,9 +42,29 @@ const FanBadge = ({ profile, size=9 }) => {
 }
 const SITE_URL = "https://www.malagasy-events.com"
 const LEGAL_CONTACT = "malagasyevent33@gmail.com"
-// Mode de précaution : aucune affiche/photo d'événement n'est diffusée tant
-// qu'une preuve de licence ou d'autorisation n'est pas enregistrée.
-const EVENT_VISUALS_ENABLED = false
+// Seuls les visuels dont l'autorisation a été confirmée sont diffusés.
+// La liste reste volontairement fermée pour ne pas réactiver les anciennes
+// images non vérifiées présentes dans la base.
+const APPROVED_EVENT_VISUALS = {
+  "tana–paris–tana — théâtre musical":"/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg",
+  "journée portes ouvertes & soirée c’est parti ! — rns cen":"/posters/rns-journee-portes-ouvertes-2026.jpg",
+}
+const APPROVED_PARTNER_POSTERS = {
+  "journée portes ouvertes & soirée c’est parti ! — rns cen":[
+    "/posters/rns-journee-portes-ouvertes-2026.jpg",
+    "/posters/rns-soiree-c-est-parti-2026.jpg",
+  ],
+}
+const APPROVED_EVENT_VISUAL_ORGANIZERS = new Set(["rns - cen","rns — rencontre nationale sportive","cen / rns"])
+const approvedEventImage = event => {
+  const exact = APPROVED_EVENT_VISUALS[String(event?.title||"").trim().toLowerCase()]
+  if (exact) return exact
+  const organizer = String(event?.organizer||"").trim().toLowerCase().replace(/\s+/g," ")
+  const image = String(event?.image||"").trim()
+  return APPROVED_EVENT_VISUAL_ORGANIZERS.has(organizer) && (/^https:\/\//i.test(image)||image.startsWith("/")) ? image : ""
+}
+const approvedPartnerPosters = event => APPROVED_PARTNER_POSTERS[String(event?.title||"").trim().toLowerCase()]||[]
+const EVENT_MEDIA_ENABLED = false
 const OFFICIAL_SOCIALS = {
   facebook:"https://www.facebook.com/share/192VCsFaBB/",
   instagram:"https://www.instagram.com/malagasy.events/",
@@ -263,6 +283,7 @@ const VERIFIED_EVENT_TICKETS = [
   "https://www.billetweb.fr/midnight-bus",
   "https://www.helloasso.com/associations/association-la-petite-mandarine/evenements/hajazz-13-aout-grange-rouge",
   "https://www.helloasso.com/associations/cen-comite-executif-national/evenements/soiree-c-est-parti",
+  "https://mage4.ivenco.net/concert-paris",
 ]
 const isVerifiedTicketUrl = value => {
   const url = safeUrl(value)
@@ -601,7 +622,7 @@ const eventJsonLd = e => ({
   eventAttendanceMode:"https://schema.org/OfflineEventAttendanceMode",
   eventStatus:"https://schema.org/EventScheduled",
   location:{"@type":"Place", name:e.location||e.city, address:{"@type":"PostalAddress", streetAddress:e.address||e.location, addressLocality:e.city, addressCountry:"FR"}},
-  ...(EVENT_VISUALS_ENABLED&&e.image?{image:[e.image.startsWith("http")?e.image:SITE_URL+e.image]}:{}),
+  ...(e.image?{image:[e.image.startsWith("http")?e.image:SITE_URL+e.image]}:{}),
   description:e.description||e.title,
   organizer:{"@type":"Organization", name:e.organizer||"Malagasy Events"},
   ...(isVerifiedTicketUrl(eventTicketUrl(e))?{offers:{"@type":"Offer", url:eventTicketUrl(e), availability:"https://schema.org/InStock"}}:{}),
@@ -718,7 +739,7 @@ const initialEvents = [
   {id:10,title:"Hajazz en cabaret",date:"2026-08-13",location:"La Grande Rouge, La Chapelle-Naude (71)",city:"La Chapelle-Naude",category:"Soirée",image:"https://madatsara.com/uploads/medias/image-6a4fe73f740d4.jpg",price:"0 à 10 €",organizer:"Association La Petite Mandarine",ticketUrl:"https://www.helloasso.com/associations/association-la-petite-mandarine/evenements/hajazz-13-aout-grange-rouge",description:"Hajazz en solo à La Grande Rouge (Saône-et-Loire). Buvette et restauration dès 18h, concert à 20h puis jam session avec les musiciens de la région.",mediaUrls:[],createdAt:new Date().toISOString()},
   {id:11,title:"Shao Boana en showcase",date:"2026-08-15",location:"La Lagune, base de loisirs, Jonzac (17)",city:"Jonzac",category:"Soirée",image:"https://madatsara.com/uploads/medias/Shao-Boana-Showcase-La-Lagune-base-de-loisirs-Jonzac-69bab805a4d96.jpg",price:"",organizer:"La Lagune",ticketUrl:"https://madatsara.com/evenement_shao-boana-showcase-la-lagune-base-de-loisirs-jonzac.html",description:"Shao Boana « Madagascar Vibes » en sound system à La Lagune de Jonzac (17). Roots reggae & dancehall riddims, dès 20h30.",mediaUrls:[],createdAt:new Date().toISOString()},
   {id:12,title:"Feo Gasy en concert",date:"2026-09-04",location:"Maison pour tous Melina Mercouri, Montpellier",city:"Montpellier",category:"Culture",image:"https://madatsara.com/uploads/medias/image-6a4d5ab6d0a00.jpg",price:"30€",organizer:"Maison pour tous Melina Mercouri",ticketUrl:"https://madatsara.com/evenement_feo-gasy-en-concert-maison-pour-tous-melina-mercouri-montpellier.html",description:"Le groupe Feo Gasy en concert « Any indray andro… » à la Maison pour tous Melina Mercouri (64 route de Lavérune, Montpellier), vendredi 4 septembre à 20h30.",mediaUrls:[],createdAt:new Date().toISOString()},
-  {id:9016,title:"Journée portes ouvertes & soirée C’est parti ! — RNS CEN",date:"2026-09-05",location:"Le Millénaire — Savigny-le-Temple",address:"3 place du 19-Mars-1962, 77176 Savigny-le-Temple",lat:48.5829635,lng:2.5759079,city:"Savigny-le-Temple",category:"Culture",image:"",price:"25 € (soirée)",organizer:"RNS - CEN",orga_id:1,ticketUrl:"https://www.helloasso.com/associations/cen-comite-executif-national/evenements/soiree-c-est-parti",official_source_url:"https://www.instagram.com/rns_cen/",updates_url:"https://www.instagram.com/rns_cen/",description:"UNE MÊME JOURNÉE, DEUX TEMPS AU MILLÉNAIRE. 1) De 14h à 17h45 : journée portes ouvertes de la RNS-CEN. Plénière de 14h à 15h15 ; ateliers de 15h15 à 17h autour des sports collectifs et individuels, de la culture, du village et des soirées, de la restauration et des exposants, du sponsoring et des ateliers transverses ; plénière de clôture de 17h à 17h45. 2) Le soir : soirée « C’est parti ! » dans la même salle, avec ouverture des portes à 20h30 puis Macadence Orchestre et Eley Gasy en live de 21h à 4h. La billetterie à 25 € concerne la soirée. Il ne s’agit pas de deux événements en double, mais de deux programmes successifs organisés le même jour par le CEN. Adresse : Le Millénaire, 3 place du 19-Mars-1962, 77176 Savigny-le-Temple, au sud-est de Paris, près de la gare RER D Savigny-le-Temple–Nandy.",mediaUrls:[],createdAt:new Date().toISOString()},
+  {id:9016,title:"Journée portes ouvertes & soirée C’est parti ! — RNS CEN",date:"2026-09-05",location:"Le Millénaire — Savigny-le-Temple",address:"3 place du 19-Mars-1962, 77176 Savigny-le-Temple",lat:48.5829635,lng:2.5759079,city:"Savigny-le-Temple",category:"Culture",image:"/posters/rns-journee-portes-ouvertes-2026.jpg",price:"25 € (soirée)",organizer:"RNS - CEN",orga_id:1,ticketUrl:"https://www.helloasso.com/associations/cen-comite-executif-national/evenements/soiree-c-est-parti",official_source_url:"https://www.rns-cen.com/journee-portes-ouvertes-le-5-septembre-2026/",updates_url:"https://www.instagram.com/rns_cen/",description:"UNE MÊME JOURNÉE, DEUX TEMPS AU MILLÉNAIRE. 1) De 14h à 17h45 : journée portes ouvertes de la RNS-CEN. Plénière de 14h à 15h15 ; ateliers de 15h15 à 17h autour des sports collectifs et individuels, de la culture, du village et des soirées, de la restauration et des exposants, du sponsoring et des ateliers transverses ; plénière de clôture de 17h à 17h45. 2) Le soir : soirée « C’est parti ! » dans la même salle, avec ouverture des portes à 20h30 puis Macadence Orchestre et Eley Gasy en live de 21h à 4h. La billetterie à 25 € concerne la soirée. Il ne s’agit pas de deux événements en double, mais de deux programmes successifs organisés le même jour par le CEN. Adresse : Le Millénaire, 3 place du 19-Mars-1962, 77176 Savigny-le-Temple, au sud-est de Paris, près de la gare RER D Savigny-le-Temple–Nandy.",mediaUrls:[],createdAt:new Date().toISOString()},
   {id:13,title:"Rija Ramanantoanina en concert",date:"2026-10-17",location:"Espace Magnan, Nice",city:"Nice",category:"Culture",image:"https://madatsara.com/uploads/medias/image-6a52334735617.jpg",price:"20€ / 30€",organizer:"Espace Magnan",ticketUrl:"https://madatsara.com/evenement_rija-ramanantoanina-concert-espace-magnan-nice.html",description:"Rija Ramanantoanina en concert à l'Espace Magnan de Nice — musique malgache & jazz, nouvel album « FY ». 19h30, restauration malgache dès 18h30.",mediaUrls:[],createdAt:new Date().toISOString()},
   {id:14,title:"Soirée d'intégration GS Lille 2026-2027",date:"2026-10-17",location:"Lille",city:"Lille",category:"Soirée",image:"",price:"",organizer:"Gasy Sport Lille",ticketUrl:"https://www.facebook.com/gslille",description:"📌 Date estimée — à confirmer par l'organisateur. La soirée de rentrée de l'association sportive et culturelle malgache de Lille, chaque mi-octobre (éditions 2023 et 2024 confirmées).",mediaUrls:[],createdAt:new Date().toISOString()},
   {id:15,title:"Tournoi de la Solidarité — CSM",date:"2026-10-31",location:"Centre sportif Saint-Exupéry, Villebon-sur-Yvette (91)",city:"Paris",category:"Sport",image:"",price:"",organizer:"Collectif Sport Malagasy",ticketUrl:"https://www.facebook.com/profile.php?id=100064795630232",description:"📌 Date estimée — à confirmer par l'organisateur. Le grand tournoi foot & basket de la diaspora, chaque week-end de la Toussaint à Villebon-sur-Yvette (éditions 2024 et 2025 au même endroit).",mediaUrls:[],createdAt:new Date().toISOString()},
@@ -736,6 +757,62 @@ const nextFridayDate = () => {
 }
 
 const supplementalEvents = [
+  {
+    id:"mage-4-paris-le-millenaire-2026",
+    title:"MAGE 4 à Paris — Le Millénaire",
+    date:"2026-09-12",
+    location:"Le Millénaire, 3 place du 19-Mars-1962, 77176 Savigny-le-Temple",
+    address:"Le Millénaire, 3 place du 19-Mars-1962, 77176 Savigny-le-Temple",
+    lat:48.5829635,
+    lng:2.5759079,
+    city:"Savigny-le-Temple",
+    category:"Culture",
+    image:"",
+    price:"35 € prévente / 40 € sur place",
+    organizer:"IVENCO",
+    ticketUrl:"https://mage4.ivenco.net/concert-paris",
+    official_source_url:"https://mage4.ivenco.net/concert-paris",
+    updates_url:"https://www.instagram.com/gas_paname_sport/",
+    description:"MAGE 4 revient en France après sept ans pour un concert au Millénaire de Savigny-le-Temple, samedi 12 septembre 2026. Ouverture des portes à 20 h 30 et début du concert à 21 h 30. L’organisateur annonce 500 places, un tarif de 35 € en prévente et 40 € sur place. Gaspaname annonce offrir 50 invitations gratuites : pour connaître les conditions et vérifier leur disponibilité, contactez directement Gaspaname en message privé. Cette opération est proposée par Gaspaname et non par Malagasy Events. Placement libre. Accès par le RER D, gare Savigny-le-Temple–Nandy, puis environ deux minutes à pied. Informations concert : 06 60 96 69 50 ou 06 49 51 51 88.",
+    mediaUrls:[],
+    createdAt:"2026-09-09T00:00:00.000Z",
+  },
+  {
+    id:"mimosa-mada-sport-gournay-coupe-france-2026",
+    title:"Coupe de France — Mimosa Mada-Sport vs FC Gournay 93",
+    date:"2026-09-13",
+    location:"Parc des sports Plaine Nord n°1, 94600 Choisy-le-Roi",
+    address:"Parc des sports Plaine Nord n°1, 94600 Choisy-le-Roi",
+    city:"Choisy-le-Roi",
+    category:"Sport",
+    image:"",
+    price:"Tarif non communiqué",
+    organizer:"Mimosa Mada-Sport",
+    ticketUrl:"",
+    official_source_url:"https://www.instagram.com/mimosa.madasport1/",
+    updates_url:"https://www.instagram.com/mimosa.madasport1/",
+    description:"Mimosa Mada-Sport reçoit le FC Gournay 93 pour le 3e tour de la Coupe de France Crédit Agricole, dimanche 13 septembre 2026 à 14 h 30. Rendez-vous au Parc des sports Plaine Nord n°1, 94600 Choisy-le-Roi. Les informations et éventuelles mises à jour sont publiées par Mimosa Mada-Sport sur son compte Instagram officiel.",
+    mediaUrls:[],
+    createdAt:"2026-09-08T00:00:00.000Z",
+  },
+  {
+    id:"tana-paris-tana-sehatra-ba-gasy-2026",
+    title:"Tana–Paris–Tana — théâtre musical",
+    date:"2026-10-03",
+    location:"Espace Maison Blanche, 2 avenue Saint-Exupéry, 92320 Châtillon",
+    address:"Espace Maison Blanche, 2 avenue Saint-Exupéry, 92320 Châtillon",
+    city:"Châtillon",
+    category:"Culture",
+    image:"/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg",
+    price:"20 €",
+    organizer:"Sehatra Ba Gasy France",
+    ticketUrl:"",
+    official_source_url:"",
+    updates_url:"",
+    description:"Le groupe Sehatra Ba Gasy France présente « Tana–Paris–Tana », un théâtre musical consacré au patrimoine malgache, samedi 3 octobre 2026 à partir de 19 h à l’Espace Maison Blanche, 2 avenue Saint-Exupéry, 92320 Châtillon. Tarif unique : 20 €. Réservations : 06 03 82 72 28 ou 06 18 40 81 37. Un buffet de spécialités malgaches sera proposé sur place en supplément.",
+    mediaUrls:[],
+    createdAt:"2026-09-08T00:00:00.000Z",
+  },
   {
     id:"midnight-open-air-aubergarden-2026",
     title:"MIDNIGHT Open Air — Only Tithy & Nawer",
@@ -780,6 +857,24 @@ const supplementalEvents = [
     description:"Une grande soirée consacrée aux voix et à la musique malagasy avec Jenny Fuhr, Feo Gasy, Levelo, Noely et Tarika Baobab, samedi 26 septembre 2026 au Millénaire. Les horaires, tarifs et modalités de réservation seront ajoutés dès leur confirmation officielle.",
     mediaUrls:[],
     createdAt:"2026-07-28T00:00:00.000Z",
+  },
+  {
+    id:"kosmo-back-to-school-infinity-club-2026",
+    title:"KOSMO — Back to School",
+    date:"2026-09-26",
+    location:"Infinity Club, 94 rue d’Amsterdam, 75009 Paris",
+    address:"94 rue d’Amsterdam, 75009 Paris",
+    city:"Paris",
+    category:"Soirée",
+    image:"",
+    price:"Tarif à confirmer",
+    organizer:"KOSMO",
+    ticketUrl:"",
+    official_source_url:"https://www.instagram.com/kosmo.fr/",
+    updates_url:"https://www.instagram.com/kosmo.fr/",
+    description:"KOSMO présente sa soirée « Back to School » le samedi 26 septembre 2026 à l’Infinity Club, 94 rue d’Amsterdam, 75009 Paris. Ambiances annoncées : shatta, dancehall, salegy, bouyon et zouk. Line-up indiqué sur l’annonce : Tamy, Yoyo, Nawer et Yastonpêche. L’horaire, le tarif et la billetterie seront ajoutés dès leur confirmation par l’organisateur.",
+    mediaUrls:[],
+    createdAt:"2026-09-09T00:00:00.000Z",
   },
   {
     id:"fifda-paris-2026",
@@ -923,7 +1018,7 @@ const initialGastro = [
 const VERIFIED_GASY_GASTRO_NAMES = new Set(initialGastro.map(item=>normalizedDirectoryName(item.name)))
 
 const initialOrgas = [
-  {id:1,name:"RNS — Rencontre Nationale Sportive",type:"Association sportive",city:"National (Vichy)",region:"",followers:"84 000",note:"Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre.",fb:"https://www.facebook.com/rns.cen",insta:"",site:"https://www.rns-cen.com",contact:""},
+  {id:1,name:"RNS — Rencontre Nationale Sportive",type:"Association sportive",city:"National (Vichy)",region:"",followers:"84 000",note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre.",fb:"https://www.facebook.com/rns.cen",insta:"https://www.instagram.com/rns_cen/",site:"https://www.rns-cen.com",contact:"",logo_url:"/images/rns-cen-logo.jpg"},
   {id:2,name:"Collectif Sport Malagasy — CSM",type:"Association sportive",city:"National",region:"",followers:"14 000",note:"Organise le Tournoi de la Solidarité (foot & basket) chaque week-end de la Toussaint à Villebon-sur-Yvette, et un tournoi de printemps.",fb:"https://www.facebook.com/profile.php?id=100064795630232",insta:"",site:"",contact:""},
   {id:3,name:"ASM Paris",type:"Association sportive",city:"Paris",region:"Île-de-France",followers:"7 100",note:"Association Sportive Malgache historique, depuis 1986. Tournoi de l'amitié.",fb:"https://www.facebook.com/profile.php?id=100064645391225",insta:"",site:"",contact:""},
   {id:4,name:"Ligue Clichy Madagascar",type:"Association sportive",city:"Clichy",region:"Île-de-France",followers:"3 800",note:"Ligue basket de la communauté malgache. Tournoi de Noël chaque fin d'année.",fb:"https://www.facebook.com/profile.php?id=100063642368550",insta:"",site:"",contact:""},
@@ -949,7 +1044,7 @@ const initialOrgas = [
   {id:24,name:"Gasy Moov",type:"Organisateur",city:"Strasbourg / Marseille",region:"Grand Est",followers:"",note:"Soirées gasy par BESHA BEEP, JR Prod, Tamosilahy, Weraweaw et Makua Entertainment.",fb:"",insta:"",site:"https://my.weezevent.com/gasy-moov-3-strasbourg",contact:""},
   {id:25,name:"Festi-Gasy Marseille",type:"Organisateur",city:"Marseille",region:"Provence-Alpes-Côte d'Azur",followers:"",note:"Festival malgache à Marseille : concerts, plats traditionnels et tsakitsaky gasy.",fb:"",insta:"",site:"https://my.weezevent.com/festi-gasy-marseille",contact:""},
   {id:26,name:"Gasy Feeling",type:"Organisateur",city:"France",region:"",followers:"",note:"Organisation d'événements : mariages, fiançailles, concerts, cabarets.",fb:"",insta:"",site:"",contact:""},
-  {id:27,name:"KOSMO",type:"DJ & artistes",city:"Paris",region:"Île-de-France",followers:"",note:"Anime soirées et journées parisiennes — au line-up de la soirée Que Calor du 24 juillet.",fb:"https://www.facebook.com/profile.php?id=61570846886143",insta:"",site:"",contact:""},
+  {id:27,name:"KOSMO",type:"DJ & organisateur",city:"Paris",region:"Île-de-France",followers:"",note:"DJ et organisateur de soirées parisiennes, dont KOSMO — Back to School à l’Infinity Club.",fb:"https://www.facebook.com/profile.php?id=61570846886143",insta:"https://www.instagram.com/kosmo.fr/",site:"",contact:""},
   {id:28,name:"DJ Gouty Madagascar",type:"DJ & artistes",city:"France / Madagascar",region:"",followers:"50 000",note:"DJ et formateur en organisation événementielle.",fb:"https://www.facebook.com/djgouty",insta:"",site:"",contact:""},
   {id:29,name:"Dj DiNA",type:"DJ & artistes",city:"National",region:"",followers:"1 700",note:"DJ et administrateur du groupe Soirée Gasy France Officiel (19 400 membres).",fb:"https://www.facebook.com/dinadeejay",insta:"",site:"",contact:""},
   {id:30,name:"Rodman",type:"DJ & artistes",city:"Paris",region:"Île-de-France",followers:"",note:"DJ et organisateur de soirées dansantes.",fb:"",insta:"",site:"",contact:""},
@@ -3391,7 +3486,8 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
     setPosts(list=>list.map(x=>x.id===p.id?{...x,...data}:x))
   }
   const initials = o.name.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase()
-  const theirEvents = events.filter(e=>eventBelongsToOrga(e,o))
+  const theirEvents = events.filter(e=>eventBelongsToOrga(e,o)).sort((a,b)=>new Date(a.date)-new Date(b.date))
+  const isRnsPartner = canonicalOrgaName(o.name)==="rns rencontre nationale sportive"
   const inp = {border:"1.5px solid #e5e5e5",borderRadius:10,padding:"9px 12px",fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"}
 
   const save = async () => {
@@ -3479,12 +3575,26 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEve
             {theirEvents.length>0 && (
               <div style={{marginBottom:16}}>
                 <p style={{fontWeight:700,fontSize:13,color:"#444",margin:"0 0 8px"}}>🎪 Leurs événements sur le site</p>
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{display:"flex",flexDirection:"column",gap:isRnsPartner?10:6}}>
                   {theirEvents.map(e=>(
-                    <button key={e.id} onClick={()=>{onClose();onOpenEvent(e)}} style={{textAlign:"left",background:"#f8f8f8",border:"none",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:"#111"}}>{e.title}</span>
-                      <span style={{fontSize:12,color:"#888"}}> — {fmtShort(e.date)} · {e.city}{isPast(e.date)?" (passé)":""}</span>
-                    </button>
+                    isRnsPartner ? (
+                      <button key={e.id} onClick={()=>{onClose();onOpenEvent(e)}} style={{display:"grid",gridTemplateColumns:"88px 1fr",gap:12,alignItems:"stretch",textAlign:"left",background:"#f8f8f8",border:"1px solid #ededed",borderRadius:14,padding:0,overflow:"hidden",cursor:"pointer"}}>
+                        <div style={{height:96,background:"#eef5f0",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                          {e.image?<img src={e.image} alt={`Affiche officielle de ${e.title}`} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>:<img src="/images/rns-cen-logo.jpg" alt="Logo RNS CEN" style={{width:"72%",height:"72%",objectFit:"contain"}}/>}
+                        </div>
+                        <span style={{padding:"11px 12px 11px 0",alignSelf:"center"}}>
+                          <span style={{display:"block",fontSize:13.5,fontWeight:800,color:"#111",lineHeight:1.35}}>{e.title}</span>
+                          <span style={{display:"block",fontSize:12,color:"#777",marginTop:4}}>{fmtShort(e.date)} · {e.city}{isPast(e.date)?" · passé":""}</span>
+                          {!e.image && <span style={{display:"block",fontSize:10.5,color:"#9a6a00",fontWeight:700,marginTop:5}}>Affiche officielle à venir</span>}
+                          <span style={{display:"block",fontSize:11,color:RED,fontWeight:800,marginTop:6}}>Voir la fiche complète →</span>
+                        </span>
+                      </button>
+                    ) : (
+                      <button key={e.id} onClick={()=>{onClose();onOpenEvent(e)}} style={{textAlign:"left",background:"#f8f8f8",border:"none",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"#111"}}>{e.title}</span>
+                        <span style={{fontSize:12,color:"#888"}}> — {fmtShort(e.date)} · {e.city}{isPast(e.date)?" (passé)":""}</span>
+                      </button>
+                    )
                   ))}
                 </div>
               </div>
@@ -4247,11 +4357,11 @@ function EventCard({ event, onSelect, user, onAuthRequired, isAdmin, onDelete, o
 
         {/* Image */}
         <div onClick={()=>onSelect(event)} style={{position:"relative",height:180,overflow:"hidden"}}>
-          {EVENT_VISUALS_ENABLED && event.image
-            ? <img src={event.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",transition:"transform .3s",transform:hover?"scale(1.05)":"scale(1)"}}/>
+          {event.image
+            ? <img src={event.image} alt={`Affiche officielle de ${event.title}`} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",transition:"transform .3s",transform:hover?"scale(1.05)":"scale(1)"}}/>
             : <BrandedCover event={event}/>}
           <FlagStripe/>
-          {EVENT_VISUALS_ENABLED && event.image && <EventCategoryTint event={event}/>} 
+          {event.image && <EventCategoryTint event={event}/>}
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.45) 0%,transparent 60%)",pointerEvents:"none"}}/>
           {/* Badges top-left */}
           <div style={{position:"absolute",top:10,left:10,display:"flex",flexDirection:"column",gap:4}}>
@@ -4616,6 +4726,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, onUpdated,
   const isYoutube = url => url&&(url.includes('youtube')||url.includes('youtu.be'))
   const canEdit = !!user && (user.id===event.owner_id || isAdmin)
   const eventIsSynced = isSyncedEvent(event)
+  const officialPartnerPosters = approvedPartnerPosters(event)
 
   useEffect(()=>{
     if (!eventIsSynced) { setCount(0); setFav(false); setInterested(false); return }
@@ -4647,11 +4758,11 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, onUpdated,
         <div style={{background:WHITE,borderRadius:24,width:"100%",maxWidth:680,margin:"auto",boxShadow:"0 24px 80px rgba(0,0,0,0.3)",overflow:"hidden"}}>
           {/* Hero image */}
           <div style={{position:"relative",height:isMobile?200:300}}>
-            {EVENT_VISUALS_ENABLED && event.image
-              ? <img src={event.image} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>
+            {event.image
+              ? <img src={event.image} alt={`Affiche officielle de ${event.title}`} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top"}}/>
               : <BrandedCover event={event} big/>}
             <FlagStripe/>
-            {EVENT_VISUALS_ENABLED && event.image && <EventCategoryTint event={event}/>} 
+            {event.image && <EventCategoryTint event={event}/>}
             <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 50%)",pointerEvents:"none"}}/>
             <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"rgba(0,0,0,0.5)",color:WHITE,fontWeight:800,fontSize:20,width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
             <button onClick={toggleFav} style={{position:"absolute",top:16,left:16,background:"rgba(0,0,0,0.5)",borderRadius:"50%",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",fontSize:18}}>
@@ -4713,13 +4824,22 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, onUpdated,
             {/* Description */}
             {event.description && <p style={{fontSize:14,color:"#555",lineHeight:1.6,marginBottom:20}}>{event.description}</p>}
 
+            {officialPartnerPosters.length>1 && (
+              <div style={{marginBottom:20}}>
+                <p style={{fontWeight:800,fontSize:14,color:"#333",margin:"0 0 10px"}}>🖼️ Affiches officielles RNS</p>
+                <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10}}>
+                  {officialPartnerPosters.map((url,index)=><img key={url} src={url} alt={`${index===0?"Journée portes ouvertes":"Soirée"} — affiche officielle RNS`} style={{width:"100%",maxHeight:isMobile?460:400,objectFit:"contain",background:"#f6f6f6",borderRadius:14,border:"1px solid #ececec"}}/>)}
+                </div>
+              </div>
+            )}
+
             {/* Map */}
             <div style={{borderRadius:16,overflow:"hidden",marginBottom:20,height:200}}>
               <iframe title="map" src={`https://maps.google.com/maps?q=${encodeURIComponent(event.lat&&event.lng?`${event.lat},${event.lng}`:(event.address||event.location))}&output=embed`} style={{width:"100%",height:"100%",border:"none"}}/>
             </div>
 
             {/* Media */}
-            {EVENT_VISUALS_ENABLED && event.mediaUrls?.length>0 && (
+            {EVENT_MEDIA_ENABLED && event.mediaUrls?.length>0 && (
               <div style={{marginBottom:20}}>
                 <p style={{fontWeight:700,fontSize:14,color:"#333",marginBottom:10}}>📸 Photos & vidéos</p>
                 <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>
@@ -6340,7 +6460,7 @@ function TournamentsPage({isMobile}) {
 
 export default function App() {
   const [language,setLanguage]         = useState(()=>localStorage.getItem('mev_language')||'fr')
-  const [events,setEvents]             = useState(initialEvents)
+  const [events,setEvents]             = useState(()=>initialEvents.map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
   const [videos,setVideos]             = useState(initialVideos)
   const [gastro,setGastro]             = useState(initialGastro)
   const [orgas,setOrgas]               = useState(initialOrgas)
@@ -6564,16 +6684,16 @@ export default function App() {
       const verifiedEvents = ev.data.map(item=>({
         ...item,
         ...(verifiedEventPatches[String(item.title||"").trim().toLowerCase()]||{}),
-        image:"",
+        image:approvedEventImage(item),
         mediaUrls:[],
       }))
       const additions = supplementalEvents.filter(extra=>!verifiedEvents.some(item=>
         String(item.title||"").trim().toLowerCase()===extra.title.toLowerCase()
         && String(item.date||"")===extra.date
       ))
-      setEvents(dedupeEvents([...verifiedEvents,...additions]).map(item=>({...item,image:"",mediaUrls:[]})))
+      setEvents(dedupeEvents([...verifiedEvents,...additions]).map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
     } else {
-      setEvents(dedupeEvents([...initialEvents,...supplementalEvents]).map(item=>({...item,image:"",mediaUrls:[]})))
+      setEvents(dedupeEvents([...initialEvents,...supplementalEvents]).map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
     }
     if (!ga.error && ga.data?.length) {
       const missingGastroDefaults = initialGastro.filter(def=>!ga.data.some(item=>String(item.name||"").trim().toLowerCase()===String(def.name||"").trim().toLowerCase()))
@@ -6583,6 +6703,7 @@ export default function App() {
     if (!og.error && og.data?.length) {
       const verifiedOrgas = og.data.map(item=>{
         const name=String(item.name||"").trim().toLowerCase()
+        if(name==="rns — rencontre nationale sportive" || name==="rns - rencontre nationale sportive") return {...item,logo_url:"/images/rns-cen-logo.jpg",insta:"https://www.instagram.com/rns_cen/",note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre."}
         if(name==="gas'paname sport") return {...item,followers:"2 800",insta:"https://www.instagram.com/gas_paname_sport/",note:"Communauté sportive malagasy de Paris : Gaspaname Game, Coupe du Monde Gas’Paname, basket et foot inter-lycées de Tana Alumni France."}
         if(name==="malagasy en france 2.0") return {...item,site:"",note:"Émission web d'actualités de la diaspora malagasy en France. Ancien domaine indisponible au contrôle du 26 août 2026."}
         return item
