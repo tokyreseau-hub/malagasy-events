@@ -1082,7 +1082,28 @@ const supplementalEvents = [
   },
 ]
 
+// Les pistes datées par simple estimation restent conservées dans l'historique,
+// mais ne doivent pas apparaître comme des rendez-vous confirmés dans l'agenda.
+const TENTATIVE_EVENT_TITLES = new Set([
+  "soirée d'intégration gs lille 2026-2027",
+  "tournoi de noël — ligue clichy madagascar",
+  "madadiaspora foot — rns",
+])
+
+const isConfirmedAgendaEvent = event => !TENTATIVE_EVENT_TITLES.has(String(event?.title||"").trim().toLowerCase())
+
 const verifiedEventPatches = {
+  "rija ramanantoanina en concert": {
+    date:"2026-10-17",
+    location:"Espace Magnan, 31 rue Louis-de-Coppet, 06000 Nice",
+    address:"31 rue Louis-de-Coppet, 06000 Nice",
+    city:"Nice",
+    price:"30 €",
+    organizer:"Scènes du Sud",
+    ticketUrl:"https://www.explorenicecotedazur.com/fete-manifestation/rija-ramanantoanina/",
+    official_source_url:"https://www.explorenicecotedazur.com/fete-manifestation/rija-ramanantoanina/",
+    description:"Rija Ramanantoanina présente son nouvel album « FY » en concert à l’Espace Magnan de Nice, samedi 17 octobre 2026 à 19 h 30. Adresse officielle : 31 rue Louis-de-Coppet, 06000 Nice. Tarif annoncé : 30 €.",
+  },
   "tournoi de la solidarité 2026 — csm & masova": {
     title:"Tournoi de la Solidarité 2026 — CSM & MASOVA",
     date:"2026-10-24",
@@ -6802,19 +6823,19 @@ export default function App() {
       supabase.from('videos').select('*').order('id'),
     ])
     if (!ev.error && ev.data?.length) {
-      const verifiedEvents = ev.data.map(item=>({
+      const verifiedEvents = ev.data.filter(isConfirmedAgendaEvent).map(item=>({
         ...item,
         ...(verifiedEventPatches[String(item.title||"").trim().toLowerCase()]||{}),
         image:approvedEventImage(item),
         mediaUrls:[],
       }))
-      const additions = supplementalEvents.filter(extra=>!verifiedEvents.some(item=>
+      const additions = supplementalEvents.filter(isConfirmedAgendaEvent).filter(extra=>!verifiedEvents.some(item=>
         String(item.title||"").trim().toLowerCase()===extra.title.toLowerCase()
         && String(item.date||"")===extra.date
       ))
       setEvents(dedupeEvents([...verifiedEvents,...additions]).map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
     } else {
-      setEvents(dedupeEvents([...initialEvents,...supplementalEvents]).map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
+      setEvents(dedupeEvents([...initialEvents,...supplementalEvents].filter(isConfirmedAgendaEvent)).map(item=>({...item,image:approvedEventImage(item),mediaUrls:[]})))
     }
     if (!ga.error && ga.data?.length) {
       const missingGastroDefaults = initialGastro.filter(def=>!ga.data.some(item=>String(item.name||"").trim().toLowerCase()===String(def.name||"").trim().toLowerCase()))

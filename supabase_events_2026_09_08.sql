@@ -171,3 +171,15 @@ where not exists (
   where lower(e.title) = lower(v.title)
     and e.date = v.date::date
 );
+
+-- Recontrôle officiel du 10 septembre : précision de la fiche Rija Ramanantoanina.
+update public.events
+set location = 'Espace Magnan, 31 rue Louis-de-Coppet, 06000 Nice',
+    address = '31 rue Louis-de-Coppet, 06000 Nice',
+    city = 'Nice',
+    price = '30 €',
+    organizer = 'Scènes du Sud',
+    "ticketUrl" = 'https://www.explorenicecotedazur.com/fete-manifestation/rija-ramanantoanina/',
+    official_source_url = 'https://www.explorenicecotedazur.com/fete-manifestation/rija-ramanantoanina/',
+    description = 'Rija Ramanantoanina présente son nouvel album « FY » en concert à l’Espace Magnan de Nice, samedi 17 octobre 2026 à 19 h 30. Adresse officielle : 31 rue Louis-de-Coppet, 06000 Nice. Tarif annoncé : 30 €.'
+where lower(title) = lower('Rija Ramanantoanina en concert');
