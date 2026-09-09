@@ -39,9 +39,9 @@ select
   '/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg',
   '20 €',
   'Sehatra Ba Gasy France',
-  '',
-  '',
-  '',
+  'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf',
+  'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf',
+  'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf',
   'Le groupe Sehatra Ba Gasy France présente « Tana–Paris–Tana », un théâtre musical consacré au patrimoine malgache, samedi 3 octobre 2026 à partir de 19 h à l’Espace Maison Blanche, 2 avenue Saint-Exupéry, 92320 Châtillon. Tarif unique : 20 €. Réservations : 06 03 82 72 28 ou 06 18 40 81 37. Un buffet de spécialités malgaches sera proposé sur place en supplément.',
   '[]'::jsonb,
   '2026-09-08T00:00:00.000Z'
@@ -53,7 +53,10 @@ where not exists (
 
 -- Le partenaire a confirmé l'autorisation d'utiliser son affiche officielle.
 update public.events
-set image = '/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg'
+set image = '/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg',
+    "ticketUrl" = 'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf',
+    official_source_url = 'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf',
+    updates_url = 'https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf'
 where lower(title) = lower('Tana–Paris–Tana — théâtre musical')
   and date = '2026-10-03';
 

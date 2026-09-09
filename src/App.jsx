@@ -291,6 +291,7 @@ const VERIFIED_EVENT_TICKETS = [
   "https://www.helloasso.com/associations/gasy-de-l-ile/evenements/revy-mahaleo-tournee-europeenne-2026-metropole-lilloise",
   "https://www.helloasso.com/associations/lacim/evenements/amy-et-andy-en-duo-pop-rock-et-folk-concert-solidaire-lacim-madagascar",
   "https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm",
+  "https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
 ]
 const isVerifiedTicketUrl = value => {
   const url = safeUrl(value)
@@ -813,9 +814,9 @@ const supplementalEvents = [
     image:"/posters/tana-paris-tana-sehatra-ba-gasy-2026.jpg",
     price:"20 €",
     organizer:"Sehatra Ba Gasy France",
-    ticketUrl:"",
-    official_source_url:"",
-    updates_url:"",
+    ticketUrl:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+    official_source_url:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+    updates_url:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
     description:"Le groupe Sehatra Ba Gasy France présente « Tana–Paris–Tana », un théâtre musical consacré au patrimoine malgache, samedi 3 octobre 2026 à partir de 19 h à l’Espace Maison Blanche, 2 avenue Saint-Exupéry, 92320 Châtillon. Tarif unique : 20 €. Réservations : 06 03 82 72 28 ou 06 18 40 81 37. Un buffet de spécialités malgaches sera proposé sur place en supplément.",
     mediaUrls:[],
     createdAt:"2026-09-08T00:00:00.000Z",
