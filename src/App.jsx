@@ -1094,6 +1094,11 @@ const TENTATIVE_EVENT_TITLES = new Set([
 const isConfirmedAgendaEvent = event => !TENTATIVE_EVENT_TITLES.has(String(event?.title||"").trim().toLowerCase())
 
 const verifiedEventPatches = {
+  "tana–paris–tana — théâtre musical": {
+    ticketUrl:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+    official_source_url:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+    updates_url:"https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+  },
   "rija ramanantoanina en concert": {
     date:"2026-10-17",
     location:"Espace Magnan, 31 rue Louis-de-Coppet, 06000 Nice",
