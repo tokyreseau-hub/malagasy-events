@@ -136,3 +136,38 @@ set type = 'DJ & organisateur',
     note = 'DJ et organisateur de soirées parisiennes, dont KOSMO — Back to School à l’Infinity Club.',
     insta = 'https://www.instagram.com/kosmo.fr/'
 where lower(name) = lower('KOSMO');
+
+-- Veille vérifiée du 10 septembre : correction du Tournoi de la Solidarité.
+update public.events
+set title = 'Tournoi de la Solidarité 2026 — CSM & MASOVA',
+    date = '2026-10-24',
+    location = 'Complexe sportif Saint-Exupéry, Villebon-sur-Yvette (91)',
+    city = 'Villebon-sur-Yvette',
+    price = 'Tarifs selon discipline',
+    organizer = 'Collectif Sport Malagasy',
+    "ticketUrl" = 'https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm',
+    official_source_url = 'https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm',
+    description = 'Troisième édition du Tournoi de la Solidarité, organisée par MASOVA avec le Collectif Sport Malagasy, les samedi 24 et dimanche 25 octobre 2026 au Complexe sportif Saint-Exupéry de Villebon-sur-Yvette. Disciplines annoncées : football, basket, volley, tennis de table, pétanque et initiation bachata. Les inscriptions se font auprès de l’organisateur sur HelloAsso.'
+where id = 15
+   or lower(title) = lower('Tournoi de la Solidarité — CSM');
+
+-- Six événements absents, chacun confirmé sur une billetterie officielle.
+insert into public.events
+  (title, date, location, address, city, category, image, price, organizer,
+   "ticketUrl", official_source_url, updates_url, description, "mediaUrls", "createdAt")
+select v.title, v.date::date, v.location, v.address, v.city, v.category, '', v.price,
+       v.organizer, v.ticket_url, v.source_url, v.source_url, v.description,
+       '[]'::jsonb, '2026-09-10T00:00:00.000Z'
+from (values
+  ('Conférence « Filles du Roi » — FPMA','2026-09-12','Église FPMA Paris Chauchat, 16 rue Chauchat, 75009 Paris','16 rue Chauchat, 75009 Paris','Paris','Religion','Prix libre — inscription obligatoire','FPMA STK','https://www.helloasso.com/associations/fpma-stk/evenements/inscription-evenement-filles-du-roi','https://www.helloasso.com/associations/fpma-stk/evenements/inscription-evenement-filles-du-roi','Conférence organisée par la FPMA, la STK Nationale et la SVK Iraisana les samedi 12 et dimanche 13 septembre 2026. Ouverte aux femmes et aux hommes, elle propose des plénières, témoignages, ateliers et espaces de rencontre autour de l’identité de la femme comme enfant de Dieu. Samedi de 10 h à 20 h, dimanche de 10 h à 13 h. Participation libre, inscription obligatoire.'),
+  ('Tongasoa Festival Lyon','2026-09-12','Meyzieu Gare, Meyzieu (69)','','Meyzieu','Culture','12 € étudiant / 15 € plein','Isla Primera','https://www.helloasso.com/associations/isla-primera/evenements/tongasoa-festival-lyon','https://www.helloasso.com/associations/isla-primera/evenements/tongasoa-festival-lyon','Festival culturel malagasy organisé du samedi 12 septembre à 11 h au dimanche 13 septembre 2026 à 4 h. Gastronomie, culture, danse, musique, artisanat, réseautage, accueil des étudiants, concert et soirée DJ sont annoncés par Isla Primera.'),
+  ('10e Nuit Malgache — repas, tombola et danse','2026-10-10','Salle de Haute Plage, La Grande-Motte','','La Grande-Motte','Soirée','40 € repas sur place','Association Zazakely Ambodivondava-Alasora','https://www.helloasso.com/associations/association-zazakely-pour-les-enfants-d-ambodivondava-alasora/evenements/10-eme-nuit-malgache','https://www.helloasso.com/associations/association-zazakely-pour-les-enfants-d-ambodivondava-alasora/evenements/10-eme-nuit-malgache','Dixième Nuit Malgache le samedi 10 octobre 2026 à partir de 19 h : repas malgache, grande tombola et soirée dansante avec le groupe Sardi Sixties. Les recettes soutiennent les actions de l’association Zazakely pour les enfants d’Ambodivondava-Alasora.'),
+  ('Revy Mahaleo à Nantes — Dama & Bekoto','2026-10-31','Salon Mauduit, Nantes','','Nantes','Culture','35 € prévente','HETSIKA','https://www.helloasso.com/associations/hetsika-accueil-arts-et-culture-de-madagascar/evenements/revy-mahaleo','https://www.helloasso.com/associations/hetsika-accueil-arts-et-culture-de-madagascar/evenements/revy-mahaleo','Concert exceptionnel de Mahaleo avec Dama et Bekoto, samedi 31 octobre 2026 de 20 h à 23 h au Salon Mauduit à Nantes. Restauration et librairie malgaches sur place dès 19 h. Prévente limitée à cinq billets par personne.'),
+  ('Revy Mahaleo — tournée européenne à Tourcoing','2026-11-20','Salle Georges Dael, Tourcoing','','Tourcoing','Culture','25 € early bird / 30 € plein / gratuit -15 ans','Gasy de l’Île','https://www.helloasso.com/associations/gasy-de-l-ile/evenements/revy-mahaleo-tournee-europeenne-2026-metropole-lilloise','https://www.helloasso.com/associations/gasy-de-l-ile/evenements/revy-mahaleo-tournee-europeenne-2026-metropole-lilloise','Étape de la tournée européenne de Mahaleo avec Dama, Bekoto et les Taranaka, vendredi 20 novembre 2026. Ouverture des portes à 18 h 30, concert de 19 h 30 à 22 h 30. Sakafo et boissons proposés sur place.'),
+  ('Amy & Andy — concert solidaire LACIM Madagascar','2026-11-21','Salle d’animation de la mairie, 52 rue de la Rencontre, 69210 Éveux','52 rue de la Rencontre, 69210 Éveux','Éveux','Culture','10 €','LACIM — comité d’Éveux','https://www.helloasso.com/associations/lacim/evenements/amy-et-andy-en-duo-pop-rock-et-folk-concert-solidaire-lacim-madagascar','https://www.helloasso.com/associations/lacim/evenements/amy-et-andy-en-duo-pop-rock-et-folk-concert-solidaire-lacim-madagascar','Concert solidaire du duo Amy & Andy le samedi 21 novembre 2026 de 19 h 30 à 22 h 30. Les bénéfices contribueront à reconstruire trois classes de l’école primaire d’Andranomaitso à Madagascar. Buvette et petite restauration sur place.')
+) as v(title,date,location,address,city,category,price,organizer,ticket_url,source_url,description)
+where not exists (
+  select 1 from public.events e
+  where lower(e.title) = lower(v.title)
+    and e.date = v.date::date
+);
