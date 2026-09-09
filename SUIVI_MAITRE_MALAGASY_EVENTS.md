@@ -120,3 +120,12 @@ Ce document est le point de suivi unique du projet. Les décisions, lots Supabas
 - Trois dates purement estimées ont été retirées temporairement de l’agenda public, sans suppression de leur historique : `Soirée d’intégration GS Lille 2026-2027`, `Tournoi de Noël — Ligue Clichy Madagascar` et `Madadiaspora Foot — RNS`. Elles pourront revenir dès publication d’une date 2026 par leur organisateur.
 
 À l’avenir, compléter ce document par date et par thème. Ne créer un autre rapport que lorsqu’un format exécutable ou réglementaire l’impose, puis ajouter ici son chemin et son statut.
+
+## Veille complète concurrentielle — règle validée le 10 septembre 2026
+
+- Ketriketrika devient une source de détection couvrant les rendez-vous, l’annuaire et les démarches, mais jamais une preuve suffisante ni une source de contenu à recopier.
+- Photographie de départ affichée par le site concurrent : 39 rendez-vous à venir, 245 adresses et 55 fiches démarches. Son annuaire annonce 25 fiches « Manger », 15 « Acheter », 100 associations, 89 cultes, 10 sports et 6 réseaux.
+- Chaque entrée absente de Malagasy Events doit être contrôlée indépendamment sur une source officielle et actuelle. Les textes sont réécrits, les liens officiels sont ajoutés et aucun visuel tiers n’est repris sans autorisation.
+- Les démarches sont reconstruites à partir des organismes compétents : Service-Public.fr, France-Visas, ministères, Campus France, CAF, Assurance Maladie, impots.gouv.fr, Action Logement, Crous, ADIL et autres opérateurs publics selon le sujet.
+- Le fonctionnement et la lisibilité de leurs fiches peuvent inspirer une amélioration de parcours, sans reproduire leur rédaction, leur identité visuelle ni leur architecture à l’identique.
+- La veille quotidienne existante est élargie à toutes ces rubriques. Elle prépare des éléments vérifiés et signale les doublons, fermetures, annulations et informations obsolètes ; aucune publication automatique n’est autorisée sans contrôle final.
