@@ -1083,6 +1083,17 @@ const supplementalEvents = [
 ]
 
 const verifiedEventPatches = {
+  "tournoi de la solidarité 2026 — csm & masova": {
+    title:"Tournoi de la Solidarité 2026 — CSM & MASOVA",
+    date:"2026-10-24",
+    location:"Complexe sportif Saint-Exupéry, Villebon-sur-Yvette (91)",
+    city:"Villebon-sur-Yvette",
+    price:"Tarifs selon discipline",
+    organizer:"Collectif Sport Malagasy",
+    ticketUrl:"https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm",
+    official_source_url:"https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm",
+    description:"Troisième édition du Tournoi de la Solidarité, organisée par MASOVA avec le Collectif Sport Malagasy, les samedi 24 et dimanche 25 octobre 2026 au Complexe sportif Saint-Exupéry de Villebon-sur-Yvette. Disciplines annoncées : football, basket, volley, tennis de table, pétanque et initiation bachata. Les inscriptions se font auprès de l’organisateur sur HelloAsso.",
+  },
   "tournoi de la solidarité — csm": {
     title:"Tournoi de la Solidarité 2026 — CSM & MASOVA",
     date:"2026-10-24",
