@@ -70,9 +70,9 @@ const OFFICIAL_SOCIALS = {
   instagram:"https://www.instagram.com/malagasy.events/",
 }
 const INTERFACE_LANGUAGES = {
-  fr:{label:'Français',flag:'🇫🇷',tagline:'La communauté malagasy en France',login:"S'inscrire / se connecter",events:'📅 Événements',diaspora:'🇲🇬 Diaspora',guide:'🧭 Guide',aftermovies:'🎬 After-movies',gastro:'🍽️ Gastronomie',professionals:'💼 Professionnels',churches:'⛪ Églises',sports:'🏆 Sportifs',tournaments:'🏅 Tournois',shops:'🛍️ Boutiques',community:'👥 Communauté',classifieds:'📌 Petites annonces',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Administration'},
-  en:{label:'English',flag:'🇬🇧',tagline:'The Malagasy community in France',login:'Sign up / Log in',events:'📅 Events',diaspora:'🇲🇬 Diaspora',guide:'🧭 Guide',aftermovies:'🎬 After-movies',gastro:'🍽️ Food',professionals:'💼 Professionals',churches:'⛪ Churches',sports:'🏆 Sports',tournaments:'🏅 Tournaments',shops:'🛍️ Shops',community:'👥 Community',classifieds:'📌 Classifieds',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Administration'},
-  mg:{label:'Malagasy',flag:'🇲🇬',tagline:'Ny fiarahamonina malagasy eto Frantsa',login:'Hisoratra anarana / Hiditra',events:'📅 Hetsika',diaspora:'🇲🇬 Diaspora',guide:'🧭 Torolalana',aftermovies:'🎬 Horonantsary',gastro:'🍽️ Sakafo',professionals:'💼 Matihanina',churches:'⛪ Fiangonana',sports:'🏆 Fanatanjahantena',tournaments:'🏅 Fifaninanana',shops:'🛍️ Fivarotana',community:'👥 Fiarahamonina',classifieds:'📌 Filazana',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Fitantanana'},
+  fr:{label:'Français',flag:'🇫🇷',tagline:'La communauté malagasy en France',login:"S'inscrire / se connecter",events:'📅 Événements',diaspora:'🤝 Rejoindre',guide:'🧭 Guide',aftermovies:'🎬 After-movies',gastro:'🍽️ Gastronomie',professionals:'💼 Professionnels',churches:'⛪ Églises',sports:'🏆 Sportifs',tournaments:'🏅 Tournois',shops:'🛍️ Boutiques',community:'👥 Communauté',classifieds:'📌 Petites annonces',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Administration'},
+  en:{label:'English',flag:'🇬🇧',tagline:'The Malagasy community in France',login:'Sign up / Log in',events:'📅 Events',diaspora:'🤝 Join',guide:'🧭 Guide',aftermovies:'🎬 After-movies',gastro:'🍽️ Food',professionals:'💼 Professionals',churches:'⛪ Churches',sports:'🏆 Sports',tournaments:'🏅 Tournaments',shops:'🛍️ Shops',community:'👥 Community',classifieds:'📌 Classifieds',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Administration'},
+  mg:{label:'Malagasy',flag:'🇲🇬',tagline:'Ny fiarahamonina malagasy eto Frantsa',login:'Hisoratra anarana / Hiditra',events:'📅 Hetsika',diaspora:'🤝 Hiditra',guide:'🧭 Torolalana',aftermovies:'🎬 Horonantsary',gastro:'🍽️ Sakafo',professionals:'💼 Matihanina',churches:'⛪ Fiangonana',sports:'🏆 Fanatanjahantena',tournaments:'🏅 Fifaninanana',shops:'🛍️ Fivarotana',community:'👥 Fiarahamonina',classifieds:'📌 Filazana',premium:'💜 Premium',pro:'💎 Pro',admin:'🔓 Fitantanana'},
 }
 // Traductions contrôlées : uniquement les libellés de l'interface.
 // Les contenus publiés (noms, événements, posts, descriptions) restent fidèles
@@ -541,7 +541,7 @@ const PAGE_META = {
   pro:        ["Offres Pro pour organisateurs & commerces malagasy — Malagasy Events","Boostez vos événements malagasy : mise en avant, rappels aux intéressés, calendrier intégrable et fiches premium pour restaurants et boutiques."],
   premium:    ["Membre Premium — avantages exclusifs dans la communauté malagasy","Devenez Membre Premium Malagasy Events : badge doré, réductions chez les restaurants et boutiques malgaches partenaires, accès prioritaire aux billets et tombolas exclusives."],
   offers:     ["Les offres Malagasy Events — Membres et organisateurs","Comparez l’offre Membre Premium et l’offre Organisateur de Malagasy Events."],
-  diaspora:   ["Diaspora malagasy et malgache en France | Agenda & communauté","Événements, associations, restaurants et bonnes adresses de la diaspora malagasy en France. Découvrez la communauté malgache près de chez vous."],
+  diaspora:   ["Rejoindre la communauté malagasy en France | Malagasy Events","Rejoignez les groupes publics Malagasy Events sur WhatsApp ou demandez l’accès au réseau professionnel de la diaspora malagasy en France."],
   guide:      ["Guide pratique : arriver, étudier et travailler en France — Malagasy Events","Démarches officielles pour les étudiants et professionnels arrivant en France, recherche d’emploi et accès au droit des étrangers."],
   about:      ["À propos de Malagasy Events — L’agenda de la diaspora","Découvrez la mission de Malagasy Events : rendre visibles les événements, associations et bonnes adresses de la communauté malagasy en France."],
   contact:    ["Contacter Malagasy Events — Événements et partenariats","Proposez un événement, référencez une structure ou préparez un partenariat avec Malagasy Events en France."],
@@ -6252,6 +6252,9 @@ const publicPageShell = {maxWidth:960,margin:"0 auto",padding:"38px 18px 56px"}
 const publicCard = {background:WHITE,border:"1px solid #ececec",borderRadius:20,padding:24,boxShadow:"0 8px 28px rgba(35,25,35,.06)"}
 
 function DiasporaPage({isMobile,onGoto}) {
+  const [publicOpen,setPublicOpen]=useState(false)
+  const [proOpen,setProOpen]=useState(false)
+  const [previewNotice,setPreviewNotice]=useState("")
   const communityLinks = [
     ["Facebook","Diaspora Malagasy","Groupe communautaire pour échanger avec la diaspora malagasy.","https://www.facebook.com/groups/2461198107341793","#1877F2"],
     ["Web","MadaDiaspora","Réseau en ligne consacré à la diaspora malagasy à travers le monde.","https://madadiaspora.com/","#007A3D"],
@@ -6260,17 +6263,91 @@ function DiasporaPage({isMobile,onGoto}) {
     ["Instagram","Communautés malagasy","Découvrir les comptes et publications de la diaspora présents sur Instagram.","https://www.instagram.com/explore/search/keyword/?q=diaspora%20malagasy","#C13584"],
     ["Web","Communautés catholiques malagasy","Annuaire national des communautés catholiques malagasy en France.","https://www.ancmf.com/nos-communautes/","#B8860B"],
   ]
-  return <main style={publicPageShell}>
-    <header style={{textAlign:"center",marginBottom:28}}>
-      <p style={{color:RED,fontWeight:900,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 8px"}}>Retrouver la communauté</p>
-      <h2 style={{color:"#26215C",fontSize:isMobile?28:40,lineHeight:1.12,margin:"0 0 14px"}}>Groupes & réseaux de la diaspora</h2>
-      <p style={{color:"#5f5f66",fontSize:16,lineHeight:1.7,maxWidth:760,margin:"0 auto"}}>Une sélection de groupes, réseaux et annuaires malagasy accessibles sur Facebook, Instagram et sur internet.</p>
+  const joinPreview=label=>setPreviewNotice(`${label} : le lien WhatsApp sera activé après validation de la communauté.`)
+  return <main style={{...publicPageShell,maxWidth:1040}}>
+    <header style={{background:"linear-gradient(135deg,#fff 0%,#f0faf4 58%,#fff1f3 100%)",border:"1px solid #e7eee9",borderRadius:28,padding:isMobile?"30px 20px":"46px 42px",textAlign:"center",marginBottom:22,boxShadow:"0 12px 38px rgba(35,25,35,.07)"}}>
+      <p style={{color:GREEN,fontWeight:900,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 10px"}}>La communauté continue sur WhatsApp</p>
+      <h2 style={{color:"#26215C",fontSize:isMobile?30:46,lineHeight:1.08,margin:"0 auto 14px",maxWidth:720}}>Rejoins l’espace qui te correspond</h2>
+      <p style={{color:"#55565d",fontSize:isMobile?15:17,lineHeight:1.65,maxWidth:730,margin:"0 auto 20px"}}>Les informations utiles sans bruit, un salon pour échanger et un réseau professionnel séparé, accessible après vérification.</p>
+      <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}>
+        {["✓ Groupes modérés","✓ Accès public libre","✓ Espace pro vérifié"].map(item=><span key={item} style={{background:WHITE,border:"1px solid #dfe8e2",borderRadius:99,padding:"7px 11px",fontSize:12,fontWeight:800,color:"#3f4b43"}}>{item}</span>)}
+      </div>
     </header>
-    <section aria-label="Groupes et réseaux de la diaspora malagasy" style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)",gap:16,marginBottom:20}}>
+
+    <section aria-label="Choisir son espace" style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2,minmax(0,1fr))",gap:18,marginBottom:22}}>
+      <article style={{...publicCard,borderTop:`5px solid ${GREEN}`}}>
+        <span style={{background:"#eaf7ef",color:GREEN,borderRadius:99,padding:"5px 9px",fontWeight:900,fontSize:11,textTransform:"uppercase"}}>Accès public</span>
+        <h3 style={{color:"#26215C",fontSize:23,margin:"14px 0 7px"}}>Communauté Malagasy Events</h3>
+        <p style={{color:"#666",fontSize:14,lineHeight:1.6,margin:"0 0 17px"}}>Deux groupes seulement, pour rester simple et vivant.</p>
+        {[
+          ["📢","L’Essentiel Malagasy Events","Événements vérifiés, changements de date et ouvertures de billetterie. Seuls les administrateurs publient."],
+          ["💬","Le Salon Malagasy","Sorties, entraide, recommandations et accueil des nouveaux membres."],
+        ].map(([icon,title,text])=><div key={title} style={{display:"flex",gap:12,padding:"13px 0",borderTop:"1px solid #eee"}}><span style={{fontSize:22}}>{icon}</span><div><strong style={{display:"block",color:"#26215C",fontSize:15,marginBottom:3}}>{title}</strong><span style={{color:"#666",fontSize:13,lineHeight:1.5}}>{text}</span></div></div>)}
+        <button onClick={()=>setPublicOpen(v=>!v)} style={{width:"100%",marginTop:13,background:GREEN,color:WHITE,border:"none",borderRadius:13,padding:"12px 15px",fontWeight:900,cursor:"pointer"}}>{publicOpen?"Masquer les accès":"Découvrir les groupes publics"}</button>
+        {publicOpen&&<div style={{marginTop:12,padding:14,background:"#f4faf6",borderRadius:14}}>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#536057",lineHeight:1.5}}>Aucun compte Malagasy Events requis. Tu rejoindras toi-même le groupe choisi depuis WhatsApp.</p>
+          {["📢 Ouvrir L’Essentiel","💬 Ouvrir Le Salon"].map(label=><button key={label} onClick={()=>joinPreview(label)} style={{width:"100%",marginTop:7,background:WHITE,color:GREEN,border:"1px solid #b9d8c4",borderRadius:11,padding:"10px",fontWeight:800,cursor:"pointer"}}>{label}</button>)}
+        </div>}
+      </article>
+
+      <article style={{...publicCard,borderTop:`5px solid ${RED}`}}>
+        <span style={{background:"#fff0f2",color:RED,borderRadius:99,padding:"5px 9px",fontWeight:900,fontSize:11,textTransform:"uppercase"}}>Accès après validation</span>
+        <h3 style={{color:"#26215C",fontSize:23,margin:"14px 0 7px"}}>Réseau Malagasy Events Pro</h3>
+        <p style={{color:"#666",fontSize:14,lineHeight:1.6,margin:"0 0 15px"}}>Un espace séparé pour les organisateurs, associations, artistes, restaurateurs et prestataires.</p>
+        <div style={{background:"#faf8fb",borderRadius:14,padding:"13px 14px",marginBottom:14}}>
+          {["Échanger des contacts et opportunités","Trouver des prestataires fiables","Partager les besoins d’un événement"].map(item=><p key={item} style={{margin:"6px 0",fontSize:13,color:"#4f4d55"}}>✓ {item}</p>)}
+        </div>
+        <button onClick={()=>setProOpen(v=>!v)} style={{width:"100%",background:RED,color:WHITE,border:"none",borderRadius:13,padding:"12px 15px",fontWeight:900,cursor:"pointer"}}>{proOpen?"Fermer la demande":"Demander l’accès professionnel"}</button>
+        {proOpen&&<form onSubmit={e=>{e.preventDefault();setPreviewNotice("Aperçu uniquement : aucune demande n’a été envoyée.")}} style={{display:"grid",gap:9,marginTop:13,padding:14,background:"#fff7f8",borderRadius:14}}>
+          <input required placeholder="Nom et prénom" style={communityInputStyle}/>
+          <input required placeholder="Structure ou activité" style={communityInputStyle}/>
+          <select required defaultValue="" style={communityInputStyle}><option value="" disabled>Votre profil</option><option>Organisateur / association</option><option>Artiste</option><option>Restaurant / commerce</option><option>Prestataire</option><option>Autre professionnel</option></select>
+          <input required placeholder="Ville" style={communityInputStyle}/>
+          <input required type="url" placeholder="Site ou réseau social professionnel" style={communityInputStyle}/>
+          <input required type="tel" placeholder="Numéro WhatsApp" style={communityInputStyle}/>
+          <textarea required placeholder="Pourquoi souhaitez-vous rejoindre le réseau ?" rows={3} style={{...communityInputStyle,resize:"vertical"}}/>
+          <button type="submit" style={{background:"#26215C",color:WHITE,border:"none",borderRadius:11,padding:11,fontWeight:900,cursor:"pointer"}}>Envoyer ma demande</button>
+          <small style={{color:"#806d72",lineHeight:1.4}}>Prévisualisation locale : ce formulaire n’est pas encore connecté.</small>
+        </form>}
+      </article>
+    </section>
+
+    {previewNotice&&<div role="status" style={{background:"#26215C",color:WHITE,borderRadius:14,padding:"12px 16px",fontSize:13,fontWeight:700,marginBottom:22,textAlign:"center"}}>{previewNotice}</div>}
+
+    <section style={{...publicCard,marginBottom:22}}>
+      <h3 style={{color:"#26215C",fontSize:21,margin:"0 0 16px",textAlign:"center"}}>Comment ça fonctionne ?</h3>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:16}}>{[
+        ["1","Choisis ton espace","Public pour suivre et échanger, professionnel pour collaborer."],
+        ["2","Rejoins ou fais ta demande","Accès direct aux groupes publics ; validation pour le réseau pro."],
+        ["3","Reçois l’information utile","Actualités vérifiées, échanges modérés et rendez-vous réguliers."],
+      ].map(([n,title,text])=><div key={n} style={{textAlign:"center",padding:10}}><span style={{display:"inline-grid",placeItems:"center",width:34,height:34,borderRadius:"50%",background:n==="1"?RED:GREEN,color:WHITE,fontWeight:900}}>{n}</span><strong style={{display:"block",color:"#26215C",margin:"10px 0 5px"}}>{title}</strong><span style={{color:"#666",fontSize:13,lineHeight:1.5}}>{text}</span></div>)}</div>
+    </section>
+
+    <section style={{...publicCard,marginBottom:22,background:"linear-gradient(135deg,#26215C,#3b3477)",color:WHITE}}>
+      <h3 style={{fontSize:21,margin:"0 0 6px"}}>Un rythme simple pour faire vivre la communauté</h3>
+      <p style={{opacity:.78,fontSize:14,lineHeight:1.55,margin:"0 0 15px"}}>Pas de messages toute la journée : des rendez-vous clairs et utiles.</p>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(4,1fr)",gap:10}}>{[
+        ["Lundi","L’agenda de la semaine"],["Mercredi","Question & bon plan"],["Vendredi","Que fait-on ce week-end ?"],["Dimanche","Retours & propositions"],
+      ].map(([day,text])=><div key={day} style={{background:"rgba(255,255,255,.1)",borderRadius:13,padding:12}}><strong style={{display:"block",fontSize:12,color:"#aee6c1",marginBottom:4}}>{day}</strong><span style={{fontSize:13,lineHeight:1.4}}>{text}</span></div>)}</div>
+    </section>
+
+    <section style={{...publicCard,marginBottom:22,background:"#fbfbfc"}}>
+      <h3 style={{color:"#26215C",fontSize:19,margin:"0 0 10px"}}>Un cadre professionnel et sûr</h3>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:10}}>{[
+        ["🔒","Le numéro n’est pas affiché sur le site"],["🛡️","Les échanges sont modérés"],["✅","Les profils pro sont vérifiés avant accès"],
+      ].map(([icon,text])=><div key={text} style={{display:"flex",gap:9,alignItems:"center",fontSize:13,color:"#555",lineHeight:1.45}}><span style={{fontSize:20}}>{icon}</span><span>{text}</span></div>)}</div>
+    </section>
+
+    <header style={{textAlign:"center",margin:"34px 0 20px"}}>
+      <p style={{color:RED,fontWeight:900,fontSize:11,letterSpacing:1.4,textTransform:"uppercase",margin:"0 0 7px"}}>Pour aller plus loin</p>
+      <h3 style={{color:"#26215C",fontSize:isMobile?24:30,margin:"0 0 8px"}}>Autres réseaux utiles de la diaspora</h3>
+      <p style={{color:"#666",fontSize:14,lineHeight:1.6,maxWidth:680,margin:"0 auto"}}>Une sélection indépendante de groupes et annuaires externes.</p>
+    </header>
+    <section aria-label="Groupes et réseaux de la diaspora malagasy" style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:14,marginBottom:20}}>
       {communityLinks.map(([platform,title,text,url,color])=><article key={title} style={publicCard}>
         <span style={{display:"inline-block",background:`${color}18`,color,fontSize:10,fontWeight:900,textTransform:"uppercase",letterSpacing:1,borderRadius:99,padding:"5px 9px"}}>{platform}</span>
         <h3 style={{color:"#26215C",fontSize:18,margin:"12px 0 7px"}}>{title}</h3>
-        <p style={{color:"#666",fontSize:14,lineHeight:1.6,minHeight:isMobile?0:66,margin:"0 0 14px"}}>{text}</p>
+        <p style={{color:"#666",fontSize:13,lineHeight:1.55,minHeight:isMobile?0:62,margin:"0 0 14px"}}>{text}</p>
         <a href={url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",background:color,color:WHITE,textDecoration:"none",borderRadius:12,padding:"10px 14px",fontWeight:800,fontSize:13}}>Voir le groupe ou le site ↗</a>
       </article>)}
     </section>
@@ -6281,6 +6358,8 @@ function DiasporaPage({isMobile,onGoto}) {
     </section>
   </main>
 }
+
+const communityInputStyle={width:"100%",boxSizing:"border-box",border:"1px solid #e1d8db",background:WHITE,borderRadius:10,padding:"10px 11px",fontSize:13,fontFamily:"inherit",color:"#29262d"}
 
 function AboutPage({isMobile,onGoto}) {
   return <main style={publicPageShell}>
@@ -6305,58 +6384,400 @@ function AboutPage({isMobile,onGoto}) {
 }
 
 function GuidePage({isMobile}) {
-  const linkStyle = {color:GREEN,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}
-  const steps = [
-    ["1","Étudiant qui arrive en France","🎓",[
-      ["Dès l’arrivée","Installe-toi, préviens ton établissement et conserve ensemble passeport, visa, acte de naissance traduit si demandé, justificatif de domicile et attestation d’inscription."],
-      ["Dans les 3 mois","Si tu as un visa long séjour valant titre de séjour (VLS-TS), valide-le en ligne sur le portail officiel de l’administration des étrangers."],
-      ["Avant l’inscription définitive","Règle la CVEC si tu es concerné, puis finalise ton inscription au campus pour obtenir carte étudiante et accès numériques."],
-      ["Premiers jours","Compare un compte bancaire, un forfait mobile et l’abonnement de transport local. Ne choisis pas une marque par défaut : vérifie les frais et les conditions."],
-      ["Santé et logement","Inscris-toi à l’Assurance Maladie via le portail étudiant étranger si nécessaire. Simule ensuite tes droits CAF : depuis juillet 2026, les conditions d’aide au logement ont changé pour certains étudiants extracommunautaires."],
-    ]],
-    ["2","Fin d’études & recherche d’emploi","💼",[
-      ["Avant l’expiration du titre étudiant","Vérifie rapidement si tu peux demander un titre ou une autorisation « recherche d’emploi / création d’entreprise ». Les conditions dépendent du diplôme et de la situation."],
-      ["Préparer la recherche","Mets à jour CV, LinkedIn et portfolio, puis consulte France Travail, l’Apec et 1 jeune 1 solution. Vérifie avec l’employeur si une autorisation de travail est nécessaire."],
-      ["Offres partenaires","Nous attendons des entreprises partenaires avant de publier ici des emplois vérifiés pour la communauté."],
-    ]],
-    ["3","Arrivée en France pour le travail","🧳",[
-      ["Avant le départ","Confirme avec l’employeur le contrat, l’autorisation de travail éventuelle, le visa adapté, le lieu de travail et les premières solutions de logement."],
-      ["À l’arrivée","Valide le VLS-TS dans les 3 mois si ton visa l’exige. Prépare ensuite domicile, banque, transport, Assurance Maladie et assurance habitation."],
-      ["Pour bien démarrer","Demande un rendez-vous d’intégration à ton employeur et conserve tous tes documents. Cette rubrique accueillera prochainement des partenaires logement, mobilité et emploi vérifiés."],
-    ]],
-    ["4","Sans titre de séjour : trouver une aide fiable","⚖️",[
-      ["D’abord, être conseillé","Chaque situation est différente. Un avocat en droit des étrangers ou une association spécialisée doit étudier le dossier avant toute démarche de régularisation ou recours."],
-      ["Aide gratuite et confidentielle","Les Point-justice proposent des consultations juridiques gratuites. L’aide juridictionnelle peut aussi prendre en charge tout ou partie des frais selon la situation et les ressources."],
-      ["Se protéger","Ne remets jamais ton passeport original et n’envoie pas d’argent à un intermédiaire inconnu. Utilise les sites officiels et les associations reconnues."],
-    ]],
+  const [query,setQuery]=useState("")
+  const [category,setCategory]=useState(null)
+  const [article,setArticle]=useState(null)
+  const [checked,setChecked]=useState({})
+  const categories=[
+    {id:"etudes",icon:"🎓",title:"Étudier en France",desc:"Campus France, visa étudiant, CVEC, inscription, alternance et bourses.",count:7,color:"#eaf7ef",topics:["Le parcours étudiant depuis Madagascar","Les premières démarches à l’arrivée","Renouveler son titre étudiant","Trouver une alternance","Bourses et aides étudiantes"]},
+    {id:"sejour",icon:"🪪",title:"Visa & séjour",desc:"VLS-TS, renouvellement, changement de statut et naturalisation.",count:7,color:"#fff0f1",topics:["Valider son visa VLS-TS","Renouveler son titre de séjour","Passer du statut étudiant au statut salarié","Demander la nationalité française"]},
+    {id:"logement",icon:"🏠",title:"Se loger",desc:"Crous, Visale, CAF, Action Logement et dossier locatif.",count:8,color:"#fff7e8",topics:["Préparer un dossier locatif solide","Demander la garantie Visale","Trouver un logement étudiant","Demander une aide au logement"]},
+    {id:"sante",icon:"🩺",title:"Santé",desc:"Assurance Maladie, carte Vitale, mutuelle, médecin et urgences.",count:6,color:"#eef7ff",topics:["S’inscrire à l’Assurance Maladie","Obtenir sa carte Vitale","Choisir une mutuelle","Trouver un médecin"]},
+    {id:"travail",icon:"💼",title:"Travailler",desc:"Emploi étudiant, autorisation de travail et recherche d’emploi.",count:6,color:"#f3efff",topics:["Travailler pendant ses études","Chercher son premier emploi","Vérifier une autorisation de travail","Faire reconnaître son diplôme"]},
+    {id:"argent",icon:"💶",title:"Argent & aides",desc:"Compte bancaire, CAF, impôts, budget et aides disponibles.",count:8,color:"#edf8f4",topics:["Ouvrir un compte bancaire","Comprendre les aides CAF","Déclarer ses revenus","Construire son budget d’arrivée"]},
+    {id:"transport",icon:"🚗",title:"Transport & conduite",desc:"Permis malgache, échange de permis et abonnements de transport.",count:4,color:"#eef4ff",topics:["Conduire avec un permis malgache","Demander un échange de permis","Choisir son abonnement de transport"]},
+    {id:"voyage",icon:"✈️",title:"Voyager à Madagascar",desc:"Billets d’avion, bagages, documents et agences vérifiées.",count:4,color:"#fff2e8",topics:["Préparer un voyage France–Madagascar","Comparer les billets d’avion","Voyager avec des bagages supplémentaires","Vérifier une agence de voyages"]},
+    {id:"entreprendre",icon:"🏢",title:"Entreprendre",desc:"Microentreprise, association, obligations et aides à la création.",count:4,color:"#f2f2f8",topics:["Créer une microentreprise","Créer une association","Choisir son statut","Trouver les aides à la création"]},
+    {id:"famille",icon:"👨‍👩‍👧",title:"Famille",desc:"Regroupement familial, naissance, mariage et scolarité.",count:4,color:"#fff0f5",topics:["Faire venir sa famille","Déclarer une naissance","Inscrire un enfant à l’école","Faire reconnaître un mariage"]},
+    {id:"droits",icon:"⚖️",title:"Droits & recours",desc:"Préfecture, Point-justice, Défenseur des droits et aide juridique.",count:5,color:"#f6f1ea",topics:["Quand la préfecture bloque","Trouver un Point-justice","Demander l’aide juridictionnelle","Éviter les faux intermédiaires"]},
+    {id:"bons-plans",icon:"🧭",title:"Guide de la plateforme",desc:"Le mode d’emploi complet de Malagasy Events, avec ou sans compte.",count:7,color:"#edf8f1",topics:["Comprendre tous les onglets","Trouver et suivre un événement","Explorer les annuaires","Utiliser les petites annonces","Publier dans la communauté","Utiliser les messages et notifications","Gérer son compte et proposer un événement"]},
   ]
-  return <main style={{...publicPageShell,maxWidth:1040}}>
-    <header style={{textAlign:"center",marginBottom:26}}>
-      <p style={{color:GREEN,fontWeight:900,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 8px"}}>Démarches utiles</p>
-      <h1 style={{color:"#26215C",fontSize:isMobile?29:42,lineHeight:1.1,margin:"0 0 13px"}}>Bien démarrer en France</h1>
-      <p style={{color:"#62626a",fontSize:16,lineHeight:1.65,maxWidth:760,margin:"0 auto"}}>Un guide simple pour les étudiants, jeunes diplômés, professionnels et personnes ayant besoin d’un accompagnement juridique fiable.</p>
-    </header>
-    <div style={{background:"#fff8e8",border:"1px solid #f0d899",borderRadius:16,padding:"13px 16px",color:"#6c5415",fontSize:13,lineHeight:1.55,marginBottom:18}}>
-      <b>À vérifier avant chaque démarche.</b> Ces repères ne remplacent pas l’avis d’une administration, d’un établissement ou d’un avocat. Informations vérifiées le 26 juillet 2026.
-    </div>
-    <section style={{display:"grid",gap:18}}>
-      {steps.map(([number,title,icon,items])=><article key={number} style={{...publicCard,padding:isMobile?18:26}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-          <span style={{display:"grid",placeItems:"center",width:44,height:44,borderRadius:14,background:number==="4"?"#fff0f1":"#ecf8f1",fontSize:22}}>{icon}</span>
-          <div><p style={{color:RED,fontWeight:900,fontSize:11,letterSpacing:1.1,textTransform:"uppercase",margin:0}}>Section {number}</p><h2 style={{color:"#26215C",fontSize:isMobile?20:24,lineHeight:1.2,margin:"2px 0 0"}}>{title}</h2></div>
-        </div>
-        <div style={{display:"grid",gap:10}}>
-          {items.map(([name,text])=><div key={name} style={{background:"#f8f8fa",borderRadius:14,padding:"13px 15px"}}>
-            <h3 style={{fontSize:14,color:"#25252a",margin:"0 0 4px"}}>{name}</h3>
-            <p style={{fontSize:13.5,color:"#626268",lineHeight:1.6,margin:0}}>{text}</p>
-          </div>)}
-        </div>
-        {number==="1" && <p style={{fontSize:13,lineHeight:1.8,margin:"15px 0 0"}}><a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://administration-etrangers-en-france.interieur.gouv.fr/particuliers/#/">Valider un VLS-TS</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://cvec.etudiant.gouv.fr/">CVEC</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://etudiant-etranger.ameli.fr/">Assurance Maladie</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.caf.fr/allocataires/actualites/actualites-nationales/apl-ce-qui-change-pour-certains-etudiants-partir-du-1er-juillet-2026">Conditions CAF 2026</a></p>}
-        {number==="2" && <p style={{fontSize:13,lineHeight:1.8,margin:"15px 0 0"}}><a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.service-public.fr/particuliers/vosdroits/F2229">Après les études</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.francetravail.fr/">France Travail</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.apec.fr/">Apec</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.1jeune1solution.gouv.fr/">1 jeune 1 solution</a></p>}
-        {number==="3" && <p style={{fontSize:13,lineHeight:1.8,margin:"15px 0 0"}}><a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.service-public.fr/particuliers/vosdroits/F2728">Autorisation de travail</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.service-public.fr/particuliers/vosdroits/F15898">Salarié étranger en France</a></p>}
-        {number==="4" && <p style={{fontSize:13,lineHeight:1.8,margin:"15px 0 0"}}><a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.justice.fr/fiche/consulter-gratuitement-avocat">Avocat gratuit / Point-justice</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.justice.fr/fiche/aide-juridictionnelle-dune-procedure-france">Aide juridictionnelle</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.defenseurdesdroits.fr/">Défenseur des droits</a> · <a style={linkStyle} target="_blank" rel="noopener noreferrer" href="https://www.lacimade.org/">La Cimade</a></p>}
-      </article>)}
-    </section>
+  const guideDetails={
+    etudes:{
+      audience:"Étudiants admis ou en préparation",timing:"Avant le départ puis à l’arrivée",cost:"CVEC et titres selon situation",
+      intro:"De l’admission à la carte étudiante : les démarches à faire depuis Madagascar, puis celles à terminer en France.",
+      steps:[["Confirmer l’admission","Vérifie l’attestation d’admission, le calendrier de l’établissement et les consignes Campus France."],["Préparer le séjour","Réunis le passeport, le visa, les justificatifs financiers et une solution de logement pour l’arrivée."],["Finaliser l’inscription","Règle la CVEC si tu y es assujetti, puis termine l’inscription administrative auprès de l’établissement."],["Activer tes droits","Valide le VLS-TS lorsque c’est requis et inscris-toi à l’Assurance Maladie étudiante."]],
+      docs:["Passeport en cours de validité","Visa ou titre de séjour correspondant","Attestation d’admission ou de scolarité","Justificatif de domicile en France","RIB français — pour les remboursements santé"],
+      links:[["Campus France Madagascar","https://www.madagascar.campusfrance.org/"],["Valider un VLS-TS — ANEF","https://administration-etrangers-en-france.interieur.gouv.fr/particuliers/#/"],["CVEC — site officiel","https://cvec.etudiant.gouv.fr/"],["Assurance Maladie étudiante","https://etudiant-etranger.ameli.fr/"]],
+      note:"Le RIB est demandé pour recevoir les remboursements de santé ; les pièces exactes du visa dépendent du dossier Campus France et du consulat."
+    },
+    sejour:{
+      audience:"Étrangers non européens en France",timing:"2 à 4 mois avant l’échéance",cost:"Taxe variable selon le titre",
+      intro:"Valider, renouveler ou faire évoluer son droit au séjour sans rater l’échéance ni utiliser un faux intermédiaire.",
+      steps:[["Identifier le bon titre","Pars de la mention inscrite sur ton visa ou ta carte actuelle et de ton motif de séjour."],["Contrôler la date limite","Pour un titre étudiant, la demande se fait généralement entre 4 et 2 mois avant la fin de validité."],["Préparer les preuves","Réunis les justificatifs de domicile, de ressources et ceux liés au motif de séjour demandé."],["Déposer et conserver","Utilise l’ANEF ou la procédure indiquée par la préfecture et garde l’attestation de dépôt."]],
+      docs:["Passeport et pages utiles","Visa, VLS-TS ou titre actuel","Justificatif de domicile récent","Justificatifs de ressources","Justificatif lié au motif — études, travail ou famille"],
+      links:[["ANEF — démarches en ligne","https://administration-etrangers-en-france.interieur.gouv.fr/particuliers/#/"],["Fiche officielle étudiant étranger","https://www.service-public.fr/particuliers/vosdroits/F2231"],["Annuaire des préfectures","https://lannuaire.service-public.fr/navigation/prefecture"]],
+      note:"Le portail et les pièces varient selon le titre demandé. Vérifie toujours la fiche Service-Public correspondant exactement à ta situation."
+    },
+    logement:{
+      audience:"Locataires et étudiants",timing:"Avant les visites",cost:"Démarches gratuites",
+      intro:"Construire un dossier crédible, trouver une garantie et demander les aides sans transmettre ses papiers n’importe où.",
+      steps:[["Définir le budget réel","Additionne loyer, charges, assurance, dépôt de garantie, énergie et transport."],["Créer un dossier sécurisé","Prépare les justificatifs sur DossierFacile afin d’éviter de diffuser des copies non protégées."],["Vérifier la garantie","Teste ton éligibilité à Visale avant de signer et lis attentivement le bail."],["Demander l’aide adaptée","Une fois le logement occupé, simule puis demande l’aide au logement auprès de la CAF."]],
+      docs:["Pièce d’identité ou titre de séjour","Justificatif étudiant ou professionnel","Justificatifs de ressources adaptés","Avis d’imposition — si disponible ou demandé","Bail signé — uniquement pour la demande d’aide"],
+      links:[["DossierFacile","https://www.dossierfacile.logement.gouv.fr/"],["Garantie Visale","https://www.visale.fr/"],["Logement étudiant — Crous","https://www.messervices.etudiant.gouv.fr/"],["Aides au logement — CAF","https://www.caf.fr/allocataires/aides-et-demarches/droits-et-prestations/logement"]],
+      note:"Ne verse jamais d’argent avant une visite réelle ou une vérification sérieuse du logement et du bailleur."
+    },
+    sante:{
+      audience:"Nouveaux arrivants et assurés",timing:"Dès l’installation",cost:"Affiliation gratuite",
+      intro:"Obtenir une couverture, suivre son dossier, recevoir la carte Vitale et choisir les bons professionnels de santé.",
+      steps:[["Ouvrir les droits","Utilise le parcours correspondant à ton statut : étudiant étranger, salarié ou autre situation."],["Déposer les pièces","Envoie des documents lisibles et complets, puis télécharge l’attestation provisoire si elle est disponible."],["Finaliser l’immatriculation","Réponds aux demandes de pièce d’état civil pour obtenir le numéro définitif."],["Organiser les soins","Crée le compte ameli, demande la carte Vitale et déclare un médecin traitant."]],
+      docs:["Passeport ou pièce d’identité","Titre de séjour — selon situation","Acte de naissance complet et lisible — si demandé","Attestation de scolarité ou contrat de travail","RIB pour les remboursements"],
+      links:[["Étudiant étranger — inscription","https://etudiant-etranger.ameli.fr/"],["Droits des étudiants étrangers — ameli","https://www.ameli.fr/assure/droits-demarches/europe-international/protection-sociale-france/vous-venez-etudier-en-france"],["Annuaire Santé","https://annuairesante.ameli.fr/"],["Compte ameli","https://assure.ameli.fr/"]],
+      note:"La carte Vitale vient après l’ouverture et la certification des droits : on ne peut pas toujours la commander dès le premier jour."
+    },
+    travail:{
+      audience:"Étudiants, salariés et candidats",timing:"Avant d’accepter un emploi",cost:"Services publics gratuits",
+      intro:"Vérifier le droit de travailler, préparer une candidature française et faire reconnaître un diplôme lorsque c’est utile.",
+      steps:[["Vérifier le droit au travail","Contrôle ce que permet ton titre. Un titre étudiant autorise normalement un travail limité à 964 heures par an."],["Adapter la candidature","Prépare un CV clair, les preuves d’expérience et une version française des documents utiles."],["Cibler les offres fiables","Passe par France Travail, l’APEC ou les services carrière de l’établissement."],["Sécuriser l’embauche","Lis le contrat, le salaire, les horaires et vérifie qui doit demander une autorisation de travail."]],
+      docs:["Titre de séjour ou visa autorisant le travail","CV adapté au poste","Diplômes et attestations d’expérience","Traductions par traducteur agréé — si exigées","Contrat ou promesse d’embauche — pour certaines démarches"],
+      links:[["Règles de travail des étrangers","https://www.service-public.fr/particuliers/vosdroits/F2728"],["France Travail","https://www.francetravail.fr/"],["APEC — cadres et jeunes diplômés","https://www.apec.fr/"],["Reconnaissance des diplômes — ENIC-NARIC","https://www.france-education-international.fr/expertises/enic-naric"]],
+      note:"Une attestation de comparabilité n’est pas obligatoire pour tous les métiers ; demande-la seulement si l’employeur ou la profession l’exige."
+    },
+    argent:{
+      audience:"Personnes installées en France",timing:"Dès que l’adresse est stable",cost:"Simulations gratuites",
+      intro:"Ouvrir un compte, connaître ses droits et organiser un budget d’arrivée sans confondre aide possible et aide garantie.",
+      steps:[["Lister les dépenses fixes","Loyer, transport, alimentation, téléphone, assurance et frais de séjour doivent être visibles dans un seul budget."],["Ouvrir un compte adapté","Compare les frais et demande un refus écrit si tu dois utiliser la procédure du droit au compte."],["Simuler les droits","Utilise les simulateurs officiels avec ta situation réelle ; le résultat reste indicatif."],["Garder les justificatifs","Classe revenus, loyers et changements de situation pour la CAF et la déclaration fiscale."]],
+      docs:["Pièce d’identité","Justificatif de domicile","Titre de séjour — selon l’établissement","Justificatifs de revenus et de loyer","RIB une fois le compte ouvert"],
+      links:[["Simulateur des droits sociaux","https://www.mesdroitssociaux.gouv.fr/"],["CAF — aides et démarches","https://www.caf.fr/allocataires/aides-et-demarches"],["Impôts — espace particulier","https://www.impots.gouv.fr/accueil"],["Droit au compte — Banque de France","https://www.banque-france.fr/fr/a-votre-service/particuliers/faire-valoir-droit-au-compte-bancaire"]],
+      note:"Un simulateur ne vaut pas décision d’attribution. Déclare rapidement tout changement à l’organisme concerné."
+    },
+    transport:{
+      audience:"Conducteurs et usagers des transports",timing:"Avant de conduire ou de s’abonner",cost:"Variable selon la démarche",
+      intro:"Savoir si le permis malgache est utilisable, quand demander un échange et choisir un abonnement correspondant à sa région.",
+      steps:[["Vérifier la durée de validité","Les règles diffèrent selon la durée du séjour, le statut et la date d’installation en France."],["Contrôler l’échangeabilité","Consulte la liste officielle et les conditions avant d’engager une traduction ou une demande."],["Préparer la preuve de résidence","La date de début de résidence normale peut déterminer le délai disponible pour l’échange."],["Comparer les abonnements","Regarde les tarifs jeunes, étudiants, employeurs et solidaires de ton réseau local."]],
+      docs:["Permis malgache original valide","Traduction officielle — lorsque requise","Passeport et titre de séjour","Justificatif de domicile","Preuve de la date d’installation — selon la demande"],
+      links:[["Conduire en France avec un permis étranger","https://www.service-public.fr/particuliers/vosdroits/F1459"],["Permis de conduire — ANTS","https://permisdeconduire.ants.gouv.fr/"],["Transports en Île-de-France","https://www.iledefrance-mobilites.fr/titres-et-tarifs"]],
+      note:"Ne lance pas une demande d’échange uniquement sur la base d’un conseil privé : vérifie d’abord les conditions officielles liées à ton titre."
+    },
+    voyage:{
+      audience:"Voyageurs France–Madagascar",timing:"Avant l’achat du billet",cost:"Selon transporteur et documents",
+      intro:"Vérifier les documents, l’agence et les conditions du billet avant de payer un voyage vers Madagascar.",
+      steps:[["Contrôler les documents","Vérifie passeport, droit au retour en France et éventuelles formalités de transit."],["Comparer le trajet complet","Regarde bagages, correspondances, aéroports, modification et remboursement — pas seulement le prix affiché."],["Vérifier le vendeur","Pour une agence française, consulte son immatriculation officielle avant le paiement."],["Conserver les preuves","Archive billet, facture, conditions tarifaires et confirmation de paiement."]],
+      docs:["Passeport valide","Titre de séjour français valide pour le retour","Billet et confirmations de correspondance","Assurance voyage — si choisie ou exigée","Justificatifs spécifiques pour mineur — si concerné"],
+      links:[["Conseils aux voyageurs — Madagascar","https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/conseils-par-pays-destination/madagascar/"],["Registre officiel des opérateurs de voyage","https://registre-operateurs-de-voyages.atout-france.fr/"],["Droits des passagers aériens","https://www.service-public.fr/particuliers/vosdroits/F10977"]],
+      note:"Il n’existe pas de comparateur public unique garantissant le meilleur prix. Les liens commerciaux devront être clairement identifiés comme tels."
+    },
+    entreprendre:{
+      audience:"Créateurs d’activité ou d’association",timing:"Avant de facturer ou collecter",cost:"Variable selon la structure",
+      intro:"Choisir une forme adaptée, déclarer l’activité au bon endroit et distinguer clairement entreprise et association.",
+      steps:[["Définir l’activité","Écris ce que tu vends, à qui, avec quels risques et quel revenu prévisible."],["Choisir la structure","Compare microentreprise, société et association selon le but lucratif, les associés et la responsabilité."],["Déclarer officiellement","Les formalités d’entreprise passent par le guichet unique ; une association suit sa propre procédure."],["Organiser les obligations","Prévois factures, compte dédié si nécessaire, assurances, déclarations et protection des données."]],
+      docs:["Pièce d’identité","Justificatif de domicile","Description précise de l’activité","Adresse du siège","Statuts — pour société ou association"],
+      links:[["Guichet unique des entreprises — INPI","https://procedures.inpi.fr/"],["Créer une association — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F1119"],["Autoentrepreneur — Urssaf","https://www.autoentrepreneur.urssaf.fr/portail/accueil.html"],["Aides à la création — Bpifrance","https://bpifrance-creation.fr/encyclopedie/aides-a-creation-reprise-dentreprise"]],
+      note:"Une association n’est pas une microentreprise. Le choix dépend du projet ; en cas de doute, fais valider le montage par un professionnel."
+    },
+    famille:{
+      audience:"Familles vivant entre France et Madagascar",timing:"Avant toute démarche internationale",cost:"Variable selon les actes",
+      intro:"Identifier la bonne procédure pour la venue d’un proche, l’état civil ou la scolarité sans mélanger des démarches différentes.",
+      steps:[["Qualifier la situation","Nationalité, lien familial, pays du mariage ou de la naissance et statut en France changent la procédure."],["Identifier l’autorité","Selon le cas : mairie, préfecture, Ofii, consulat ou service central d’état civil."],["Réunir les actes recevables","Vérifie si une copie intégrale, une traduction ou une légalisation est demandée."],["Suivre les deux pays","Une démarche française ne met pas automatiquement à jour l’état civil malgache, et inversement."]],
+      docs:["Actes d’état civil correspondant à la demande","Passeports des personnes concernées","Justificatifs de domicile et de ressources — selon procédure","Preuve du lien familial","Traduction ou légalisation — seulement si exigée"],
+      links:[["Regroupement familial — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F11166"],["État civil français à l’étranger","https://www.diplomatie.gouv.fr/fr/services-aux-francais/etat-civil-et-nationalite-francaise/etat-civil/"],["Inscription à l’école primaire","https://www.service-public.fr/particuliers/vosdroits/F1864"]],
+      note:"Le regroupement familial, la réunification familiale et le visa de conjoint sont des procédures différentes."
+    },
+    droits:{
+      audience:"Toute personne confrontée à un litige",timing:"Dès le premier blocage",cost:"Première orientation gratuite",
+      intro:"Conserver les preuves, demander une réponse écrite et trouver le bon recours ou accompagnement juridique.",
+      steps:[["Constituer une chronologie","Note les dates, références de dossier, décisions et personnes contactées."],["Demander une trace écrite","Évite de dépendre uniquement d’un échange téléphonique ; garde accusés et captures."],["Choisir le bon recours","Médiation, recours administratif, Défenseur des droits ou tribunal ne répondent pas aux mêmes problèmes."],["Se faire accompagner","Un Point-justice peut orienter gratuitement avant une démarche plus lourde."]],
+      docs:["Décision ou message contesté","Chronologie datée","Copies des demandes déjà envoyées","Accusés de réception","Justificatifs liés au préjudice"],
+      links:[["Trouver un Point-justice","https://www.justice.fr/annuaire/point-justice"],["Défenseur des droits","https://www.defenseurdesdroits.fr/"],["Aide juridictionnelle","https://www.service-public.fr/particuliers/vosdroits/F18074"],["Signaler un problème de consommation","https://signal.conso.gouv.fr/"]],
+      note:"Les délais de recours peuvent être courts. Une fiche d’information ne remplace pas l’avis d’un avocat sur un dossier individuel."
+    },
+    "bons-plans":{
+      audience:"Visiteurs et membres",timing:"À tout moment",cost:"Compte gratuit",
+      intro:"Tout ce qu’il faut savoir pour utiliser Malagasy Events : consulter, rechercher, publier, échanger et gérer son compte.",
+      steps:[["Lire toute l’annonce","Vérifie le besoin, la ville, le prix, les conditions et la date de publication."],["Contrôler l’identité utile","Cherche un profil cohérent, des coordonnées vérifiables et des preuves adaptées au service."],["Échanger sur la plateforme","Ne transmets pas immédiatement pièce d’identité, coordonnées bancaires ou codes reçus par SMS."],["Signaler un problème","Utilise le signalement interne et, si nécessaire, la plateforme publique adaptée."]],
+      docs:["Description précise de ton besoin","Budget ou tarif annoncé","Ville et disponibilité","Preuves du service — sans document sensible","Échanges et reçu en cas de paiement"],
+      links:[["Petites annonces Malagasy Events","/petites-annonces"],["Conseils contre les arnaques en ligne","https://www.cybermalveillance.gouv.fr/tous-nos-contenus/bonnes-pratiques/arnaques-en-ligne"],["SignalConso","https://signal.conso.gouv.fr/"],["Service-Public — escroquerie","https://www.service-public.fr/particuliers/vosdroits/F1520"]],
+      note:"Les offres de la communauté ne sont pas automatiquement des partenariats. Le statut “vérifié” devra être affiché seulement après contrôle."
+    }
+  }
+  const topicSummaries={
+    "Le parcours étudiant depuis Madagascar":"Le fil conducteur complet, depuis l’admission jusqu’aux premières démarches en France.",
+    "Les premières démarches à l’arrivée":"Les actions prioritaires des premières semaines, sans tout faire dans le désordre.",
+    "Renouveler son titre étudiant":"Le calendrier à respecter et les preuves d’études, de ressources et de domicile à préparer.",
+    "Trouver une alternance":"Candidature, rythme de formation, employeur et vérification du droit au travail.",
+    "Bourses et aides étudiantes":"Où simuler ses droits et quelles pièces préparer sans considérer une aide comme acquise.",
+    "Valider son visa VLS-TS":"La validation en ligne à effectuer lorsque la mention du visa l’impose.",
+    "Renouveler son titre de séjour":"Anticiper l’échéance et déposer la demande sur le portail correspondant.",
+    "Passer du statut étudiant au statut salarié":"Relier diplôme, emploi proposé, autorisation de travail et nouveau titre demandé.",
+    "Demander la nationalité française":"Identifier la procédure correspondant à son parcours et réunir les preuves exigées.",
+    "Préparer un dossier locatif solide":"Présenter des justificatifs lisibles et protégés pour rassurer un bailleur.",
+    "Demander la garantie Visale":"Tester son éligibilité et obtenir le visa avant la signature du bail.",
+    "Trouver un logement étudiant":"Crous, résidences et recherche privée avec un budget complet.",
+    "Demander une aide au logement":"Faire une simulation puis déclarer le logement réellement occupé à la CAF.",
+    "S’inscrire à l’Assurance Maladie":"Choisir le parcours correspondant à son statut et obtenir une première attestation.",
+    "Obtenir sa carte Vitale":"Finaliser le numéro de sécurité sociale avant de commander la carte.",
+    "Choisir une mutuelle":"Comparer garanties, exclusions, délais et reste à charge selon ses besoins.",
+    "Trouver un médecin":"Utiliser l’annuaire officiel et déclarer un médecin traitant quand c’est possible.",
+    "Travailler pendant ses études":"Vérifier le nombre d’heures autorisé avant de signer le contrat.",
+    "Chercher son premier emploi":"Préparer un CV ciblé et suivre chaque candidature jusqu’à la réponse.",
+    "Vérifier une autorisation de travail":"Contrôler son titre et savoir si l’employeur doit faire une demande.",
+    "Faire reconnaître son diplôme":"Vérifier si une attestation est nécessaire pour le métier recherché.",
+    "Ouvrir un compte bancaire":"Comparer les frais et connaître la procédure du droit au compte en cas de refus.",
+    "Comprendre les aides CAF":"Simuler, demander puis déclarer rapidement chaque changement de situation.",
+    "Déclarer ses revenus":"Créer son espace fiscal et conserver les justificatifs de l’année concernée.",
+    "Construire son budget d’arrivée":"Prévoir les dépenses uniques et mensuelles avant de s’engager.",
+    "Conduire avec un permis malgache":"Vérifier les conditions liées au séjour avant de prendre le volant.",
+    "Demander un échange de permis":"Contrôler l’échangeabilité et le délai avant de constituer le dossier.",
+    "Choisir son abonnement de transport":"Comparer les tarifs du réseau local selon son âge, son statut et ses trajets réels.",
+    "Préparer un voyage France–Madagascar":"Vérifier les papiers, le retour en France et les pays de transit.",
+    "Comparer les billets d’avion":"Comparer le prix final, les bagages et les conditions de modification.",
+    "Voyager avec des bagages supplémentaires":"Vérifier le poids autorisé sur chaque vol avant de payer un supplément.",
+    "Vérifier une agence de voyages":"Contrôler l’agence dans le registre officiel avant tout paiement.",
+    "Créer une microentreprise":"Déclarer l’activité au guichet unique et organiser les obligations dès la première facture.",
+    "Créer une association":"Définir l’objet, les responsables, les statuts et la déclaration officielle.",
+    "Choisir son statut":"Comparer les risques, les charges et la façon de travailler avant de choisir.",
+    "Trouver les aides à la création":"Chercher les aides adaptées avant d’engager les premières dépenses.",
+    "Faire venir sa famille":"Identifier la bonne procédure selon son titre et le lien familial.",
+    "Déclarer une naissance":"Déclarer d’abord la naissance, puis mettre à jour les organismes concernés.",
+    "Inscrire un enfant à l’école":"Contacter le bon service et préparer les documents demandés.",
+    "Faire reconnaître un mariage":"Vérifier si une transcription ou une légalisation est nécessaire.",
+    "Quand la préfecture bloque":"Transformer le blocage en dossier daté avec preuves et recours adapté.",
+    "Trouver un Point-justice":"Préparer le problème et prendre rendez-vous avec la permanence adaptée.",
+    "Demander l’aide juridictionnelle":"Vérifier les conditions puis déposer le dossier auprès du bon bureau.",
+    "Éviter les faux intermédiaires":"Reconnaître les promesses suspectes et utiliser uniquement les portails officiels.",
+    "Trouver les annonces de la communauté":"Filtrer, vérifier le profil et commencer l’échange sur la plateforme.",
+    "Profiter des offres partenaires":"Vérifier le partenaire, le prix et les conditions avant d’acheter.",
+    "Éviter les arnaques":"Contrôler l’offre, protéger ses données et garder les preuves avant tout paiement.",
+    "Demander de l’entraide":"Décrire clairement le besoin sans publier d’information personnelle."
+    ,"Comprendre tous les onglets":"Savoir où aller selon ce que tu cherches sur Malagasy Events."
+    ,"Trouver et suivre un événement":"Trouver une sortie, vérifier les informations et ne pas oublier la date."
+    ,"Explorer les annuaires":"Trouver rapidement une adresse, une structure ou un professionnel malagasy."
+    ,"Utiliser les petites annonces":"Consulter une annonce ou publier gratuitement avec un compte."
+    ,"Publier dans la communauté":"Partager une information et échanger avec les autres membres."
+    ,"Utiliser les messages et notifications":"Retrouver ses échanges et les nouvelles activités qui nous concernent."
+    ,"Gérer son compte et proposer un événement":"Compléter son profil et envoyer un événement à vérifier."
+  }
+  const topicAnswers={
+    "Le parcours étudiant depuis Madagascar":"Commence par l’admission et Campus France à Madagascar. En France, les priorités sont ensuite la validation du VLS-TS si elle est exigée, la CVEC, l’inscription définitive et l’Assurance Maladie.",
+    "Les premières démarches à l’arrivée":"Ne cherche pas à tout faire le même jour : sécurise d’abord ton logement et ton inscription, puis valide ton séjour et ouvre tes droits à la santé avec des justificatifs cohérents.",
+    "Renouveler son titre étudiant":"N’attends pas l’expiration : la fiche officielle indique une demande entre 4 et 2 mois avant la fin du titre. Prépare surtout les preuves d’inscription, de progression réelle, de ressources et de domicile.",
+    "Trouver une alternance":"Vérifie d’abord que la formation accepte l’alternance, puis cible des employeurs avec un CV adapté. Le contrat, le rythme de formation et ton droit au travail doivent être compatibles avant la signature.",
+    "Bourses et aides étudiantes":"Commence par les simulateurs et ton établissement. Une bourse, l’aide au logement et une aide d’urgence répondent à des règles différentes : aucune ne doit être comptée comme acquise avant la décision officielle.",
+    "Valider son visa VLS-TS":"Lis la mention portée sur le visa. Si une validation est demandée, elle se fait en ligne sur l’ANEF après l’arrivée ; conserve la confirmation et la preuve du paiement demandé.",
+    "Renouveler son titre de séjour":"Repère la date d’expiration, le portail compétent et la liste exacte des pièces pour ton motif. Une attestation de dépôt n’a pas toujours les mêmes effets qu’une attestation de prolongation.",
+    "Passer du statut étudiant au statut salarié":"Le diplôme obtenu, le poste, le salaire, le contrat et l’autorisation de travail éventuelle sont examinés ensemble. Ne quitte pas ton statut actuel sans avoir vérifié la procédure correspondant au nouvel emploi.",
+    "Demander la nationalité française":"Naturalisation par décret, déclaration par mariage ou autre voie ne demandent pas les mêmes preuves. Commence par identifier la procédure qui correspond réellement à ton histoire familiale et à ta résidence.",
+    "Préparer un dossier locatif solide":"Utilise DossierFacile pour présenter des copies protégées. Sépare les pièces du candidat de celles du garant et ne transmets jamais de document bancaire inutile.",
+    "Demander la garantie Visale":"Teste ton éligibilité et obtiens le visa Visale avant de signer le bail. Le bailleur doit ensuite activer le contrat de cautionnement de son côté.",
+    "Trouver un logement étudiant":"Dépose tôt la demande Crous, mais prévois aussi des solutions privées vérifiées. Compare le coût total et la distance réelle jusqu’au lieu d’études.",
+    "Demander une aide au logement":"La demande se fait après l’entrée dans le logement avec les informations du bail. Le résultat du simulateur CAF reste indicatif jusqu’à l’étude du dossier.",
+    "S’inscrire à l’Assurance Maladie":"Un étudiant venant de Madagascar utilise le portail étudiant étranger. Passeport, titre de séjour, attestation de scolarité et RIB font partie des pièces centrales indiquées par l’Assurance Maladie.",
+    "Obtenir sa carte Vitale":"La priorité est d’abord l’ouverture puis la certification du numéro de sécurité sociale. La demande de carte Vitale devient possible après cette étape, pas automatiquement dès l’arrivée.",
+    "Choisir une mutuelle":"Compare ce qui reste réellement à payer après l’Assurance Maladie : hospitalisation, optique, dentaire et délais de carence. Vérifie aussi ton éligibilité à la Complémentaire santé solidaire.",
+    "Trouver un médecin":"Cherche dans l’Annuaire Santé, vérifie le secteur tarifaire et demande lors du rendez-vous si le médecin accepte d’être déclaré comme médecin traitant.",
+    "Travailler pendant ses études":"Le titre étudiant permet normalement un emploi salarié dans la limite de 60 % de la durée annuelle, soit 964 heures. L’employeur doit néanmoins vérifier le titre avant l’embauche.",
+    "Chercher son premier emploi":"Commence par un CV ciblé et des preuves d’expérience compréhensibles en France. France Travail, l’APEC et le service carrière de ton école ne couvrent pas exactement les mêmes offres.",
+    "Vérifier une autorisation de travail":"Regarde la mention exacte du titre et le volume de travail prévu. Si une autorisation est nécessaire, la démarche relève généralement de l’employeur avant le début du contrat.",
+    "Faire reconnaître son diplôme":"L’attestation ENIC-NARIC aide à situer un diplôme étranger, mais elle ne remplace pas l’autorisation d’exercer une profession réglementée.",
+    "Ouvrir un compte bancaire":"Demande la liste des pièces avant le rendez-vous. En cas de refus, exige une attestation écrite afin de pouvoir utiliser la procédure gratuite du droit au compte.",
+    "Comprendre les aides CAF":"Les droits dépendent notamment du logement, des ressources et de la composition du foyer. Fais la simulation avec la situation réelle puis déclare chaque changement.",
+    "Déclarer ses revenus":"Même avec peu ou pas d’impôt à payer, une première déclaration peut être nécessaire pour obtenir un avis fiscal. Conserve salaires, bourses imposables et justificatifs de l’année.",
+    "Construire son budget d’arrivée":"Sépare les dépenses uniques — dépôt, installation, transport — des charges mensuelles. Garde une marge pour les délais de remboursement et d’ouverture des aides.",
+    "Conduire avec un permis malgache":"Avec un titre de séjour étudiant valide, le permis étranger peut être reconnu pendant les études sous réserve des conditions françaises de validité. Pour les autres résidents, la conduite avec un permis hors Europe est en principe limitée à la première année de résidence normale.",
+    "Demander un échange de permis":"Utilise d’abord le simulateur officiel pour vérifier si le permis malgache et sa catégorie sont échangeables. Si le pays ou la catégorie n’est pas admis, il faut passer l’examen français ; un étudiant ne demande normalement pas l’échange pendant son statut étudiant.",
+    "Choisir son abonnement de transport":"Commence par ton réseau local et ton trajet réel. Compare abonnement étudiant ou jeune, tarification solidaire et participation éventuelle de l’employeur au lieu de choisir une formule nationale par défaut.",
+    "Préparer un voyage France–Madagascar":"Vérifie séparément le droit d’entrer à Madagascar, le droit de revenir en France et les règles de chaque pays de transit. Un billet valide ne garantit pas à lui seul ces trois points.",
+    "Comparer les billets d’avion":"Compare le prix final avec bagages, correspondances, aéroport, modification et remboursement. Vérifie l’identité du vendeur avant de payer.",
+    "Voyager avec des bagages supplémentaires":"Les franchises changent selon le billet et les compagnies de chaque segment. Fais confirmer par écrit le poids, le nombre de pièces et le tarif avant le départ.",
+    "Vérifier une agence de voyages":"Recherche l’entreprise dans le registre Atout France, contrôle ses mentions légales et paie par un moyen traçable. Une page sur un réseau social ne prouve pas son immatriculation.",
+    "Créer une microentreprise":"Déclare l’activité sur le guichet unique de l’INPI, puis organise factures, déclarations de chiffre d’affaires et assurances nécessaires avant de commencer à vendre.",
+    "Créer une association":"Définis l’objet, les dirigeants, le siège et les règles dans les statuts. La déclaration officielle vient ensuite ; une association n’est pas destinée à partager des bénéfices entre ses membres.",
+    "Choisir son statut":"Compare responsabilité, associés, protection sociale, fiscalité et besoin d’investissement. Le statut le plus simple n’est pas forcément le plus adapté au projet.",
+    "Trouver les aides à la création":"Recherche les aides selon la ville, le profil et le stade du projet. Vérifie les conditions avant l’immatriculation car certains dispositifs exigent une demande préalable.",
+    "Faire venir sa famille":"Commence par identifier la procédure exacte : regroupement familial, réunification familiale ou visa de membre de famille. Elles ne concernent pas les mêmes personnes.",
+    "Déclarer une naissance":"La déclaration auprès de l’état civil du lieu de naissance est prioritaire. Vérifie ensuite les démarches consulaires ou de transcription liées aux nationalités des parents.",
+    "Inscrire un enfant à l’école":"Contacte d’abord la mairie pour le primaire, avec identité, domicile et vaccinations ; pour le collège ou le lycée, l’affectation suit une autre procédure.",
+    "Faire reconnaître un mariage":"Le pays du mariage et la nationalité de chaque époux déterminent s’il faut une transcription ou une autre formalité. Ne confonds pas reconnaissance de l’acte et droit au séjour.",
+    "Quand la préfecture bloque":"Construis une chronologie avec dépôt, attestations, courriers et échéances. Le bon recours dépend de l’existence d’une décision, d’un silence ou d’un simple retard.",
+    "Trouver un Point-justice":"Les Points-justice donnent une première information gratuite et confidentielle. Choisis le lieu ou la permanence correspondant au problème rencontré.",
+    "Demander l’aide juridictionnelle":"Vérifie les ressources prises en compte, la juridiction et l’avocat éventuel avant de déposer. Cette aide concerne les frais de justice, pas toutes les démarches administratives.",
+    "Éviter les faux intermédiaires":"Une personne ne peut pas garantir un titre, un logement ou une décision administrative. Vérifie le domaine officiel et ne communique jamais un code de connexion reçu par SMS.",
+    "Trouver les annonces de la communauté":"Filtre par ville, catégorie et date, puis vérifie le profil avant de partager tes coordonnées. Utilise la messagerie de la plateforme pour les premiers échanges.",
+    "Profiter des offres partenaires":"Une offre partenaire doit afficher l’entreprise, les conditions, la durée et le rôle exact de Malagasy Events. Sans ces éléments, considère-la comme une annonce ordinaire.",
+    "Éviter les arnaques":"Refuse l’urgence artificielle, les paiements non traçables et les demandes de codes. Conserve l’annonce et les échanges pour pouvoir signaler correctement.",
+    "Demander de l’entraide":"Décris le besoin, la ville, la date et ce qui a déjà été essayé, sans publier de document personnel. Une demande précise obtient des réponses plus utiles."
+  }
+  const topicDocs={
+    "Le parcours étudiant depuis Madagascar":["J’ai obtenu une admission écrite et vérifié la procédure Campus France Madagascar","J’ai obtenu le visa correspondant à mes études et préparé une copie numérique du dossier","J’ai prévu une adresse pour l’arrivée et un budget couvrant les premières semaines","J’ai réglé la CVEC si mon établissement et ma situation l’exigent","Après l’arrivée, j’ai validé mon VLS-TS et lancé l’inscription à l’Assurance Maladie"],
+    "Les premières démarches à l’arrivée":["J’ai une adresse utilisable et un justificatif de domicile conforme","J’ai finalisé mon inscription et récupéré mon certificat de scolarité","J’ai validé mon VLS-TS sur l’ANEF si la mention de mon visa l’impose","J’ai ouvert un compte bancaire ou obtenu un RIB utilisable","J’ai déposé mon dossier sur le portail étudiant étranger de l’Assurance Maladie"],
+    "Renouveler son titre étudiant":["J’ai noté la date d’expiration et programmé le dépôt entre 4 et 2 mois avant cette date","J’ai une inscription ou préinscription pour l’année suivante","J’ai réuni mes relevés de notes, résultats et preuves du sérieux des études","J’ai préparé mes justificatifs de ressources et de domicile récents","J’ai déposé sur le portail indiqué et sauvegardé l’attestation reçue"],
+    "Trouver une alternance":["J’ai confirmé que ma formation accepte l’alternance et connaît le rythme prévu","Mon CV indique clairement le diplôme préparé, le rythme et la date de disponibilité","J’ai ciblé des offres compatibles avec mon niveau et mon domaine","J’ai vérifié avec l’école et l’employeur mon droit au travail avant la signature","J’ai relu le type de contrat, le salaire, les horaires et la période d’essai"],
+    "Bourses et aides étudiantes":["J’ai demandé à mon établissement les aides ouvertes aux étudiants internationaux","J’ai simulé séparément bourse, logement et aides d’urgence sur les portails officiels","J’ai réuni certificat de scolarité, ressources, domicile et RIB selon l’aide","J’ai vérifié la date limite avant de déposer","Je n’intègre l’aide à mon budget qu’après réception d’une décision officielle"],
+    "Valider son visa VLS-TS":["J’ai vérifié que mon visa porte bien une mention imposant la validation","Je dispose de mon numéro de visa, de ma date d’entrée et d’une adresse en France","J’ai effectué la validation sur l’ANEF dans le délai indiqué","J’ai payé la taxe uniquement sur le parcours officiel lorsqu’elle était demandée","J’ai téléchargé et sauvegardé la confirmation de validation"],
+    "Renouveler son titre de séjour":["J’ai identifié le titre exact à renouveler et le portail correspondant","J’ai noté l’échéance et commencé le dossier avant la période limite","J’ai réuni passeport, titre actuel, domicile, ressources et preuves du motif de séjour","J’ai contrôlé que chaque document est lisible, complet et récent","J’ai conservé l’attestation de dépôt et vérifié les messages du portail"],
+    "Passer du statut étudiant au statut salarié":["J’ai vérifié que le diplôme et l’emploi permettent la procédure visée","Je dispose d’un contrat ou d’une promesse précisant poste, durée et rémunération","L’employeur a vérifié s’il doit demander une autorisation de travail","J’ai préparé diplôme, ancien titre, domicile et justificatifs professionnels","J’ai déposé avant l’expiration du titre étudiant et conservé la preuve"],
+    "Demander la nationalité française":["J’ai identifié la bonne voie : décret, mariage, ascendant, frère ou sœur","J’ai vérifié les conditions de durée de résidence et de régularité du séjour","J’ai réuni les actes d’état civil et vérifié traduction ou légalisation si nécessaire","J’ai préparé les preuves de revenus, domicile, situation fiscale et intégration demandées","J’ai utilisé uniquement le portail ou l’autorité indiqué pour cette procédure"],
+    "Préparer un dossier locatif solide":["J’ai créé un dossier protégé sur DossierFacile","J’ai séparé clairement mes pièces de celles de mon garant","J’ai ajouté identité, situation, ressources et justificatif de domicile adaptés","J’ai masqué les informations bancaires inutiles et ajouté un filigrane aux copies","Je n’envoie le dossier complet qu’après avoir vérifié le logement et l’interlocuteur"],
+    "Demander la garantie Visale":["J’ai testé mon éligibilité sur Visale avant de signer le bail","J’ai créé mon espace avec des informations identiques à mes justificatifs","J’ai transmis les pièces demandées et obtenu le visa Visale","J’ai contrôlé la durée de validité et le loyer maximal couverts","J’ai envoyé le visa au bailleur pour qu’il crée le cautionnement avant la signature"],
+    "Trouver un logement étudiant":["J’ai calculé le budget total avec charges, assurance, énergie et transport","J’ai déposé ma demande Crous sans attendre le dernier moment","J’ai préparé un dossier locatif protégé et une solution de garantie","J’ai vérifié le trajet réel entre le logement et l’établissement","J’ai visité ou fait vérifier le logement avant tout versement"],
+    "Demander une aide au logement":["J’ai signé le bail et j’occupe réellement le logement déclaré","J’ai simulé mon droit sur la CAF avec ma situation exacte","J’ai préparé bail, montant du loyer, coordonnées du bailleur, ressources et RIB","J’ai déposé la demande avec la date réelle d’entrée dans les lieux","J’ai déclaré ensuite tout changement de logement, ressources ou situation familiale"],
+    "S’inscrire à l’Assurance Maladie":["J’ai choisi le parcours correspondant à mon statut, notamment étudiant étranger si je suis concerné","J’ai préparé passeport, titre de séjour, attestation de scolarité ou contrat et adresse française","J’ai ajouté un RIB pour permettre les remboursements","J’ai déposé des copies complètes et lisibles sur le portail officiel","J’ai téléchargé l’attestation provisoire et répondu aux demandes complémentaires"],
+    "Obtenir sa carte Vitale":["Mes droits à l’Assurance Maladie sont ouverts","Mon numéro de sécurité sociale est définitif et certifié","J’ai créé mon compte ameli si le service me le permet","J’ai transmis photo et pièce d’identité par le parcours demandé","À réception, j’ai vérifié les informations et mis la carte à jour"],
+    "Choisir une mutuelle":["J’ai vérifié d’abord ce que rembourse déjà l’Assurance Maladie","J’ai estimé mes besoins réels en hospitalisation, dentaire, optique et consultations","J’ai vérifié mon éligibilité à la Complémentaire santé solidaire","J’ai comparé cotisation, plafonds, exclusions et délais de carence","J’ai lu les conditions de résiliation avant de signer"],
+    "Trouver un médecin":["J’ai recherché le professionnel dans l’Annuaire Santé officiel","J’ai vérifié la spécialité, le secteur tarifaire et l’adresse","J’ai demandé si le cabinet accepte de nouveaux patients","J’ai apporté carte Vitale ou attestation de droits et moyen de paiement","J’ai demandé la déclaration comme médecin traitant si le médecin l’accepte"],
+    "Travailler pendant ses études":["J’ai vérifié que mon titre étudiant est valide et autorise l’activité prévue","J’ai calculé que le total annuel restera dans la limite applicable de 964 heures","J’ai transmis à l’employeur les éléments nécessaires à la vérification du titre","J’ai reçu un contrat écrit précisant horaires, salaire et missions","J’ai vérifié que le travail reste compatible avec l’assiduité et les études"],
+    "Chercher son premier emploi":["J’ai choisi un métier cible au lieu d’envoyer le même CV partout","Mon CV montre résultats, compétences et niveau de français de façon vérifiable","J’ai préparé diplômes, attestations et références utiles","J’ai créé des alertes ciblées sur France Travail, APEC ou les plateformes du secteur","Je suis chaque candidature avec date, contact, relance et réponse"],
+    "Vérifier une autorisation de travail":["J’ai lu la mention exacte de mon visa ou titre de séjour","J’ai vérifié si l’emploi et le nombre d’heures sont déjà autorisés","L’employeur a contrôlé le titre avant l’embauche","Si nécessaire, l’employeur a déposé la demande d’autorisation avant le début du travail","J’ai conservé contrat, récépissé et décision officielle"],
+    "Faire reconnaître son diplôme":["J’ai vérifié si le métier visé est réglementé ou non","J’ai demandé à l’employeur ou l’école si une attestation ENIC-NARIC est réellement utile","J’ai préparé diplôme, relevés et traduction exigée","J’ai déposé la demande sur le portail officiel et payé uniquement le tarif affiché","Je distingue l’attestation de comparabilité de l’autorisation d’exercer"],
+    "Ouvrir un compte bancaire":["J’ai comparé frais mensuels, carte, retraits, virements et découvert","J’ai préparé identité, domicile et titre de séjour selon la banque","J’ai demandé un document écrit si la banque refuse l’ouverture","En cas de refus, j’ai utilisé la procédure officielle du droit au compte","Après ouverture, j’ai sécurisé l’accès et conservé mon RIB"],
+    "Comprendre les aides CAF":["J’ai créé une simulation avec mon logement, mon foyer et mes ressources réels","J’ai identifié précisément l’aide correspondant à mon besoin","J’ai préparé identité, titre, logement, ressources et RIB demandés","J’ai déposé la demande sans déclarer une situation future comme déjà acquise","J’ai signalé chaque changement et vérifié les messages de mon espace CAF"],
+    "Déclarer ses revenus":["J’ai vérifié si je dois faire une première déclaration papier ou en ligne","J’ai réuni salaires, revenus étrangers, bourses imposables et justificatifs de l’année","J’ai déclaré mon adresse et ma situation au 1er janvier correctement","J’ai relu les montants préremplis avant validation","J’ai sauvegardé l’accusé puis l’avis d’imposition ou de non-imposition"],
+    "Construire son budget d’arrivée":["J’ai listé dépôt de garantie, premier loyer, transport et frais d’installation","J’ai séparé les dépenses uniques des dépenses mensuelles","J’ai prévu l’alimentation, l’assurance, le téléphone et les frais de séjour","J’ai calculé une réserve pour les aides ou remboursements versés en retard","Je vérifie chaque semaine le réel par rapport au budget prévu"],
+    "Conduire avec un permis malgache":["J’ai vérifié sur Service-Public la règle correspondant à mon statut : étudiant, court séjour ou résident","Mon permis malgache original est en cours de validité","J’ai une traduction officielle si le permis n’est pas rédigé en français","Je garde avec moi passeport et preuve de séjour régulier","Le véhicule est assuré et je dispose de ses documents obligatoires"],
+    "Demander un échange de permis":["J’ai utilisé le simulateur officiel pour vérifier le pays et la catégorie du permis","J’ai confirmé que je suis dans le délai lié au début de ma résidence normale","Mon permis physique est valide et mes droits à conduire ne sont pas suspendus","J’ai obtenu l’attestation des droits à conduire et la traduction lorsqu’elles sont demandées","J’ai déposé sur France Titres et conservé la confirmation"],
+    "Choisir son abonnement de transport":["J’ai identifié le réseau qui couvre réellement mes trajets quotidiens","J’ai comparé plein tarif, jeune ou étudiant et tarification solidaire","J’ai préparé identité, photo et justificatifs correspondant au tarif choisi","Si je travaille, j’ai demandé à l’employeur les modalités de prise en charge","J’ai choisi mensuel ou annuel après comparaison du coût réel et de la durée d’utilisation"],
+    "Préparer un voyage France–Madagascar":["J’ai vérifié la validité du passeport et les conditions d’entrée à Madagascar","Mon titre français permet le retour à la date prévue","J’ai contrôlé les formalités de chaque pays de transit","J’ai relu bagages, horaires, aéroports et conditions de modification","J’ai enregistré billets, assurance éventuelle et contacts d’urgence hors ligne"],
+    "Comparer les billets d’avion":["Je compare exactement les mêmes dates, aéroports et classes tarifaires","J’ai ajouté au prix les bagages, sièges, moyens de paiement et transferts","J’ai vérifié la durée et les conditions de transit","J’ai lu les règles de modification, annulation et remboursement","J’ai contrôlé l’identité du vendeur avant le paiement"],
+    "Voyager avec des bagages supplémentaires":["J’ai vérifié la franchise de chaque segment du voyage","J’ai distingué nombre de pièces, poids par pièce et dimensions","J’ai comparé l’achat du supplément en ligne et à l’aéroport","J’ai fait confirmer par écrit le supplément lorsque plusieurs compagnies interviennent","J’ai gardé les objets essentiels et documents dans le bagage cabine autorisé"],
+    "Vérifier une agence de voyages":["J’ai retrouvé l’entreprise dans le registre officiel Atout France","Les mentions légales correspondent au nom qui encaisse le paiement","J’ai reçu un prix final et des conditions écrites","Le paiement est traçable et le bénéficiaire correspond à l’entreprise","J’ai conservé facture, contrat, échanges et preuve de paiement"],
+    "Créer une microentreprise":["J’ai défini précisément l’activité principale et vérifié si elle est réglementée","J’ai vérifié que mon titre de séjour autorise cette activité","J’ai déclaré la création sur le guichet unique de l’INPI","J’ai reçu et vérifié mes identifiants officiels avant de facturer","J’ai préparé factures, déclarations de chiffre d’affaires, compte et assurance nécessaires"],
+    "Créer une association":["L’objet de l’association est clair et réellement non lucratif","Les fondateurs ont choisi les dirigeants et l’adresse du siège","Les statuts précisent décisions, adhésions, ressources et dissolution","La déclaration a été faite sur le portail officiel","J’ai organisé compte bancaire, assurance et registre des décisions selon les besoins"],
+    "Choisir son statut":["J’ai chiffré revenu, dépenses, investissements et risques du projet","J’ai décidé si je travaille seul ou avec des associés","J’ai comparé responsabilité, fiscalité et protection sociale","J’ai vérifié la compatibilité du statut avec mon titre de séjour et l’activité","J’ai fait relire le choix si les enjeux financiers ou juridiques sont importants"],
+    "Trouver les aides à la création":["J’ai défini le besoin exact : financement, accompagnement, exonération ou local","J’ai recherché selon mon profil, ma ville et le secteur d’activité","J’ai vérifié si la demande doit être faite avant l’immatriculation","J’ai préparé budget, plan de financement et justificatifs demandés","Je n’engage aucune dépense en supposant l’aide obtenue avant la décision"],
+    "Faire venir sa famille":["J’ai identifié la procédure correspondant à mon statut et au lien familial","J’ai vérifié durée de séjour, ressources et logement éventuellement exigés","J’ai réuni actes d’état civil et preuves du lien familial","J’ai contrôlé traduction, légalisation ou transcription nécessaires","J’ai déposé auprès de l’OFII, du consulat ou du portail indiqué pour cette procédure"],
+    "Déclarer une naissance":["La naissance a été déclarée dans le délai auprès de l’état civil du lieu de naissance","J’ai obtenu plusieurs copies de l’acte de naissance","J’ai informé Assurance Maladie, CAF et employeur selon ma situation","J’ai vérifié les démarches consulaires liées aux nationalités des parents","J’ai mis à jour titre de séjour ou document de voyage de l’enfant si nécessaire"],
+    "Inscrire un enfant à l’école":["J’ai identifié l’école ou le service d’affectation selon l’âge","J’ai contacté la mairie pour le primaire ou l’Éducation nationale pour le secondaire","J’ai préparé identité, domicile et vaccinations disponibles","J’ai obtenu le certificat d’inscription ou la décision d’affectation","J’ai pris rendez-vous avec l’établissement pour finaliser l’admission"],
+    "Faire reconnaître un mariage":["J’ai identifié le pays du mariage et la nationalité de chaque époux","J’ai vérifié si une transcription française est nécessaire","J’ai obtenu une copie complète et récente de l’acte","J’ai contrôlé les exigences de traduction ou de légalisation","J’ai traité séparément la reconnaissance de l’acte et la demande de séjour éventuelle"],
+    "Quand la préfecture bloque":["J’ai réuni numéro de dossier, dates de dépôt et toutes les attestations","J’ai classé les messages et décisions dans l’ordre chronologique","J’ai envoyé une demande écrite et conservé sa preuve de réception","J’ai identifié s’il s’agit d’un retard, d’un silence ou d’une décision contestable","J’ai consulté rapidement un Point-justice ou un professionnel si un délai de recours court"],
+    "Trouver un Point-justice":["J’ai résumé le problème et la question à résoudre en quelques lignes","J’ai rassemblé décisions, contrats et échanges importants","J’ai recherché la permanence adaptée dans l’annuaire Justice.fr","J’ai vérifié s’il faut prendre rendez-vous et quels documents apporter","Après l’entretien, j’ai noté l’interlocuteur et la prochaine action conseillée"],
+    "Demander l’aide juridictionnelle":["J’ai identifié la procédure et la juridiction concernées","J’ai vérifié les conditions de ressources et de résidence","J’ai demandé à l’avocat s’il accepte l’aide juridictionnelle, si j’en ai déjà un","J’ai réuni justificatifs de ressources, identité et pièces de l’affaire","J’ai déposé le dossier au bon bureau et conservé le récépissé"],
+    "Éviter les faux intermédiaires":["J’ai vérifié que l’adresse du site appartient bien à l’administration annoncée","Je refuse toute promesse de décision garantie ou de rendez-vous vendu","Je ne communique jamais mot de passe, code SMS ou accès FranceConnect","Je demande facture, identité professionnelle et mission écrite avant de payer un conseil","Je conserve les preuves et signale toute tentative suspecte"],
+    "Trouver les annonces de la communauté":["J’ai filtré par besoin, ville et date récente","J’ai lu le profil et vérifié la cohérence de l’annonce","J’ai posé les questions essentielles dans la messagerie avant de donner mes coordonnées","J’ai demandé un prix total, une date et des conditions écrites","J’ai signalé l’annonce si elle demande des données ou paiements suspects"],
+    "Profiter des offres partenaires":["Le badge partenaire est visible et l’entreprise est clairement identifiée","J’ai lu la durée, les bénéficiaires et les exclusions de l’offre","J’ai vérifié le prix normal avant d’évaluer la réduction","Je sais qui vend, facture et assure le service","J’ai conservé les conditions affichées au moment de l’achat"],
+    "Éviter les arnaques":["J’ai vérifié l’identité, l’ancienneté et les coordonnées de l’interlocuteur","Je refuse l’urgence artificielle et les paiements impossibles à tracer","Je ne partage ni pièce d’identité brute, ni code SMS, ni accès bancaire","J’ai recherché les incohérences de prix, d’adresse et de discours","J’ai conservé l’annonce et les échanges pour signaler si nécessaire"],
+    "Demander de l’entraide":["J’ai écrit précisément le besoin, la ville et la date limite","J’ai indiqué ce que j’ai déjà essayé et le résultat obtenu","Je n’ai publié aucun document personnel ou numéro sensible","J’ai précisé si je cherche un conseil, un contact, un prêt ou une prestation payante","Quand le besoin est résolu, je clôture ou mets à jour la demande" ],
+    "Comprendre tous les onglets":["Événements : je cherche une sortie par ville, date ou catégorie","Gastronomie, Églises, Sportifs, Tournois, Boutiques et Professionnels : je consulte les annuaires spécialisés","Guide : je suis une démarche pratique avec sa checklist et ses sources","Diaspora : je découvre les médias, associations et ressources de la communauté","Petites annonces : je consulte les demandes et services publiés par les membres","Après connexion : j’accède aussi aux After-movies, à la Communauté, aux messages et aux notifications"],
+    "Trouver et suivre un événement":["Je recherche par nom, ville ou catégorie dans l’onglet Événements","J’ouvre la fiche pour vérifier date, heure, adresse, prix et organisateur","J’utilise le lien Billets ou la source officielle lorsque le bouton est disponible","Je peux indiquer que je suis intéressé, ajouter la date à mon agenda ou demander un rappel","Je consulte le profil de l’organisateur pour retrouver ses autres événements et ses réseaux"],
+    "Explorer les annuaires":["Je choisis l’onglet correspondant : Gastronomie, Églises, Sportifs, Boutiques ou Professionnels","J’utilise la recherche et les filtres pour réduire les résultats","J’ouvre une fiche pour voir la ville, la description et les coordonnées disponibles","Je vérifie le site ou le réseau officiel avant de me déplacer ou de commander","Pour le sport, j’utilise Tournois afin de voir compétitions, résultats et calendriers disponibles"],
+    "Utiliser les petites annonces":["Je peux consulter et filtrer les annonces sans publier","Je me connecte avec un compte gratuit pour déposer une annonce","Je choisis une catégorie existante ou j’en propose une nouvelle","J’ajoute un titre clair, une description, une ville, un moyen de contact et les informations utiles","J’envoie l’annonce : elle reste en attente jusqu’à la vérification par l’administration","Depuis mon compte, je peux ensuite suivre, modifier ou retirer mes propres annonces lorsque l’option est disponible"],
+    "Publier dans la communauté":["Je me connecte pour faire apparaître l’onglet Communauté","J’écris une publication claire et j’ajoute une photo seulement si j’ai le droit de la partager","Je publie puis je peux répondre aux commentaires et réactions","J’ouvre le profil d’un membre ou le bouton Message pour échanger en privé","J’utilise Signaler si une publication ou un commentaire ne respecte pas les règles"],
+    "Utiliser les messages et notifications":["Après connexion, j’ouvre la bulle 💬 pour retrouver mes conversations","Je choisis un membre ou un organisateur avant d’envoyer un message","Je peux modifier mon message pendant les 30 minutes qui suivent son envoi","Je peux supprimer un message de mon affichage selon les règles prévues par la plateforme","J’ouvre la cloche 🔔 pour voir les réponses, annonces et activités qui me concernent","Je marque les notifications comme lues après les avoir consultées"],
+    "Gérer son compte et proposer un événement":["Je me connecte puis j’ouvre mon avatar pour accéder au profil","Je complète mon pseudo, ma photo, mon code postal et mes centres d’intérêt si je le souhaite","J’utilise le bouton Proposer un événement depuis l’accueil","Je renseigne le nom, la date, la catégorie, l’adresse, l’organisateur et le lien de billetterie s’il existe","J’envoie la proposition : elle doit être vérifiée avant sa publication","Je consulte ensuite mes notifications ou mes messages si l’équipe demande une précision"]
+  }
+  const topicLinks={
+    "Conduire avec un permis malgache":[["Règles pour un permis hors Europe — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F1459"],["Vérifier si le permis est échangeable","https://www.service-public.fr/particuliers/vosdroits/R64185"],["Liste officielle de réciprocité — France Diplomatie","https://www.diplomatie.gouv.fr/IMG/pdf/liste_reciprocite_hors_ue_et_eee_au_2_mars_2026_cle0d91a1.pdf"]],
+    "Demander un échange de permis":[["Vérifier l’échangeabilité — simulateur officiel","https://www.service-public.fr/particuliers/vosdroits/R64185"],["Procédure d’échange hors Europe","https://www.service-public.fr/particuliers/vosdroits/F1460"],["Faire la demande — France Titres","https://permisdeconduire.ants.gouv.fr/"]],
+    "Choisir son abonnement de transport":[["Île-de-France Mobilités — tarifs","https://www.iledefrance-mobilites.fr/titres-et-tarifs"],["Trouver le réseau de transport de sa ville","https://lannuaire.service-public.fr/navigation/mairie"]],
+    "Comprendre tous les onglets":[["Voir les événements","/"],["Découvrir la gastronomie","/gastronomie"],["Voir les professionnels","/organisateurs"],["Ouvrir le Guide France","/guide-france"],["Découvrir la diaspora","/diaspora-malgache-france"]],
+    "Trouver et suivre un événement":[["Ouvrir les événements","/"]],
+    "Explorer les annuaires":[["Gastronomie","/gastronomie"],["Églises","/eglises"],["Sportifs","/sportifs"],["Tournois","/tournois"],["Boutiques","/boutiques"],["Professionnels","/organisateurs"]],
+    "Utiliser les petites annonces":[["Ouvrir les petites annonces","/petites-annonces"]],
+    "Publier dans la communauté":[["Ouvrir la Communauté","/communaute"]],
+    "Utiliser les messages et notifications":[["Voir les notifications","/notifications"],["Ouvrir la Communauté","/communaute"]],
+    "Gérer son compte et proposer un événement":[["Retourner aux événements","/"],["Contacter Malagasy Events","/contact"]]
+  }
+  const platformGuideVisuals={
+    "Comprendre tous les onglets":{icon:"🧭",accent:GREEN,label:"La carte du site",active:"Guide",title:"Pars de ce que tu veux faire",note:"Les onglets visibles servent à consulter. Après connexion, les outils pour participer apparaissent aussi.",items:[["📅","Je veux sortir","Événements"],["📍","Je cherche une adresse","Annuaires"],["💬","Je veux échanger","Communauté"]]},
+    "Trouver et suivre un événement":{icon:"📅",accent:RED,label:"Depuis Événements",active:"Événements",title:"De l’affiche aux informations utiles",note:"La fiche rassemble la date, le lieu, le prix, la billetterie et l’organisateur quand ces informations sont disponibles.",items:[["🔎","Recherche","Nom, ville ou catégorie"],["🎫","Billets / source","Accès à l’information officielle"],["🏢","Organisateur","Profil, réseaux et autres événements"]]},
+    "Explorer les annuaires":{icon:"📍",accent:"#6b4fb5",label:"Gastronomie et annuaires",active:"Gastronomie",title:"Trouve une adresse puis vérifie-la",note:"Chaque annuaire a ses propres filtres. Une fiche peut ensuite ouvrir le site ou le réseau officiel de la structure.",items:[["🍽️","Gastronomie","Restaurants et traiteurs"],["🛍️","Boutiques","Créateurs et commerces"],["💼","Professionnels","Services et organisateurs"]]},
+    "Utiliser les petites annonces":{icon:"📣",accent:"#e07b21",label:"Depuis Petites annonces",active:"Petites annonces",title:"Consulte librement, publie avec ton compte",note:"Une annonce envoyée n’apparaît pas immédiatement : l’administration la vérifie avant publication.",items:[["🔎","Consulter","Filtrer les annonces publiées"],["＋","Déposer une annonce","Titre, ville, catégorie, contact"],["🛡️","Validation","Contrôle avant mise en ligne"]]},
+    "Publier dans la communauté":{icon:"👥",accent:"#167a62",label:"Après connexion",active:"Communauté",title:"Publie et échange avec les membres",note:"La Communauté apparaît après connexion. Tu peux publier, commenter, réagir, contacter un membre ou signaler un contenu.",items:[["✍️","Nouvelle publication","Texte clair et photo autorisée"],["💬","Commentaires","Répondre sous la publication"],["🚩","Signaler","Prévenir l’administration"]]},
+    "Utiliser les messages et notifications":{icon:"💬",accent:"#2672c9",label:"Dans l’en-tête du site",active:"💬  🔔",title:"Retrouve ce qui demande ton attention",note:"La bulle ouvre les conversations. La cloche rassemble les réponses et les activités qui te concernent.",items:[["💬","Messages","Conversations privées"],["✏️","Modifier","Pendant les 30 premières minutes"],["🔔","Notifications","Nouveautés et réponses"]]},
+    "Gérer son compte et proposer un événement":{icon:"👤",accent:"#a53d72",label:"Depuis ton avatar",active:"Mon profil",title:"Complète ton profil ou propose une date",note:"La proposition d’événement est relue avant publication. Si une précision manque, l’équipe peut te contacter.",items:[["👤","Mon profil","Photo, pseudo et informations utiles"],["＋","Proposer un événement","Date, lieu, organisateur, billetterie"],["🛡️","Vérification","Validation par Malagasy Events"]]}
+  }
+  const platformScreen=(title,visual)=>{
+    const marker={outline:`3px solid ${visual.accent}`,outlineOffset:2,boxShadow:`0 0 0 6px ${visual.accent}1f`}
+    const miniButton=(label,active=false)=>({background:active?"#eaf6ef":"transparent",color:active?GREEN:"#252525",fontWeight:800,fontSize:10,padding:"7px 9px",borderRadius:9,whiteSpace:"nowrap"})
+    const shell=children=><div style={{background:"#f6f6f6",minHeight:330,fontFamily:"system-ui,sans-serif"}}><div style={{background:WHITE,padding:"11px 13px",boxShadow:"0 2px 10px rgba(0,0,0,.08)",display:"flex",alignItems:"center",gap:9,overflow:"hidden"}}><b style={{fontSize:12,whiteSpace:"nowrap"}}><span style={{color:RED}}>🇲🇬 Malagasy</span><span style={{color:GREEN}}> Events</span></b><div style={{display:"flex",gap:2,overflow:"hidden",flex:1}}><span style={miniButton("Événements",title==="Trouver et suivre un événement")}>📅 Événements</span><span style={miniButton("Gastronomie",title==="Explorer les annuaires")}>🍽️ Gastronomie</span><span style={miniButton("Guide",title==="Comprendre tous les onglets")}>🧭 Guide</span><span style={miniButton("Petites annonces",title==="Utiliser les petites annonces")}>📌 Petites annonces</span></div><span style={{...miniButton("Connexion"),background:GREEN,color:WHITE}}>👤 Connexion</span></div><div style={{height:4,display:"flex"}}><i style={{flex:1,background:WHITE}}/><i style={{flex:2,background:RED}}/><i style={{flex:2,background:GREEN}}/></div>{children}</div>
+    if(title==="Comprendre tous les onglets")return shell(<div style={{padding:16}}><div style={{background:WHITE,borderRadius:18,padding:16,textAlign:"center",marginBottom:12}}><b style={{display:"block",fontSize:18,color:"#26215C",marginBottom:5}}>Que veux-tu trouver ?</b><span style={{fontSize:11,color:"#777"}}>Utilise directement les onglets du menu en haut.</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:9}}>{[["📅","Événements","Les sorties à venir"],["🍽️","Gastronomie","Restaurants et traiteurs"],["🧭","Guide","Les démarches expliquées"],["📌","Petites annonces","Les besoins de la communauté"]].map(([icon,label,text],i)=><div key={label} style={{background:WHITE,borderRadius:14,padding:12,...(i===0?marker:{})}}><span style={{fontSize:19}}>{icon}</span><b style={{display:"block",fontSize:12,color:"#26215C",margin:"5px 0 2px"}}>{label}</b><small style={{fontSize:10,color:"#777"}}>{text}</small></div>)}</div></div>)
+    if(title==="Trouver et suivre un événement")return shell(<div style={{padding:16,display:"grid",gridTemplateColumns:"108px 1fr",gap:12}}><div style={{background:WHITE,borderRadius:17,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.08)"}}><div style={{height:95,background:"linear-gradient(145deg,#C8102E,#4f1722)",position:"relative"}}><span style={{position:"absolute",bottom:8,left:8,background:RED,color:WHITE,borderRadius:99,padding:"3px 7px",fontSize:8,fontWeight:800}}>Culture</span></div><div style={{padding:10}}><b style={{fontSize:11}}>Tana–Paris–Tana</b><small style={{display:"block",fontSize:9,color:"#777",marginTop:5}}>📅 3 octobre · 📍 Châtillon</small></div></div><div style={{background:WHITE,borderRadius:17,padding:13}}><small style={{color:GREEN,fontWeight:900}}>FICHE ÉVÉNEMENT</small><h3 style={{fontSize:15,color:"#26215C",margin:"6px 0"}}>Toutes les informations au même endroit</h3><p style={{fontSize:10.5,color:"#777",lineHeight:1.5}}>Date, heure, adresse, prix et organisateur.</p><div style={{display:"grid",gap:8,marginTop:12}}><div style={{background:RED,color:WHITE,borderRadius:10,padding:"9px 10px",fontSize:10,fontWeight:900,...marker}}>🎫 Billetterie officielle →</div><div style={{background:"#eef6f1",color:GREEN,borderRadius:10,padding:"9px 10px",fontSize:10,fontWeight:800}}>👤 Voir l’organisateur →</div></div></div></div>)
+    if(title==="Explorer les annuaires")return shell(<div style={{padding:16}}><h3 style={{fontSize:16,margin:"0 0 4px"}}>🍽️ Gastronomie malagasy</h3><p style={{fontSize:10.5,color:"#777",margin:"0 0 11px"}}>Restaurants, traiteurs et food trucks.</p><div style={{background:WHITE,border:"1px solid #e5e5e5",borderRadius:12,padding:"10px 12px",fontSize:11,color:"#aaa",marginBottom:9}}>🔍 Rechercher par nom ou ville…</div><div style={{display:"flex",gap:6,marginBottom:11}}>{["Tous","Restaurant","Traiteur"].map((x,i)=><span key={x} style={{background:i===0?RED:WHITE,color:i===0?WHITE:"#555",borderRadius:99,padding:"6px 9px",fontSize:9,fontWeight:800}}>{x}</span>)}</div><div style={{background:WHITE,borderRadius:16,overflow:"hidden",display:"grid",gridTemplateColumns:"70px 1fr",...marker}}><div style={{background:"linear-gradient(145deg,#C8102E,#711125)",display:"grid",placeItems:"center",fontSize:25}}>🍽️</div><div style={{padding:12}}><b style={{fontSize:12}}>Nom de la structure</b><small style={{display:"block",color:"#888",fontSize:10,margin:"4px 0 8px"}}>Restaurant · Paris</small><strong style={{color:GREEN,fontSize:10}}>Voir la fiche et les liens →</strong></div></div></div>)
+    if(title==="Utiliser les petites annonces")return shell(<div style={{padding:14}}><div style={{background:"linear-gradient(125deg,#8f0e22,#C8102E 50%,#007A3D 130%)",borderRadius:18,padding:16,color:WHITE}}><small style={{fontSize:8,fontWeight:900,letterSpacing:1}}>ENTRAIDE · SERVICES · OPPORTUNITÉS</small><h3 style={{fontSize:21,margin:"6px 0"}}>📌 Petites annonces</h3><p style={{fontSize:10,lineHeight:1.45,opacity:.9}}>Cours, logement, covoiturage ou service dans la communauté.</p><div style={{display:"inline-block",background:WHITE,color:RED,borderRadius:99,padding:"9px 12px",fontSize:10,fontWeight:900,...marker}}>＋ Publier une annonce gratuitement</div></div><div style={{display:"flex",gap:6,marginTop:11}}>{["Toutes","Cours","Services","Logement"].map((x,i)=><span key={x} style={{background:i===0?RED:WHITE,color:i===0?WHITE:"#555",padding:"6px 9px",borderRadius:99,fontSize:9,fontWeight:800}}>{x}</span>)}</div></div>)
+    if(title==="Publier dans la communauté")return shell(<div style={{padding:15}}><h3 style={{fontSize:16,margin:"0 0 10px"}}>👥 Communauté Malagasy</h3><div style={{background:WHITE,borderRadius:16,padding:12,marginBottom:10,...marker}}><div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{display:"grid",placeItems:"center",width:30,height:30,borderRadius:"50%",background:RED,color:WHITE,fontWeight:900}}>M</span><span style={{flex:1,background:"#f4f4f4",borderRadius:99,padding:"9px 11px",fontSize:10,color:"#888"}}>Partage quelque chose avec la communauté 🇲🇬…</span></div><div style={{display:"flex",justifyContent:"space-between",marginTop:9,fontSize:9,fontWeight:800,color:GREEN}}><span>📷 Ajouter une photo</span><span>Publier →</span></div></div><div style={{background:WHITE,borderRadius:16,padding:12}}><b style={{fontSize:11}}>Malagasy_events_admin ✓</b><p style={{fontSize:10,color:"#555",lineHeight:1.45}}>Bienvenue dans l’espace de la communauté !</p><span style={{fontSize:9,color:"#888"}}>♡ Réagir　💬 Commenter　✉ Message</span></div></div>)
+    if(title==="Utiliser les messages et notifications")return shell(<div style={{padding:15}}><div style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:12}}><span style={{background:"#f3f3f3",borderRadius:99,padding:"8px 10px",fontSize:12,...marker}}>💬 <b style={{color:RED}}>1</b></span><span style={{background:"#eaf6ef",borderRadius:99,padding:"8px 10px",fontSize:12}}>🔔 <b style={{color:RED}}>3</b></span><span style={{background:"#f3f3f3",borderRadius:99,padding:"8px 10px",fontSize:11}}>👤 Mon profil</span></div><div style={{background:WHITE,borderRadius:18,overflow:"hidden",boxShadow:"0 8px 25px rgba(0,0,0,.12)"}}><div style={{background:RED,color:WHITE,padding:"11px 14px",fontWeight:900,fontSize:13}}>💬 Messages</div><div style={{display:"grid",gridTemplateColumns:"38% 1fr",minHeight:175}}><div style={{borderRight:"1px solid #eee",padding:9}}><div style={{background:"#f4f4f4",borderRadius:9,padding:8,fontSize:9,color:"#999"}}>Chercher un utilisateur…</div><div style={{fontSize:9,fontWeight:800,padding:"12px 3px"}}>Besha Beep<br/><small style={{color:"#888"}}>Dernier message…</small></div></div><div style={{padding:11,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:7}}><span style={{alignSelf:"flex-start",background:"#eee",padding:"7px 9px",borderRadius:12,fontSize:9}}>Bonjour 👋</span><span style={{alignSelf:"flex-end",background:RED,color:WHITE,padding:"7px 9px",borderRadius:12,fontSize:9}}>Bienvenue !</span><div style={{background:"#f4f4f4",borderRadius:99,padding:8,fontSize:9,color:"#aaa"}}>Ton message…</div></div></div></div></div>)
+    return shell(<div style={{padding:15}}><div style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:12}}><span style={{background:"#f3f3f3",borderRadius:99,padding:"7px 10px",fontSize:10,...marker}}>👤 Mon profil　⚙️</span></div><div style={{background:WHITE,borderRadius:18,padding:15}}><small style={{color:RED,fontWeight:900}}>PROPOSER UN ÉVÉNEMENT</small><h3 style={{fontSize:17,color:"#26215C",margin:"6px 0 12px"}}>Ajoute les informations utiles</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{["Nom de l’événement *","Date *","Lieu / salle","Organisateur *"].map(x=><div key={x} style={{border:"1px solid #e5e5e5",borderRadius:9,padding:9,fontSize:9,color:"#777"}}>{x}</div>)}</div><div style={{background:RED,color:WHITE,borderRadius:10,padding:10,textAlign:"center",fontSize:10,fontWeight:900,marginTop:11,...marker}}>Envoyer ma proposition</div></div></div>)
+  }
+  const selectedCategory=categories.find(x=>x.id===category)
+  const normalized=query.trim().toLowerCase()
+  const visible=categories.filter(x=>!normalized||`${x.title} ${x.desc} ${x.topics.join(" ")}`.toLowerCase().includes(normalized))
+  const goHome=()=>{setCategory(null);setArticle(null);setQuery("");window.scrollTo({top:0,behavior:"smooth"})}
+  const openCategory=id=>{setCategory(id);setArticle(null);window.scrollTo({top:0,behavior:"smooth"})}
+  const openArticle=title=>{setArticle(title);setChecked({});window.scrollTo({top:0,behavior:"smooth"})}
+  const topButton={border:"none",background:"transparent",color:GREEN,fontWeight:850,fontSize:13,cursor:"pointer",padding:0}
+  if(article){
+    const parent=selectedCategory||categories[0]
+    const detail=guideDetails[parent.id]
+    const summary=topicSummaries[article]||detail.intro
+    const answer=summary
+    const checklist=topicDocs[article]||detail.docs
+    const officialLinks=topicLinks[article]||detail.links
+    const accessTitle=parent.id==="bons-plans"?"Accès directs dans le site":"Accès officiels"
+    const accessIntro=parent.id==="bons-plans"?"Ouvre directement l’onglet expliqué dans cette fiche.":"Administration ou organisme compétent — pas de lien commercial caché."
+    const completed=checklist.filter((_,i)=>checked[i]).length
+    const platformVisual=platformGuideVisuals[article]
+    if(parent.id==="bons-plans"&&platformVisual)return <main style={{...publicPageShell,maxWidth:1080}}>
+      <button onClick={()=>{setArticle(null);window.scrollTo({top:0})}} style={topButton}>← Retour au guide de la plateforme</button>
+      <header style={{margin:"23px 0 20px",maxWidth:850}}>
+        <p style={{color:platformVisual.accent,fontWeight:950,fontSize:12,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 8px"}}>{platformVisual.label}</p>
+        <h1 style={{color:"#24204f",fontSize:isMobile?30:45,lineHeight:1.08,margin:"0 0 10px"}}>{article}</h1>
+        <p style={{color:"#686872",fontSize:15,lineHeight:1.6,margin:0}}>{summary}</p>
+      </header>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1.15fr .85fr",gap:18,alignItems:"start"}}>
+        <section style={{...publicCard,padding:0,overflow:"hidden",border:"1px solid #e4e5e8"}} aria-label={`Reproduction de l’écran : ${article}`}>
+          <div style={{padding:"10px 14px",background:"#26215C",color:WHITE,fontSize:10,fontWeight:900,letterSpacing:.6}}>APERÇU DU VRAI SITE · LA ZONE ENCADRÉE EST CELLE À UTILISER</div>
+          {platformScreen(article,platformVisual)}
+          <div style={{padding:"13px 16px",background:`${platformVisual.accent}0d`,borderTop:`1px solid ${platformVisual.accent}22`,color:"#3f3d55",fontSize:12.5,lineHeight:1.5}}><b style={{color:platformVisual.accent}}>À retenir : </b>{platformVisual.note}</div>
+        </section>
+        <aside style={{display:"grid",gap:14}}>
+          <section style={{...publicCard,padding:19}}><h2 style={{color:"#26215C",fontSize:18,margin:"0 0 12px"}}>Comment faire</h2><div style={{display:"grid",gap:11}}>{checklist.map((x,i)=><div key={x} style={{display:"grid",gridTemplateColumns:"27px 1fr",gap:10,alignItems:"start"}}><span style={{display:"grid",placeItems:"center",width:27,height:27,borderRadius:9,background:i===0?platformVisual.accent:"#eef0f1",color:i===0?WHITE:"#595966",fontWeight:950,fontSize:12}}>{i+1}</span><span style={{color:"#464650",fontSize:13,lineHeight:1.45,paddingTop:4}}>{x}</span></div>)}</div></section>
+          <section style={{...publicCard,padding:18}}><h2 style={{color:"#26215C",fontSize:17,margin:"0 0 5px"}}>Essaie directement</h2><p style={{fontSize:11.5,color:"#888",lineHeight:1.45,margin:"0 0 12px"}}>Ces boutons ouvrent les parties du site expliquées ici.</p><div style={{display:"grid",gap:8}}>{officialLinks.map(([label,url],i)=><a key={label} href={url} style={{background:i===0?platformVisual.accent:"#f4f5f6",color:i===0?WHITE:"#333",borderRadius:11,padding:"11px 12px",fontWeight:800,fontSize:13,textDecoration:"none"}}>{label} →</a>)}</div></section>
+        </aside>
+      </div>
+    </main>
+    return <main style={{...publicPageShell,maxWidth:1060}}>
+      <button onClick={()=>{setArticle(null);window.scrollTo({top:0})}} style={topButton}>← Retour à {parent.title}</button>
+      <header style={{margin:"24px 0 22px",maxWidth:820}}>
+        <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}><span style={{display:"grid",placeItems:"center",width:54,height:54,borderRadius:17,background:parent.color,fontSize:28}}>{parent.icon}</span><span style={{color:GREEN,fontWeight:900,fontSize:12,textTransform:"uppercase",letterSpacing:1.2}}>{parent.title}</span></div>
+        <h1 style={{color:"#24204f",fontSize:isMobile?30:46,lineHeight:1.08,margin:0}}>{article}</h1>
+      </header>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:18,alignItems:"start"}}>
+        <section style={{display:"grid",gap:14}}>
+          <section style={{...publicCard,padding:20}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}><h2 style={{color:"#26215C",fontSize:18,margin:0}}>Voici les étapes</h2><b style={{color:completed===checklist.length?GREEN:RED,fontSize:12}}>{completed}/{checklist.length}</b></div><div aria-hidden="true" style={{height:6,background:"#ececf0",borderRadius:99,overflow:"hidden",margin:"12px 0 10px"}}><div style={{height:"100%",width:`${(completed/checklist.length)*100}%`,background:completed===checklist.length?GREEN:RED,transition:"width .2s ease"}}/></div><p style={{fontSize:11.5,color:"#777",lineHeight:1.45,margin:"0 0 9px"}}>Coche une étape quand elle est faite.</p>{checklist.map((x,i)=><label key={x} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 0",fontSize:13.5,color:checked[i]?"#76767d":"#383841",lineHeight:1.45,borderBottom:i===checklist.length-1?"none":"1px solid #f0f0f2",textDecoration:checked[i]?"line-through":"none"}}><input type="checkbox" checked={!!checked[i]} onChange={e=>setChecked(prev=>({...prev,[i]:e.target.checked}))} style={{marginTop:2,accentColor:GREEN}}/> {x}</label>)}{completed===checklist.length&&<div role="status" style={{marginTop:12,background:"#e9f7ef",color:GREEN,borderRadius:12,padding:"11px 12px",fontSize:12.5,fontWeight:850}}>✓ Toutes les étapes sont terminées.</div>}</section>
+          <section style={{background:"#f3faf6",border:`1px solid #cfe5d8`,borderLeft:`5px solid ${GREEN}`,borderRadius:17,padding:18}}><p style={{color:GREEN,fontSize:11,fontWeight:950,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 7px"}}>En bref</p><p style={{color:"#292654",fontSize:14.5,lineHeight:1.55,fontWeight:700,margin:0}}>{answer}</p><p style={{color:"#798179",fontSize:10.5,margin:"10px 0 0"}}>Informations vérifiées le 10 septembre 2026</p></section>
+        </section>
+        <aside style={{display:"grid",gap:14}}>
+          <section style={{...publicCard,padding:18}}><h2 style={{color:"#26215C",fontSize:17,margin:"0 0 5px"}}>{accessTitle}</h2><p style={{fontSize:11.5,color:"#888",lineHeight:1.45,margin:"0 0 12px"}}>{accessIntro}</p><div style={{display:"grid",gap:8}}>{officialLinks.map(([label,url],i)=><a key={label} href={url} target={url.startsWith("/")?undefined:"_blank"} rel={url.startsWith("/")?undefined:"noopener noreferrer"} style={{background:i===0?GREEN:"#f4f5f6",color:i===0?WHITE:"#333",borderRadius:11,padding:"11px 12px",fontWeight:800,fontSize:13,textDecoration:"none"}}>{label} {url.startsWith("/")?"→":"↗"}</a>)}</div></section>
+        </aside>
+      </div>
+    </main>
+  }
+  if(selectedCategory?.id==="bons-plans"){
+    const journeys=[
+      {number:"1",title:"Je cherche",text:"Une sortie, une adresse ou une information pratique.",color:RED,topics:["Comprendre tous les onglets","Trouver et suivre un événement","Explorer les annuaires"]},
+      {number:"2",title:"J’échange",text:"Avec la communauté ou directement avec un membre.",color:"#2672c9",topics:["Publier dans la communauté","Utiliser les messages et notifications"]},
+      {number:"3",title:"Je participe",text:"Je dépose une annonce ou je propose un événement.",color:GREEN,topics:["Utiliser les petites annonces","Gérer son compte et proposer un événement"]}
+    ]
+    return <main style={{...publicPageShell,maxWidth:1080}}>
+      <button onClick={goHome} style={topButton}>← Toutes les catégories</button>
+      <header style={{margin:"24px 0 22px",maxWidth:820}}><p style={{color:GREEN,fontWeight:950,fontSize:11,textTransform:"uppercase",letterSpacing:1.25,margin:"0 0 7px"}}>Le site, en un coup d’œil</p><h1 style={{color:"#26215C",fontSize:isMobile?30:43,lineHeight:1.08,margin:"0 0 10px"}}>Comment utiliser Malagasy Events ?</h1><p style={{color:"#666",fontSize:15,lineHeight:1.6,margin:0}}>Choisis ce que tu veux faire. Chaque carte te montre l’écran concerné et le chemin le plus court pour y arriver.</p></header>
+      <section style={{background:WHITE,borderRadius:18,padding:"13px 15px",boxShadow:"0 3px 14px rgba(0,0,0,.07)",marginBottom:16,overflow:"hidden"}}><p style={{color:"#777",fontSize:10,fontWeight:900,letterSpacing:.8,margin:"0 0 9px"}}>LE MENU QUE TU VOIS SUR LE SITE</p><div style={{display:"flex",alignItems:"center",gap:8,overflowX:"auto",paddingBottom:4}}><b style={{fontSize:12,whiteSpace:"nowrap",marginRight:6}}><span style={{color:RED}}>🇲🇬 Malagasy</span><span style={{color:GREEN}}> Events</span></b>{[["📅","Événements"],["🍽️","Gastronomie"],["⛪","Églises"],["🏆","Sportifs"],["🏅","Tournois"],["🛍️","Boutiques"],["💼","Professionnels"],["🧭","Guide"],["🇲🇬","Diaspora"],["📌","Petites annonces"]].map(([icon,label])=><span key={label} style={{background:label==="Guide"?"#eaf6ef":"#f6f6f6",color:label==="Guide"?GREEN:"#333",borderRadius:10,padding:"8px 10px",fontSize:10,fontWeight:800,whiteSpace:"nowrap"}}>{icon} {label}</span>)}</div></section>
+      <section style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:14}}>{journeys.map(journey=><article key={journey.number} style={{...publicCard,padding:18,borderTop:`5px solid ${journey.color}`}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><span style={{display:"grid",placeItems:"center",width:31,height:31,borderRadius:10,background:journey.color,color:WHITE,fontWeight:950}}>{journey.number}</span><h2 style={{fontSize:19,color:"#26215C",margin:0}}>{journey.title}</h2></div><p style={{fontSize:12.5,color:"#777",lineHeight:1.45,margin:"0 0 13px"}}>{journey.text}</p><div style={{display:"grid",gap:7}}>{journey.topics.map(title=>{const visual=platformGuideVisuals[title];return <button key={title} onClick={()=>openArticle(title)} style={{border:"1px solid #e8e8eb",background:"#fafafa",borderRadius:12,padding:"10px 11px",display:"grid",gridTemplateColumns:"29px 1fr auto",alignItems:"center",gap:8,textAlign:"left",cursor:"pointer",fontFamily:"inherit"}}><span style={{fontSize:16}}>{visual.icon}</span><b style={{color:"#3b3957",fontSize:12.5,lineHeight:1.3}}>{title}</b><span style={{color:journey.color,fontWeight:950}}>→</span></button>})}</div></article>)}</section>
+      <section style={{marginTop:18,background:"linear-gradient(120deg,#25204f,#343069)",borderRadius:21,padding:isMobile?18:22,color:WHITE,display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:18}}><div><span style={{fontSize:24}}>👀</span><h2 style={{fontSize:18,margin:"8px 0 5px"}}>Sans compte</h2><p style={{fontSize:13,lineHeight:1.55,opacity:.86,margin:0}}>Tu peux découvrir les événements, consulter les annuaires, lire le Guide et parcourir les petites annonces.</p></div><div style={{borderLeft:isMobile?"none":"1px solid #ffffff30",borderTop:isMobile?"1px solid #ffffff30":"none",paddingLeft:isMobile?0:18,paddingTop:isMobile?16:0}}><span style={{fontSize:24}}>🔓</span><h2 style={{fontSize:18,margin:"8px 0 5px"}}>Après connexion gratuite</h2><p style={{fontSize:13,lineHeight:1.55,opacity:.86,margin:0}}>Tu peux publier, échanger, envoyer des messages, recevoir des notifications et proposer un événement.</p></div></section>
+    </main>
+  }
+  if(selectedCategory)return <main style={{...publicPageShell,maxWidth:1040}}>
+    <button onClick={goHome} style={topButton}>← Toutes les catégories</button>
+    <header style={{margin:"24px 0 24px",display:"flex",gap:16,alignItems:"center"}}><span style={{display:"grid",placeItems:"center",width:64,height:64,borderRadius:20,background:selectedCategory.color,fontSize:32}}>{selectedCategory.icon}</span><div><p style={{color:GREEN,fontWeight:900,fontSize:11,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 5px"}}>{selectedCategory.count} guides pratiques</p><h1 style={{color:"#26215C",fontSize:isMobile?28:40,margin:0}}>{selectedCategory.title}</h1></div></header>
+    <p style={{color:"#666",fontSize:15,lineHeight:1.65,maxWidth:760,margin:"-8px 0 22px"}}>{guideDetails[selectedCategory.id].intro}</p>
+    <section style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(2,1fr)",gap:14}}>{selectedCategory.topics.map((title,i)=><button key={title} onClick={()=>openArticle(title)} style={{...publicCard,textAlign:"left",cursor:"pointer",fontFamily:"inherit",padding:20,display:"flex",justifyContent:"space-between",alignItems:"center",gap:15}}><span><small style={{color:RED,fontWeight:900,textTransform:"uppercase"}}>Guide {i+1}</small><strong style={{display:"block",color:"#26215C",fontSize:17,marginTop:6}}>{title}</strong><span style={{display:"block",color:"#73737a",fontSize:13.5,lineHeight:1.5,marginTop:6}}>{topicSummaries[title]||guideDetails[selectedCategory.id].intro}</span></span><span style={{color:GREEN,fontSize:22}}>→</span></button>)}</section>
+  </main>
+  return <main style={{...publicPageShell,maxWidth:1120}}>
+    <header style={{textAlign:"center",marginBottom:23}}><p style={{color:GREEN,fontWeight:900,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 8px"}}>Démarches · aides · bons plans</p><h1 style={{color:"#26215C",fontSize:isMobile?31:46,lineHeight:1.08,margin:"0 0 13px"}}>Le Guide Malagasy en France</h1><p style={{color:"#62626a",fontSize:16,lineHeight:1.65,maxWidth:720,margin:"0 auto"}}>Comprendre quoi faire, dans quel ordre et auprès de qui, avec des informations vérifiées et des liens officiels.</p></header>
+    <div style={{maxWidth:720,margin:"0 auto 24px",position:"relative"}}><span style={{position:"absolute",left:17,top:14,fontSize:18}}>🔎</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher une démarche, une aide ou un bon plan…" style={{width:"100%",boxSizing:"border-box",border:"1px solid #dedee5",borderRadius:17,padding:"15px 16px 15px 48px",fontSize:15,outline:"none",background:WHITE}}/></div>
+    <button onClick={()=>openCategory("etudes")} style={{width:"100%",border:"none",borderRadius:22,padding:isMobile?19:24,marginBottom:20,background:"linear-gradient(120deg,#C8102E,#9f0b24)",color:WHITE,textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,fontFamily:"inherit"}}><span><small style={{fontWeight:900,textTransform:"uppercase",letterSpacing:1.2,opacity:.82}}>Parcours recommandé</small><strong style={{display:"block",fontSize:isMobile?21:27,margin:"7px 0"}}>🎓 Je viens étudier en France</strong><span style={{fontSize:14,opacity:.9}}>Avant le départ, arrivée, visa, inscription, santé et logement.</span></span><span style={{fontSize:26}}>→</span></button>
+    <section style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",gap:14}}>{visible.map(item=><button key={item.id} onClick={()=>openCategory(item.id)} style={{...publicCard,padding:19,textAlign:"left",cursor:"pointer",fontFamily:"inherit",minHeight:185,display:"flex",flexDirection:"column"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{display:"grid",placeItems:"center",width:44,height:44,borderRadius:14,background:item.color,fontSize:23}}>{item.icon}</span><span style={{color:GREEN,fontSize:12,fontWeight:850}}>{item.count} guides</span></div><h2 style={{color:"#26215C",fontSize:18,margin:"14px 0 7px"}}>{item.title}</h2><p style={{color:"#6c6c73",fontSize:13.5,lineHeight:1.55,margin:"0 0 14px",flex:1}}>{item.desc}</p><strong style={{color:RED,fontSize:13}}>Voir les démarches →</strong></button>)}</section>
+    {!visible.length&&<div style={{...publicCard,textAlign:"center",color:"#666"}}>Aucun résultat. Essaie « logement », « visa » ou « travail ».</div>}
+    <div style={{background:"#f3f8f5",border:"1px solid #d7e8dd",borderRadius:17,padding:"14px 17px",color:"#456052",fontSize:13,lineHeight:1.55,marginTop:20}}><b>Informations vérifiées le 10 septembre 2026.</b> Ce guide oriente et renvoie toujours vers l’administration ou l’organisme compétent.</div>
   </main>
 }
 
