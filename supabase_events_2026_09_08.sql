@@ -186,3 +186,20 @@ set location = 'Espace Magnan, 31 rue Louis-de-Coppet, 06000 Nice',
     official_source_url = 'https://www.explorenicecotedazur.com/fete-manifestation/rija-ramanantoanina/',
     description = 'Rija Ramanantoanina présente son nouvel album « FY » en concert à l’Espace Magnan de Nice, samedi 17 octobre 2026 à 19 h 30. Adresse officielle : 31 rue Louis-de-Coppet, 06000 Nice. Tarif annoncé : 30 €.'
 where lower(title) = lower('Rija Ramanantoanina en concert');
+
+-- Ajout vérifié du 10 septembre : Jeunesse Dorée — Red Island.
+insert into public.events
+  (title, date, location, address, city, category, image, price, organizer,
+   "ticketUrl", official_source_url, updates_url, description, "mediaUrls", "createdAt")
+select
+  'Jeunesse Dorée — Red Island', '2026-09-18',
+  'Le 145, 145 route de Paris, 31140 Saint-Alban',
+  '145 route de Paris, 31140 Saint-Alban', 'Saint-Alban', 'Soirée', '', '12 €',
+  'Red Island', 'https://my.weezevent.com/jeunesse-doree',
+  'https://my.weezevent.com/jeunesse-doree', 'https://www.instagram.com/redisland_261/',
+  'Red Island présente la soirée « Jeunesse Dorée » le vendredi 18 septembre 2026, de 23 h à 5 h, au 145 à Saint-Alban, près de Toulouse. DJ Nawer et DJ Naud sont annoncés, avec des ambiances salegy, shatta, bouyon et amapiano. Billet : 12 € sur la billetterie Weezevent officielle. Informations et réservations organisateur : 07 68 54 66 45.',
+  '[]'::jsonb, '2026-09-10T00:00:00.000Z'
+where not exists (
+  select 1 from public.events
+  where lower(title) = lower('Jeunesse Dorée — Red Island') and date = '2026-09-18'
+);

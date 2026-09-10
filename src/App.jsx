@@ -292,6 +292,7 @@ const VERIFIED_EVENT_TICKETS = [
   "https://www.helloasso.com/associations/lacim/evenements/amy-et-andy-en-duo-pop-rock-et-folk-concert-solidaire-lacim-madagascar",
   "https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm",
   "https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+  "https://my.weezevent.com/jeunesse-doree",
 ]
 const isVerifiedTicketUrl = value => {
   const url = safeUrl(value)
@@ -765,6 +766,23 @@ const nextFridayDate = () => {
 }
 
 const supplementalEvents = [
+  {
+    id:"jeunesse-doree-red-island-2026",
+    title:"Jeunesse Dorée — Red Island",
+    date:"2026-09-18",
+    location:"Le 145, 145 route de Paris, 31140 Saint-Alban",
+    address:"145 route de Paris, 31140 Saint-Alban",
+    city:"Saint-Alban",
+    category:"Soirée",
+    image:"",
+    price:"12 €",
+    organizer:"Red Island",
+    ticketUrl:"https://my.weezevent.com/jeunesse-doree",
+    official_source_url:"https://my.weezevent.com/jeunesse-doree",
+    updates_url:"https://www.instagram.com/redisland_261/",
+    description:"Red Island présente la soirée « Jeunesse Dorée » le vendredi 18 septembre 2026, de 23 h à 5 h, au 145 à Saint-Alban, près de Toulouse. DJ Nawer et DJ Naud sont annoncés, avec des ambiances salegy, shatta, bouyon et amapiano. Billet : 12 € sur la billetterie Weezevent officielle. Informations et réservations organisateur : 07 68 54 66 45.",
+    mediaUrls:[],createdAt:"2026-09-10T00:00:00.000Z",
+  },
   {
     id:"mage-4-paris-le-millenaire-2026",
     title:"MAGE 4 à Paris — Le Millénaire",
