@@ -292,6 +292,7 @@ const VERIFIED_EVENT_TICKETS = [
   "https://www.helloasso.com/associations/lacim/evenements/amy-et-andy-en-duo-pop-rock-et-folk-concert-solidaire-lacim-madagascar",
   "https://www.helloasso.com/associations/association-masova-madagascar-solidarite-volontariat-et-action/evenements/tournoi-de-la-solidarite-2026-collaboration-masova-csm",
   "https://www.helloasso.com/associations/sehatra-ba-gasy-france/evenements/paris-tana-paris-sbgf",
+  "https://www.helloasso.com/associations/etudiants-mifanampy-madagascar-marcq/evenements/karibo",
   "https://my.weezevent.com/jeunesse-doree",
 ]
 const isVerifiedTicketUrl = value => {
