@@ -5028,12 +5028,11 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, onUpdated,
             )}
 
             {/* Actions */}
-            {(eventOfficialSourceUrl(event)||eventUpdatesUrl(event)) && (
+            {eventUpdatesUrl(event) && (
               <div style={{background:"#fff8f0",border:"1px solid #f0dcc5",borderRadius:14,padding:"13px 14px",marginBottom:14}}>
-                <p style={{fontSize:12,fontWeight:900,color:"#7b4d1e",margin:"0 0 9px"}}>🔎 Informations officielles de l’événement</p>
+                <p style={{fontSize:12,fontWeight:900,color:"#7b4d1e",margin:"0 0 9px"}}>🔔 Actualités de l’événement</p>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {eventOfficialSourceUrl(event) && <a href={eventOfficialSourceUrl(event)} target="_blank" rel="noopener noreferrer" style={{background:WHITE,color:"#1565c0",border:"1px solid #d7e3f5",borderRadius:10,padding:"9px 12px",fontSize:12,fontWeight:800,textDecoration:"none"}}>📣 Voir l’annonce officielle · {sourceHost(eventOfficialSourceUrl(event))} ↗</a>}
-                  {eventUpdatesUrl(event) && eventUpdatesUrl(event)!==eventOfficialSourceUrl(event) && <a href={eventUpdatesUrl(event)} target="_blank" rel="noopener noreferrer" style={{background:WHITE,color:GREEN,border:"1px solid #cfe6d8",borderRadius:10,padding:"9px 12px",fontSize:12,fontWeight:800,textDecoration:"none"}}>🔔 Suivre les actualités · {sourceHost(eventUpdatesUrl(event))} ↗</a>}
+                  <a href={eventUpdatesUrl(event)} target="_blank" rel="noopener noreferrer" style={{background:WHITE,color:GREEN,border:"1px solid #cfe6d8",borderRadius:10,padding:"9px 12px",fontSize:12,fontWeight:800,textDecoration:"none"}}>Suivre les actualités · {sourceHost(eventUpdatesUrl(event))} ↗</a>
                 </div>
               </div>
             )}

@@ -2,6 +2,13 @@
 
 Ce document est le point de suivi unique du projet. Les décisions, lots Supabase, vérifications et états de publication doivent être ajoutés ici plutôt que répartis dans de nouveaux journaux. Les fichiers exécutables indispensables restent séparés, mais sont référencés depuis ce document.
 
+## Publication du 22 septembre 2026 — événements reçus et preuve privée
+
+- Validation Toky : les liens de source ne sont plus obligatoires dans la fiche publique. La provenance reçue est conservée en back-office pour pouvoir corriger, retirer ou justifier une publication.
+- Lot exécutable : `supabase_event_publication_2026_09_22.sql` — Karibo à Croix, AmbondronA près de Lyon, correction des lieux Gas’Paname des 3 octobre et 1er novembre.
+- Les justificatifs sont enregistrés dans `private.event_evidence`, schéma non exposé au site, avec libellé, date de réception, note interne et empreinte SHA-256 de la capture reçue.
+- La page publique conserve uniquement le lien permettant de suivre les actualités lorsqu’il est disponible ; le lien utilisé comme preuve interne n’est plus rendu dans la fiche événement.
+
 ## État au 1er septembre 2026
 
 ### Mise à jour en préparation — messagerie et sources officielles
