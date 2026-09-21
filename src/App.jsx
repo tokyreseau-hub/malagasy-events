@@ -3689,6 +3689,7 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, managedOrgaIds = 
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:14}}>
               <span style={{background:col.bg,color:col.color,fontSize:12,fontWeight:700,padding:"4px 12px",borderRadius:99}}>{ORGA_EMOJI[o.type]||"🎪"} {o.type}</span>
+              {o.is_partner && <span style={{background:"#e7f5ec",color:GREEN,fontSize:11,fontWeight:800,padding:"4px 10px",borderRadius:99}}>🤝 Partenaire Malagasy Events</span>}
               {isPro && <span style={{background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:11,fontWeight:800,padding:"4px 10px",borderRadius:99,letterSpacing:0.5}}>⭐ PRO</span>}
               {o.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {o.city}</span>}
               <span style={{fontSize:13,color:"#999"}}>👥 {followerCount} abonné{followerCount>1?'s':''}</span>
@@ -5092,7 +5093,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
     setGEditId(null)
   }
   const delGastro = async id => { setGastro(g=>g.filter(x=>x.id!==id)); await adminSave(supabase.from('gastro').delete().eq('id',id)) }
-  const ORGA_EMPTY = {name:"",type:"Association",city:"",region:"",followers:"",note:"",fb:"",insta:"",site:"",contact:"",owner_username:"",plan:"free",plan_until:""}
+  const ORGA_EMPTY = {name:"",type:"Association",city:"",region:"",followers:"",note:"",fb:"",insta:"",site:"",contact:"",owner_username:"",plan:"free",plan_until:"",is_partner:false}
   const [oEditId,setOEditId] = useState(null)
   const [oForm,setOForm]     = useState(ORGA_EMPTY)
   const saveOrga = async () => {
@@ -5427,14 +5428,17 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const delPerk = async id => { setPerksAdm(l=>l.filter(x=>x.id!==id)); await adminSave(supabase.from('perks').delete().eq('id',id)) }
   const togglePerk = async pk => { setPerksAdm(l=>l.map(x=>x.id===pk.id?{...x,active:!pk.active}:x)); await adminSave(supabase.from('perks').update({active:!pk.active}).eq('id',pk.id)) }
   const loadClaims = async () => {
-    const [{data:claimData},{data:teamData},{data:peopleData}] = await Promise.all([
-      supabase.from('orga_claims').select('*,profiles(username,email),organisateurs(name,owner_id)').order('created_at',{ascending:false}),
-      supabase.from('orga_team').select('*,profiles(username,email,avatar_url)').order('created_at',{ascending:false}),
-      supabase.from('profiles').select('id,username,email').limit(1000),
+    const [claimResult,teamResult,peopleResult] = await Promise.all([
+      supabase.from('orga_claims').select('*,profiles(username),organisateurs(name,owner_id)').order('created_at',{ascending:false}),
+      supabase.from('orga_team').select('*,profiles(username,avatar_url)').order('created_at',{ascending:false}),
+      supabase.from('profiles').select('id,username,avatar_url').limit(1000),
     ])
-    setClaims(claimData||[])
-    setOrgaTeamRows(teamData||[])
-    setOrgaPeople(peopleData||[])
+    if (claimResult.error || teamResult.error || peopleResult.error) {
+      console.error("Chargement des responsables d'organisme :", claimResult.error?.message||teamResult.error?.message||peopleResult.error?.message)
+    }
+    setClaims(claimResult.data||[])
+    setOrgaTeamRows(teamResult.data||[])
+    setOrgaPeople(peopleResult.data||[])
   }
   const approveClaim = async c => {
     const orga = orgas.find(o=>String(o.id)===String(c.orga_id))
@@ -5444,7 +5448,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
       if (error) { alert("⚠️ "+error.message); return }
       setOrgas(list=>list.map(x=>String(x.id)===String(c.orga_id)?{...x,owner_id:c.user_id}:x))
     }
-    const teamResult = await supabase.from('orga_team').upsert({orga_id:c.orga_id,user_id:c.user_id,status:'accepted',role:hasOwner?'gestionnaire':'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    const teamResult = await supabase.from('orga_team').upsert({orga_id:c.orga_id,user_id:c.user_id,status:'accepted',role:hasOwner?'gestionnaire':'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,avatar_url)').single()
     if (teamResult.error) { alert((hasOwner?"L'ajout à l'équipe a échoué : ":"La propriété est enregistrée, mais l'équipe n'a pas pu être synchronisée : ")+teamResult.error.message); return }
     await supabase.from('orga_claims').delete().eq('id',c.id)
     setOrgaTeamRows(list=>[teamResult.data,...list.filter(x=>String(x.orga_id)!==String(c.orga_id)||x.user_id!==c.user_id)])
@@ -5452,7 +5456,7 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   }
   const rejectClaim = async c => { await adminSave(supabase.from('orga_claims').delete().eq('id',c.id)); setClaims(list=>list.filter(x=>x.id!==c.id)) }
   const decideTeamRequest = async (row,status) => {
-    const {data,error} = await supabase.from('orga_team').update({status,role:'gestionnaire'}).eq('id',row.id).select('*,profiles(username,email,avatar_url)').single()
+    const {data,error} = await supabase.from('orga_team').update({status,role:'gestionnaire'}).eq('id',row.id).select('*,profiles(username,avatar_url)').single()
     if (error) { alert("⚠️ "+error.message); return }
     setOrgaTeamRows(list=>list.map(x=>x.id===row.id?data:x))
   }
@@ -5466,22 +5470,22 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   }
   const addTeamMember = async orga => {
     const query = (teamInvite[orga.id]||'').trim().toLowerCase()
-    const person = orgaPeople.find(p=>(p.username||'').toLowerCase()===query||(p.email||'').toLowerCase()===query)
-    if (!person) { alert("Aucun compte trouvé avec ce pseudo ou cet email."); return }
+    const person = orgaPeople.find(p=>(p.username||'').toLowerCase()===query)
+    if (!person) { alert("Aucun compte trouvé avec ce pseudo."); return }
     if (person.id===orga.owner_id) { alert("Cette personne est déjà le propriétaire principal."); return }
-    const {data,error} = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:person.id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    const {data,error} = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:person.id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,avatar_url)').single()
     if (error) { alert("⚠️ "+error.message); return }
     setOrgaTeamRows(list=>[data,...list.filter(x=>String(x.orga_id)!==String(orga.id)||x.user_id!==person.id)])
     setTeamInvite(values=>({...values,[orga.id]:''}))
   }
   const transferOrgaOwner = async (orga,newOwnerId) => {
     const person = orgaPeople.find(p=>p.id===newOwnerId)
-    if (!person || !confirm(`Transférer la propriété principale de « ${orga.name} » à @${person.username||person.email} ?`)) return
+    if (!person || !confirm(`Transférer la propriété principale de « ${orga.name} » à @${person.username||'ce membre'} ?`)) return
     if (orga.owner_id && orga.owner_id!==newOwnerId) {
-      const previous = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:orga.owner_id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+      const previous = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:orga.owner_id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,avatar_url)').single()
       if (!previous.error && previous.data) setOrgaTeamRows(list=>[previous.data,...list.filter(x=>String(x.orga_id)!==String(orga.id)||x.user_id!==orga.owner_id)])
     }
-    const promoted = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:newOwnerId,status:'accepted',role:'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    const promoted = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:newOwnerId,status:'accepted',role:'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,avatar_url)').single()
     if (promoted.error) { alert("⚠️ "+promoted.error.message); return }
     const {error} = await supabase.from('organisateurs').update({owner_id:newOwnerId}).eq('id',orga.id)
     if (error) { alert("⚠️ "+error.message); return }
@@ -6047,21 +6051,27 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                           <input type="date" value={oForm.plan_until||""} onChange={e=>setOForm({...oForm,plan_until:e.target.value})} style={inp}/>
                         </div>
                       </div>
+                      <label style={{display:"flex",alignItems:"center",gap:9,background:"#eef8f2",border:"1px solid #cfe9d8",borderRadius:10,padding:"9px 12px",fontSize:12,fontWeight:800,color:GREEN}}>
+                        <input type="checkbox" checked={!!oForm.is_partner} onChange={e=>setOForm({...oForm,is_partner:e.target.checked})}/>
+                        🤝 Partenaire officiel Malagasy Events
+                      </label>
                       <div style={{display:"flex",gap:8}}>
                         <button onClick={saveOrga} style={{background:GREEN,color:WHITE,fontWeight:700,padding:"8px 20px",borderRadius:10,border:"none",cursor:"pointer"}}>✓ Sauvegarder</button>
                         <button onClick={()=>setOEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
                       </div>
                     </div>
                   ) : (()=>{
-                    const owner = orgaPeople.find(p=>p.id===o.owner_id)
+                    const owner = orgaPeople.find(p=>p.id===o.owner_id) || users.find(p=>p.id===o.owner_id)
                     const team = orgaTeamRows.filter(r=>String(r.orga_id)===String(o.id))
                     const pendingTeam = team.filter(r=>r.status==='pending')
                     const members = team.filter(r=>r.status==='accepted'&&r.user_id!==o.owner_id)
+                    const duplicateCount = orgas.filter(x=>normalizedDirectoryName(x.name)===normalizedDirectoryName(o.name)).length
                     return <>
                       <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:'wrap'}}>
                         <div style={{flex:1,minWidth:200}}>
-                          <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name} {o.plan==='pro' && <span style={{fontSize:10,fontWeight:800,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,padding:"2px 8px",borderRadius:99}}>⭐ PRO{o.plan_until?` → ${fmtShort(o.plan_until)}`:""}</span>}</p>
+                          <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name} {o.is_partner && <span style={{fontSize:10,fontWeight:800,background:'#e7f5ec',color:GREEN,padding:'2px 8px',borderRadius:99}}>🤝 PARTENAIRE</span>} {o.plan==='pro' && <span style={{fontSize:10,fontWeight:800,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,padding:"2px 8px",borderRadius:99}}>⭐ PRO{o.plan_until?` → ${fmtShort(o.plan_until)}`:""}</span>}</p>
                           <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}</p>
+                          {duplicateCount>1 && <p style={{fontSize:11,color:'#a06000',fontWeight:800,margin:'4px 0 0'}}>⚠️ {duplicateCount} fiches portent ce nom — vérifie l’identifiant avant toute suppression.</p>}
                         </div>
                         <div style={{display:"flex",gap:6,flexShrink:0}}>
                           {pinBtn({active:o.featured,onClick:()=>togglePin('organisateurs',o,setOrgas)})}
@@ -6072,12 +6082,11 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                       <div style={{marginTop:12,padding:12,background:'#f7faf8',border:'1px solid #dcefe3',borderRadius:12}}>
                         <p style={{fontSize:11,fontWeight:800,color:GREEN,textTransform:'uppercase',margin:'0 0 7px'}}>Propriétaire et gestionnaires</p>
                         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-                          <span style={{fontSize:12,fontWeight:800,color:'#333'}}>👑 {owner?`@${owner.username||owner.email}`:(o.owner_id?'Compte relié':'Aucun propriétaire')}</span>
-                          {owner?.email&&<span style={{fontSize:11,color:'#999'}}>{owner.email}</span>}
+                          <span style={{fontSize:12,fontWeight:800,color:'#333'}}>👑 {owner?`@${owner.username}`:(o.owner_id?'Profil propriétaire introuvable':'Aucun propriétaire')}</span>
                         </div>
-                        {pendingTeam.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#555'}}>⏳ @{r.profiles?.username||r.profiles?.email||'membre'} veut rejoindre</span><button onClick={()=>decideTeamRequest(r,'accepted')} style={{background:GREEN,color:WHITE,border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Accepter</button><button onClick={()=>decideTeamRequest(r,'rejected')} style={{background:'#eee',color:'#777',border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Refuser</button></div>)}
-                        {members.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#444'}}>🛠️ @{r.profiles?.username||r.profiles?.email||'gestionnaire'}</span><button onClick={()=>transferOrgaOwner(o,r.user_id)} style={{background:'#fff3d6',color:'#7a5c00',border:0,borderRadius:99,padding:'5px 10px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Nommer propriétaire</button><button onClick={()=>removeTeamMember(r)} style={{background:'#fde8ec',color:RED,border:0,borderRadius:99,padding:'5px 9px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Retirer</button></div>)}
-                        <div style={{display:'flex',gap:7,marginTop:9,flexWrap:'wrap'}}><input value={teamInvite[o.id]||''} onChange={e=>setTeamInvite(v=>({...v,[o.id]:e.target.value}))} placeholder="Pseudo ou email du gestionnaire" style={{...inp,flex:'1 1 220px'}}/><button onClick={()=>addTeamMember(o)} style={{background:GREEN,color:WHITE,border:0,borderRadius:10,padding:'8px 13px',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>+ Ajouter</button></div>
+                        {pendingTeam.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#555'}}>⏳ @{r.profiles?.username||'membre'} veut rejoindre</span><button onClick={()=>decideTeamRequest(r,'accepted')} style={{background:GREEN,color:WHITE,border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Accepter</button><button onClick={()=>decideTeamRequest(r,'rejected')} style={{background:'#eee',color:'#777',border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Refuser</button></div>)}
+                        {members.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#444'}}>🛠️ @{r.profiles?.username||'gestionnaire'}</span><button onClick={()=>transferOrgaOwner(o,r.user_id)} style={{background:'#fff3d6',color:'#7a5c00',border:0,borderRadius:99,padding:'5px 10px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Nommer propriétaire</button><button onClick={()=>removeTeamMember(r)} style={{background:'#fde8ec',color:RED,border:0,borderRadius:99,padding:'5px 9px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Retirer</button></div>)}
+                        <div style={{display:'flex',gap:7,marginTop:9,flexWrap:'wrap'}}><input value={teamInvite[o.id]||''} onChange={e=>setTeamInvite(v=>({...v,[o.id]:e.target.value}))} placeholder="Pseudo du gestionnaire" style={{...inp,flex:'1 1 220px'}}/><button onClick={()=>addTeamMember(o)} style={{background:GREEN,color:WHITE,border:0,borderRadius:10,padding:'8px 13px',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>+ Ajouter</button></div>
                       </div>
                     </>
                   })()}

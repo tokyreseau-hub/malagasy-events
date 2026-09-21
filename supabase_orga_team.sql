@@ -6,6 +6,16 @@
 -- À coller dans Supabase → SQL Editor → Run. Idempotent.
 -- ════════════════════════════════════════════════════════════════
 
+-- Le partenariat est indépendant du forfait payant et de la mise en avant.
+alter table public.organisateurs
+  add column if not exists is_partner boolean not null default false;
+
+-- Mafana_vibes : fiche partenaire historique gérée par @james_rsl.
+update public.organisateurs
+set is_partner = true
+where id = 37
+  and owner_id = '137ae604-b47d-48de-99ec-80f9aa27410a'::uuid;
+
 create table if not exists public.orga_team (
   id bigint generated always as identity primary key,
   orga_id bigint not null references public.organisateurs(id) on delete cascade,
