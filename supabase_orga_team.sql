@@ -16,35 +16,154 @@ create table if not exists public.orga_team (
   unique (orga_id, user_id)
 );
 alter table public.orga_team enable row level security;
+create index if not exists orga_team_user_status_idx on public.orga_team(user_id, status);
+create index if not exists orga_team_orga_status_idx on public.orga_team(orga_id, status);
+
+grant select, insert, update, delete on public.orga_team to authenticated;
+grant usage, select on sequence public.orga_team_id_seq to authenticated;
 
 -- Qui peut voir : le membre concerné, le propriétaire de la fiche, l'admin
 drop policy if exists "team visible" on public.orga_team;
-create policy "team visible" on public.orga_team for select using (
-  auth.uid() = user_id
+create policy "team visible" on public.orga_team for select to authenticated using (
+  (select auth.uid()) = user_id
   or public.is_admin()
-  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = auth.uid())
+  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = (select auth.uid()))
 );
 
 -- Demander à rejoindre (on ne crée que sa propre demande, en 'pending')
 drop policy if exists "team demander" on public.orga_team;
-create policy "team demander" on public.orga_team for insert with check (
-  auth.uid() = user_id and status = 'pending'
+create policy "team demander" on public.orga_team for insert to authenticated with check (
+  ((select auth.uid()) = user_id and status = 'pending')
+  or public.is_admin()
 );
 
 -- Accepter / refuser : propriétaire de la fiche ou admin
 drop policy if exists "team decider" on public.orga_team;
-create policy "team decider" on public.orga_team for update using (
+create policy "team decider" on public.orga_team for update to authenticated using (
   public.is_admin()
-  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = auth.uid())
+  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = (select auth.uid()))
+) with check (
+  public.is_admin()
+  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = (select auth.uid()))
 );
 
 -- Retirer : le membre lui-même, le propriétaire, ou l'admin
 drop policy if exists "team retirer" on public.orga_team;
-create policy "team retirer" on public.orga_team for delete using (
-  auth.uid() = user_id
+create policy "team retirer" on public.orga_team for delete to authenticated using (
+  (select auth.uid()) = user_id
   or public.is_admin()
-  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = auth.uid())
+  or exists (select 1 from public.organisateurs g where g.id = orga_id and g.owner_id = (select auth.uid()))
 );
+
+-- Les gestionnaires acceptés disposent du mode organisateur sans remplacer
+-- le propriétaire principal de la structure.
+drop policy if exists "équipe modifie sa fiche" on public.organisateurs;
+create policy "équipe modifie sa fiche" on public.organisateurs
+  for update to authenticated
+  using (
+    public.is_admin()
+    or owner_id = (select auth.uid())
+    or exists (select 1 from public.orga_team t where t.orga_id = id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  )
+  with check (
+    public.is_admin()
+    or owner_id = (select auth.uid())
+    or exists (select 1 from public.orga_team t where t.orga_id = id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
+
+drop policy if exists "équipe publie une actu" on public.orga_posts;
+create policy "équipe publie une actu" on public.orga_posts
+  for insert to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and (
+      public.is_admin()
+      or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+      or exists (select 1 from public.orga_team t where t.orga_id = orga_posts.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+    )
+    and exists (
+      select 1 from public.organisateurs o
+      where o.id = orga_id
+        and (
+          (o.plan = 'pro' and (o.plan_until is null or o.plan_until >= current_date))
+          or exists (
+            select 1 from public.profiles p
+            where p.id = (select auth.uid()) and p.plan = 'organisateur'
+          )
+        )
+    )
+  );
+
+drop policy if exists "équipe modifie ses actus" on public.orga_posts;
+create policy "équipe modifie ses actus" on public.orga_posts
+  for update to authenticated
+  using (
+    public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = orga_posts.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  )
+  with check (
+    public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = orga_posts.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
+
+drop policy if exists "équipe supprime ses actus" on public.orga_posts;
+create policy "équipe supprime ses actus" on public.orga_posts
+  for delete to authenticated
+  using (
+    public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = orga_posts.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
+
+-- Le fil Communauté accepte également l'identité d'un gestionnaire validé.
+drop policy if exists "poster en tant qu orga" on public.posts;
+create policy "poster en tant qu orga" on public.posts
+  as restrictive for insert to authenticated
+  with check (
+    orga_id is null
+    or public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = posts.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
+
+-- Toute l'équipe validée partage la boîte de réception de l'organisme.
+drop policy if exists "équipe voit messages orga" on public.orga_messages;
+create policy "équipe voit messages orga" on public.orga_messages
+  for select to authenticated
+  using (
+    public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = orga_messages.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
+
+drop policy if exists "équipe envoie messages orga" on public.orga_messages;
+create policy "équipe envoie messages orga" on public.orga_messages
+  for insert to authenticated
+  with check (
+    (select auth.uid()) = sender_id and sent_as_orga = true and (
+      public.is_admin()
+      or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+      or exists (select 1 from public.orga_team t where t.orga_id = orga_messages.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+    )
+  );
+
+drop policy if exists "équipe marque messages lus" on public.orga_messages;
+create policy "équipe marque messages lus" on public.orga_messages
+  for update to authenticated
+  using (
+    sent_as_orga = false and (
+      public.is_admin()
+      or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+      or exists (select 1 from public.orga_team t where t.orga_id = orga_messages.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+    )
+  )
+  with check (
+    public.is_admin()
+    or exists (select 1 from public.organisateurs o where o.id = orga_id and o.owner_id = (select auth.uid()))
+    or exists (select 1 from public.orga_team t where t.orga_id = orga_messages.orga_id and t.user_id = (select auth.uid()) and t.status = 'accepted')
+  );
 
 -- Notifier propriétaire + admin à chaque nouvelle demande
 create or replace function public.notify_on_team_request()

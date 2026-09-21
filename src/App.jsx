@@ -1612,9 +1612,12 @@ function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
 
   const claim = async o => {
     setSaving(true)
-    const {error} = await supabase.from('orga_claims').insert({orga_id:o.id,user_id:user.id})
+    const joinExistingTeam = !!o.owner_id && o.owner_id !== user.id
+    const {error} = joinExistingTeam
+      ? await supabase.from('orga_team').insert({orga_id:o.id,user_id:user.id,status:'pending',role:'gestionnaire'})
+      : await supabase.from('orga_claims').insert({orga_id:o.id,user_id:user.id})
     if (error) alert("⚠️ Demande impossible ("+error.message+")"+(error.code==='23505'?"\n(Tu as déjà une demande en attente pour cette fiche.)":""))
-    else { alert("📨 Demande envoyée pour « "+o.name+" » !\nNotre équipe vérifie que tu représentes bien cet organisme et te confirme sous 24-48h."); dismiss() }
+    else { alert(`📨 Demande envoyée pour « ${o.name} » !\n${joinExistingTeam ? "Le propriétaire actuel ou l'administration pourra t'ajouter à l'équipe." : "Notre équipe vérifie que tu représentes bien cet organisme et te confirme sous 24-48h."}`); dismiss() }
     setSaving(false)
   }
 
@@ -1648,9 +1651,9 @@ function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
                     <p style={{fontWeight:700,fontSize:13,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{o.name}</p>
                     <p style={{fontSize:11,color:"#999",margin:0}}>{o.type}{o.city?" · "+o.city:""}</p>
                   </div>
-                  {o.owner_id
-                    ? <span style={{fontSize:11,fontWeight:700,color:"#bbb",flexShrink:0}}>Déjà gérée</span>
-                    : <button disabled={saving} onClick={()=>claim(o)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>📨 Demander le contrôle</button>}
+                  {o.owner_id===user.id
+                    ? <span style={{fontSize:11,fontWeight:700,color:GREEN,flexShrink:0}}>✓ Déjà reliée</span>
+                    : <button disabled={saving} onClick={()=>claim(o)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"7px 12px",borderRadius:99,border:"none",cursor:"pointer",flexShrink:0}}>{o.owner_id?"📨 Demander à rejoindre":"📨 Demander le contrôle"}</button>}
                 </div>
               ))}
               {q.trim().length>=2 && results.length===0 && <p style={{fontSize:12,color:"#bbb",textAlign:"center",margin:"8px 0"}}>Aucun organisme trouvé pour « {q} »</p>}
@@ -1684,12 +1687,12 @@ function OrgaOnboarding({ user, orgas, setOrgas, onClose }) {
 }
 
 /* ── Statistiques orga (onglet profil) ────────────── */
-function OrgaStatsTab({ user, orgas, events }) {
+function OrgaStatsTab({ user, orgas, events, activeOrga }) {
   const [stats,setStats] = useState(null)
-  const myOrga = orgas.find(o=>o.owner_id===user.id)
+  const myOrga = activeOrga || orgas.find(o=>o.owner_id===user.id)
   const myEvents = myOrga ? events.filter(e=>eventBelongsToOrga(e,myOrga)) : []
 
-  useEffect(()=>{ fetchStats() },[])
+  useEffect(()=>{ fetchStats() },[myOrga?.id,events.length])
   const fetchStats = async () => {
     const ids = myEvents.map(e=>e.id)
     const [ints,cmts,rems,fols,actus] = await Promise.all([
@@ -1802,7 +1805,7 @@ function OrgaIdentityTab({ orga, user, onUpdated }) {
   </div>
 }
 
-function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas = [], events = [], onGoPro, onGoPremium, activeOrga, onSwitchIdentity, onUpdateOrga, initialTab = "profil" }) {
+function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas = [], managedOrgas = [], events = [], onGoPro, onGoPremium, activeOrga, onSwitchIdentity, onUpdateOrga, initialTab = "profil" }) {
   const [tab,setTab]         = useState(initialTab)
   const [username,setUsername] = useState(userProfile?.username||"")
   const [avatarUrl,setAvatarUrl] = useState(userProfile?.avatar_url||"")
@@ -1870,7 +1873,7 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
           {userProfile?.is_member && <span style={{background:GREEN,color:WHITE,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:99,display:"inline-block",marginTop:8}}>✓ Membre 2,50€/mois</span>}
         </div>
         <div style={{display:"flex",height:4}}><div style={{flex:1,background:"#eee"}}/><div style={{flex:2,background:RED}}/><div style={{flex:2,background:GREEN}}/></div>
-        {orgas.filter(o=>o.owner_id===user.id).length>0 && <div style={{display:'flex',gap:7,overflowX:'auto',padding:'12px 20px 0'}}><button onClick={()=>onSwitchIdentity?.(null)} style={{background:!activeOrga?RED:'#f2f2f2',color:!activeOrga?WHITE:'#666',border:'none',borderRadius:99,padding:'7px 11px',fontSize:11,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>👤 {userProfile?.username||'Moi'}</button>{orgas.filter(o=>o.owner_id===user.id).map(o=><button key={o.id} onClick={()=>onSwitchIdentity?.(o.id)} style={{background:activeOrga?.id===o.id?(safeHexColor(o.brand_color)||GREEN):'#f2f2f2',color:activeOrga?.id===o.id?WHITE:'#666',border:'none',borderRadius:99,padding:'7px 11px',fontSize:11,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>🎪 {o.name}</button>)}</div>}
+        {managedOrgas.length>0 && <div style={{display:'flex',gap:7,overflowX:'auto',padding:'12px 20px 0'}}><button onClick={()=>onSwitchIdentity?.(null)} style={{background:!activeOrga?RED:'#f2f2f2',color:!activeOrga?WHITE:'#666',border:'none',borderRadius:99,padding:'7px 11px',fontSize:11,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>👤 {userProfile?.username||'Moi'}</button>{managedOrgas.map(o=><button key={o.id} onClick={()=>onSwitchIdentity?.(o.id)} style={{background:activeOrga?.id===o.id?(safeHexColor(o.brand_color)||GREEN):'#f2f2f2',color:activeOrga?.id===o.id?WHITE:'#666',border:'none',borderRadius:99,padding:'7px 11px',fontSize:11,fontWeight:800,cursor:'pointer',whiteSpace:'nowrap'}}>🎪 {o.name}</button>)}</div>}
         <div style={{display:"flex",padding:"16px 24px 0"}}>
           {(activeOrga
             ? [["profil","🎪 Profil orga"],["reseau","👥 Réseau"],["stats","📊 Statistiques"],["compte","⚙️ Compte"]]
@@ -1922,8 +1925,8 @@ function ProfileModal({ user, userProfile, onClose, onSignOut, onUpdate, orgas =
             <InterestTabContent user={user} userProfile={userProfile} onUpdate={onUpdate}/>
           )}
           {tab==="reseau" && <NetworkTab user={user} orgas={orgas}/>} 
-          {tab==="stats" && userProfile?.plan==="organisateur" && (
-            <OrgaStatsTab user={user} orgas={orgas} events={events}/>
+          {tab==="stats" && (activeOrga || userProfile?.plan==="organisateur") && (
+            <OrgaStatsTab user={user} orgas={orgas} events={events} activeOrga={activeOrga}/>
           )}
           {tab==="compte" && (
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -3580,14 +3583,15 @@ function OrgaTeam({ orga, user, isOwner, isAdmin, onAuthRequired }) {
   )
 }
 
-function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, events, onOpenEvent, onClose, onUpdated, onAuthRequired }) {
+function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, managedOrgaIds = [], events, onOpenEvent, onClose, onUpdated, onAuthRequired }) {
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
   const brandColor = safeHexColor(o.brand_color)||col.color
   const isOwner = !!user && o.owner_id===user.id
-  const canEdit = isOwner || (!!user && isAdmin)
+  const isTeamManager = managedOrgaIds.some(id=>String(id)===String(o.id))
+  const canEdit = isOwner || isTeamManager || (!!user && isAdmin)
   const isPro = o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10))
   const memberCanPost = userProfile?.plan==="organisateur"
-  const canPost = (isOwner && (isPro || memberCanPost)) || (!!user && isAdmin)
+  const canPost = ((isOwner || isTeamManager) && (isPro || memberCanPost)) || (!!user && isAdmin)
   const [editing,setEditing] = useState(false)
   const [form,setForm] = useState({...o})
   const [saving,setSaving] = useState(false)
@@ -3974,7 +3978,7 @@ function LieuxPage({ isMobile, page, lieux, initialSearch="" }) {
   )
 }
 
-function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenEvent, onOrgaUpdated, gastro = [], lieux = [], onGoto, onAuthRequired, sportOnly = false, initialSearch="" }) {
+function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, managedOrgaIds = [], onOpenEvent, onOrgaUpdated, gastro = [], lieux = [], onGoto, onAuthRequired, sportOnly = false, initialSearch="" }) {
   const [famille,setFamille] = useState("evenementiel")
   const isIncompletePlaceholder = o => /fiche à compléter/i.test(o.note||"") && ![o.city,o.region,o.site,o.fb,o.insta,o.contact].some(Boolean)
   const publicOrgas = isAdmin ? orgas : orgas.filter(o=>!isIncompletePlaceholder(o))
@@ -4124,7 +4128,7 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, onOpenE
 
       </>)}
 
-      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}} onAuthRequired={onAuthRequired}/>} 
+      {selected && <OrgaDetail o={selected} isMobile={isMobile} user={user} userProfile={userProfile} isAdmin={isAdmin} managedOrgaIds={managedOrgaIds} events={events} onOpenEvent={onOpenEvent} onClose={()=>setSelected(null)} onUpdated={u=>{onOrgaUpdated(u);setSelected(u)}} onAuthRequired={onAuthRequired}/>}
     </div>
   )
 }
@@ -5401,6 +5405,9 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const filtered  = users.filter(u=>!userSearch||(u.username||"").toLowerCase().includes(userSearch.toLowerCase())||(u.email||"").toLowerCase().includes(userSearch.toLowerCase()))
   const [helpAds,setHelpAds] = useState([])
   const [claims,setClaims]   = useState([])
+  const [orgaTeamRows,setOrgaTeamRows] = useState([])
+  const [orgaPeople,setOrgaPeople] = useState([])
+  const [teamInvite,setTeamInvite] = useState({})
   const PERK_EMPTY = {partner:"",offer:"",description:"",code:"",category:"Restaurant",city:"",active:false}
   const [perksAdm,setPerksAdm] = useState([])
   const [pkEditId,setPkEditId] = useState(null)
@@ -5420,18 +5427,67 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
   const delPerk = async id => { setPerksAdm(l=>l.filter(x=>x.id!==id)); await adminSave(supabase.from('perks').delete().eq('id',id)) }
   const togglePerk = async pk => { setPerksAdm(l=>l.map(x=>x.id===pk.id?{...x,active:!pk.active}:x)); await adminSave(supabase.from('perks').update({active:!pk.active}).eq('id',pk.id)) }
   const loadClaims = async () => {
-    const {data} = await supabase.from('orga_claims').select('*,profiles(username,email),organisateurs(name)').order('created_at',{ascending:false})
-    setClaims(data||[])
+    const [{data:claimData},{data:teamData},{data:peopleData}] = await Promise.all([
+      supabase.from('orga_claims').select('*,profiles(username,email),organisateurs(name,owner_id)').order('created_at',{ascending:false}),
+      supabase.from('orga_team').select('*,profiles(username,email,avatar_url)').order('created_at',{ascending:false}),
+      supabase.from('profiles').select('id,username,email').limit(1000),
+    ])
+    setClaims(claimData||[])
+    setOrgaTeamRows(teamData||[])
+    setOrgaPeople(peopleData||[])
   }
   const approveClaim = async c => {
-    const ok = await adminSave(supabase.from('organisateurs').update({owner_id:c.user_id}).eq('id',c.orga_id))
-    if (ok!==null) {
-      await supabase.from('orga_claims').delete().eq('id',c.id)
-      setOrgas(o=>o.map(x=>x.id===c.orga_id?{...x,owner_id:c.user_id}:x))
-      setClaims(list=>list.filter(x=>x.id!==c.id))
+    const orga = orgas.find(o=>String(o.id)===String(c.orga_id))
+    const hasOwner = !!orga?.owner_id
+    if (!hasOwner) {
+      const {error} = await supabase.from('organisateurs').update({owner_id:c.user_id}).eq('id',c.orga_id)
+      if (error) { alert("⚠️ "+error.message); return }
+      setOrgas(list=>list.map(x=>String(x.id)===String(c.orga_id)?{...x,owner_id:c.user_id}:x))
     }
+    const teamResult = await supabase.from('orga_team').upsert({orga_id:c.orga_id,user_id:c.user_id,status:'accepted',role:hasOwner?'gestionnaire':'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    if (teamResult.error) { alert((hasOwner?"L'ajout à l'équipe a échoué : ":"La propriété est enregistrée, mais l'équipe n'a pas pu être synchronisée : ")+teamResult.error.message); return }
+    await supabase.from('orga_claims').delete().eq('id',c.id)
+    setOrgaTeamRows(list=>[teamResult.data,...list.filter(x=>String(x.orga_id)!==String(c.orga_id)||x.user_id!==c.user_id)])
+    setClaims(list=>list.filter(x=>x.id!==c.id))
   }
   const rejectClaim = async c => { await adminSave(supabase.from('orga_claims').delete().eq('id',c.id)); setClaims(list=>list.filter(x=>x.id!==c.id)) }
+  const decideTeamRequest = async (row,status) => {
+    const {data,error} = await supabase.from('orga_team').update({status,role:'gestionnaire'}).eq('id',row.id).select('*,profiles(username,email,avatar_url)').single()
+    if (error) { alert("⚠️ "+error.message); return }
+    setOrgaTeamRows(list=>list.map(x=>x.id===row.id?data:x))
+  }
+  const removeTeamMember = async row => {
+    const orga = orgas.find(o=>String(o.id)===String(row.orga_id))
+    if (orga?.owner_id===row.user_id) { alert("Le propriétaire principal doit d'abord être remplacé."); return }
+    if (!confirm(`Retirer @${row.profiles?.username||'ce membre'} de l'équipe ?`)) return
+    const {error} = await supabase.from('orga_team').delete().eq('id',row.id)
+    if (error) { alert("⚠️ "+error.message); return }
+    setOrgaTeamRows(list=>list.filter(x=>x.id!==row.id))
+  }
+  const addTeamMember = async orga => {
+    const query = (teamInvite[orga.id]||'').trim().toLowerCase()
+    const person = orgaPeople.find(p=>(p.username||'').toLowerCase()===query||(p.email||'').toLowerCase()===query)
+    if (!person) { alert("Aucun compte trouvé avec ce pseudo ou cet email."); return }
+    if (person.id===orga.owner_id) { alert("Cette personne est déjà le propriétaire principal."); return }
+    const {data,error} = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:person.id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    if (error) { alert("⚠️ "+error.message); return }
+    setOrgaTeamRows(list=>[data,...list.filter(x=>String(x.orga_id)!==String(orga.id)||x.user_id!==person.id)])
+    setTeamInvite(values=>({...values,[orga.id]:''}))
+  }
+  const transferOrgaOwner = async (orga,newOwnerId) => {
+    const person = orgaPeople.find(p=>p.id===newOwnerId)
+    if (!person || !confirm(`Transférer la propriété principale de « ${orga.name} » à @${person.username||person.email} ?`)) return
+    if (orga.owner_id && orga.owner_id!==newOwnerId) {
+      const previous = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:orga.owner_id,status:'accepted',role:'gestionnaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+      if (!previous.error && previous.data) setOrgaTeamRows(list=>[previous.data,...list.filter(x=>String(x.orga_id)!==String(orga.id)||x.user_id!==orga.owner_id)])
+    }
+    const promoted = await supabase.from('orga_team').upsert({orga_id:orga.id,user_id:newOwnerId,status:'accepted',role:'propriétaire'},{onConflict:'orga_id,user_id'}).select('*,profiles(username,email,avatar_url)').single()
+    if (promoted.error) { alert("⚠️ "+promoted.error.message); return }
+    const {error} = await supabase.from('organisateurs').update({owner_id:newOwnerId}).eq('id',orga.id)
+    if (error) { alert("⚠️ "+error.message); return }
+    setOrgaTeamRows(list=>[promoted.data,...list.filter(x=>String(x.orga_id)!==String(orga.id)||x.user_id!==newOwnerId)])
+    setOrgas(list=>list.map(o=>String(o.id)===String(orga.id)?{...o,owner_id:newOwnerId}:o))
+  }
   const [actus,setActus]     = useState([])
   const delHelp = async id => { setHelpAds(h=>h.filter(x=>x.id!==id)); await adminSave(supabase.from('entraide').delete().eq('id',id)) }
   const delActu = async id => { setActus(a=>a.filter(x=>x.id!==id)); await adminSave(supabase.from('orga_posts').delete().eq('id',id)) }
@@ -5941,14 +5997,14 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
             <div>
               {claims.length>0 && (
                 <div style={{background:"#fff8e6",border:"1.5px solid #f0dfa8",borderRadius:16,padding:"14px 18px",marginBottom:16}}>
-                  <p style={{fontWeight:800,fontSize:14,color:"#8a6d00",margin:"0 0 10px"}}>📨 {claims.length} demande{claims.length>1?"s":""} de contrôle de fiche en attente</p>
+                  <p style={{fontWeight:800,fontSize:14,color:"#8a6d00",margin:"0 0 10px"}}>📨 {claims.length} demande{claims.length>1?"s":""} d’attribution en attente</p>
                   {claims.map(c=>(
                     <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid #f0e6c8",flexWrap:"wrap"}}>
                       <div style={{flex:1,minWidth:160}}>
                         <p style={{fontWeight:700,fontSize:13,margin:0}}>@{c.profiles?.username||"?"} <span style={{color:"#999",fontWeight:400}}>demande</span> 🎪 {c.organisateurs?.name||"fiche #"+c.orga_id}</p>
                         <p style={{fontSize:11,color:"#aaa",margin:0}}>{c.profiles?.email||""} · {ago(c.created_at)}</p>
                       </div>
-                      <button onClick={()=>approveClaim(c)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>✓ Attribuer</button>
+                      <button onClick={()=>approveClaim(c)} style={{background:GREEN,color:WHITE,fontWeight:700,fontSize:11.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>✓ {c.organisateurs?.owner_id?'Ajouter à l’équipe':'Nommer propriétaire'}</button>
                       <button onClick={()=>rejectClaim(c)} style={{background:"#fde8ec",color:RED,fontWeight:700,fontSize:11.5,padding:"6px 14px",borderRadius:99,border:"none",cursor:"pointer"}}>✗ Refuser</button>
                     </div>
                   ))}
@@ -5975,7 +6031,9 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <input value={oForm.site||""} onChange={e=>setOForm({...oForm,site:e.target.value})} placeholder="Site web" style={inp}/>
                         <input value={oForm.contact||""} onChange={e=>setOForm({...oForm,contact:e.target.value})} placeholder="Contact public" style={inp}/>
                       </div>
-                      <input value={oForm.owner_username||""} onChange={e=>setOForm({...oForm,owner_username:e.target.value})} placeholder="👤 Pseudo du membre propriétaire (pourra modifier sa fiche)" style={inp}/>
+                      {oEditId==="new"
+                        ? <input value={oForm.owner_username||""} onChange={e=>setOForm({...oForm,owner_username:e.target.value})} placeholder="👤 Pseudo du propriétaire principal" style={inp}/>
+                        : <p style={{background:'#f7faf8',border:'1px solid #dcefe3',borderRadius:10,padding:'9px 12px',fontSize:12,color:'#557064',margin:0}}>Le propriétaire et les gestionnaires se modifient dans la section « Propriétaire et gestionnaires » sous la fiche.</p>}
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,background:"#faf6ec",border:"1.5px solid #e6d9a8",borderRadius:12,padding:10}}>
                         <div>
                           <label style={{fontSize:11,fontWeight:700,color:"#7a5c00",display:"block",marginBottom:4}}>⭐ Forfait</label>
@@ -5994,19 +6052,35 @@ function AdminPanel({ events, setEvents, videos, setVideos, gastro, setGastro, o
                         <button onClick={()=>setOEditId(null)} style={{background:"#f0f0f0",color:"#555",fontWeight:700,padding:"8px 16px",borderRadius:10,border:"none",cursor:"pointer"}}>Annuler</button>
                       </div>
                     </div>
-                  ) : (
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name} {o.plan==='pro' && <span style={{fontSize:10,fontWeight:800,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,padding:"2px 8px",borderRadius:99}}>⭐ PRO{o.plan_until?` → ${fmtShort(o.plan_until)}`:""}</span>}</p>
-                        <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}{o.owner_id?" · ✓ propriétaire relié":""}</p>
+                  ) : (()=>{
+                    const owner = orgaPeople.find(p=>p.id===o.owner_id)
+                    const team = orgaTeamRows.filter(r=>String(r.orga_id)===String(o.id))
+                    const pendingTeam = team.filter(r=>r.status==='pending')
+                    const members = team.filter(r=>r.status==='accepted'&&r.user_id!==o.owner_id)
+                    return <>
+                      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:'wrap'}}>
+                        <div style={{flex:1,minWidth:200}}>
+                          <p style={{fontWeight:700,fontSize:14,color:"#111",margin:"0 0 2px"}}>{o.name} {o.plan==='pro' && <span style={{fontSize:10,fontWeight:800,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,padding:"2px 8px",borderRadius:99}}>⭐ PRO{o.plan_until?` → ${fmtShort(o.plan_until)}`:""}</span>}</p>
+                          <p style={{fontSize:12,color:"#888",margin:0}}>{o.type} · {o.city||"?"}</p>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexShrink:0}}>
+                          {pinBtn({active:o.featured,onClick:()=>togglePin('organisateurs',o,setOrgas)})}
+                          <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:"",plan:o.plan||"free",plan_until:o.plan_until||""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
+                          {delBtn(()=>delOrga(o.id))}
+                        </div>
                       </div>
-                      <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        {pinBtn({active:o.featured,onClick:()=>togglePin('organisateurs',o,setOrgas)})}
-                        <button onClick={()=>{setOEditId(o.id);setOForm({...o,owner_username:"",plan:o.plan||"free",plan_until:o.plan_until||""})}} style={{background:"#f0f0f0",color:"#333",fontWeight:700,fontSize:11,padding:"5px 12px",borderRadius:99,border:"none",cursor:"pointer"}}>✏️ Éditer</button>
-                        {delBtn(()=>delOrga(o.id))}
+                      <div style={{marginTop:12,padding:12,background:'#f7faf8',border:'1px solid #dcefe3',borderRadius:12}}>
+                        <p style={{fontSize:11,fontWeight:800,color:GREEN,textTransform:'uppercase',margin:'0 0 7px'}}>Propriétaire et gestionnaires</p>
+                        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
+                          <span style={{fontSize:12,fontWeight:800,color:'#333'}}>👑 {owner?`@${owner.username||owner.email}`:(o.owner_id?'Compte relié':'Aucun propriétaire')}</span>
+                          {owner?.email&&<span style={{fontSize:11,color:'#999'}}>{owner.email}</span>}
+                        </div>
+                        {pendingTeam.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#555'}}>⏳ @{r.profiles?.username||r.profiles?.email||'membre'} veut rejoindre</span><button onClick={()=>decideTeamRequest(r,'accepted')} style={{background:GREEN,color:WHITE,border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Accepter</button><button onClick={()=>decideTeamRequest(r,'rejected')} style={{background:'#eee',color:'#777',border:0,borderRadius:99,padding:'5px 10px',fontSize:11,fontWeight:800,cursor:'pointer'}}>Refuser</button></div>)}
+                        {members.map(r=><div key={r.id} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 0',borderTop:'1px solid #e1ebe5',flexWrap:'wrap'}}><span style={{flex:1,fontSize:12,color:'#444'}}>🛠️ @{r.profiles?.username||r.profiles?.email||'gestionnaire'}</span><button onClick={()=>transferOrgaOwner(o,r.user_id)} style={{background:'#fff3d6',color:'#7a5c00',border:0,borderRadius:99,padding:'5px 10px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Nommer propriétaire</button><button onClick={()=>removeTeamMember(r)} style={{background:'#fde8ec',color:RED,border:0,borderRadius:99,padding:'5px 9px',fontSize:10.5,fontWeight:800,cursor:'pointer'}}>Retirer</button></div>)}
+                        <div style={{display:'flex',gap:7,marginTop:9,flexWrap:'wrap'}}><input value={teamInvite[o.id]||''} onChange={e=>setTeamInvite(v=>({...v,[o.id]:e.target.value}))} placeholder="Pseudo ou email du gestionnaire" style={{...inp,flex:'1 1 220px'}}/><button onClick={()=>addTeamMember(o)} style={{background:GREEN,color:WHITE,border:0,borderRadius:10,padding:'8px 13px',fontSize:11.5,fontWeight:800,cursor:'pointer'}}>+ Ajouter</button></div>
                       </div>
-                    </div>
-                  )}
+                    </>
+                  })()}
                 </div>
               ))}
             </div>
@@ -7090,6 +7164,7 @@ export default function App() {
   const [sessionCats,setSessionCats]                       = useState([]) // filtre temporaire de session
   const [showAdmin,setShowAdmin]       = useState(false)
   const [activeOrgaId,setActiveOrgaId] = useState(()=>localStorage.getItem('mev_active_orga')||null)
+  const [orgaTeamMemberships,setOrgaTeamMemberships] = useState([])
   const [viewingProfile,setViewingProfile] = useState(null) // {id, name}
   const [pendingSlug,setPendingSlug]   = useState(null)
   const [directoryRoute,setDirectoryRoute] = useState(null) // {kind,slug,page}
@@ -7109,10 +7184,18 @@ export default function App() {
     if(root) observer.observe(root,{childList:true,subtree:true})
     return ()=>observer.disconnect()
   },[language,page,selectedEvent,showAuth,showProfile,showMessages,showAdmin])
-  const myOrgas = user ? orgas.filter(o=>o.owner_id===user.id) : []
+  useEffect(()=>{
+    let current = true
+    if (!user) { setOrgaTeamMemberships([]); return ()=>{ current=false } }
+    supabase.from('orga_team').select('orga_id,role,status').eq('user_id',user.id).eq('status','accepted')
+      .then(({data})=>{ if(current) setOrgaTeamMemberships(data||[]) })
+    return ()=>{ current=false }
+  },[user?.id])
+  const managedOrgaIds = orgaTeamMemberships.map(m=>m.orga_id)
+  const myOrgas = user ? orgas.filter(o=>o.owner_id===user.id || managedOrgaIds.some(id=>String(id)===String(o.id))) : []
   const activeOrga = myOrgas.find(o=>String(o.id)===String(activeOrgaId))||null
   const switchIdentity = id => { const next=id?String(id):null; setActiveOrgaId(next); if(next)localStorage.setItem('mev_active_orga',next);else localStorage.removeItem('mev_active_orga') }
-  useEffect(()=>{ if(activeOrgaId && !myOrgas.some(o=>String(o.id)===String(activeOrgaId))) switchIdentity(null) },[user?.id,orgas.length])
+  useEffect(()=>{ if(activeOrgaId && !myOrgas.some(o=>String(o.id)===String(activeOrgaId))) switchIdentity(null) },[user?.id,orgas.length,orgaTeamMemberships.length])
 
   /* ── SEO : routing par URL, méta, données structurées ── */
   useEffect(()=>{
@@ -7567,11 +7650,11 @@ export default function App() {
       )}
 
       {page==="orgas" && (
-        <OrgaPage key={directoryRoute?.slug||"professionnels"} initialSearch={directoryRoute?.page==="orgas"?(orgas.find(x=>slugify(x.name)===directoryRoute.slug)?.name||""):""} isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)} onAuthRequired={()=>setShowAuth(true)}/>
+        <OrgaPage key={directoryRoute?.slug||"professionnels"} initialSearch={directoryRoute?.page==="orgas"?(orgas.find(x=>slugify(x.name)===directoryRoute.slug)?.name||""):""} isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} managedOrgaIds={managedOrgaIds} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)} onAuthRequired={()=>setShowAuth(true)}/>
       )}
 
       {page==="sportifs" && (
-        <OrgaPage key={directoryRoute?.slug||"sportifs"} initialSearch={directoryRoute?.page==="sportifs"?(orgas.find(x=>slugify(x.name)===directoryRoute.slug)?.name||""):""} sportOnly isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)} onAuthRequired={()=>setShowAuth(true)}/>
+        <OrgaPage key={directoryRoute?.slug||"sportifs"} initialSearch={directoryRoute?.page==="sportifs"?(orgas.find(x=>slugify(x.name)===directoryRoute.slug)?.name||""):""} sportOnly isMobile={isMobile} orgas={orgas} events={events} user={user} userProfile={userProfile} isAdmin={isAdmin} managedOrgaIds={managedOrgaIds} onOpenEvent={ev=>setSelectedEvent(ev)} onOrgaUpdated={u=>setOrgas(list=>list.map(x=>x.id===u.id?{...x,...u}:x))} gastro={gastro} lieux={lieux} onGoto={k=>setPage(k)} onAuthRequired={()=>setShowAuth(true)}/>
       )}
 
       {page==="tournaments" && <TournamentsPage isMobile={isMobile}/>} 
@@ -7848,6 +7931,7 @@ export default function App() {
           user={user}
           userProfile={userProfile}
           isAdmin={isAdmin}
+          managedOrgaIds={managedOrgaIds}
           events={events}
           onOpenEvent={event=>{setSelectedOrganizer(null);setSelectedEvent(event)}}
           onClose={()=>setSelectedOrganizer(null)}
@@ -7905,10 +7989,10 @@ export default function App() {
       {viewingProfile && <UserProfileModal profileId={viewingProfile.id} currentUser={user} onAuthRequired={()=>setShowAuth(true)} onClose={()=>setViewingProfile(null)} onMessage={openMsg}/>}
 
       {showProfile && user && (
-        <ProfileModal key={profileInitialTab} initialTab={profileInitialTab} user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)} orgas={orgas} events={events} activeOrga={activeOrga} onSwitchIdentity={switchIdentity} onUpdateOrga={updated=>setOrgas(list=>list.map(o=>o.id===updated.id?{...o,...updated}:o))} onGoPro={()=>setPage('pro')} onGoPremium={()=>setPage('premium')}/>
+        <ProfileModal key={profileInitialTab} initialTab={profileInitialTab} user={user} userProfile={userProfile} onClose={()=>setShowProfile(false)} onSignOut={handleSignOut} onUpdate={up=>setUserProfile(up)} orgas={orgas} managedOrgas={myOrgas} events={events} activeOrga={activeOrga} onSwitchIdentity={switchIdentity} onUpdateOrga={updated=>setOrgas(list=>list.map(o=>o.id===updated.id?{...o,...updated}:o))} onGoPro={()=>setPage('pro')} onGoPremium={()=>setPage('premium')}/>
       )}
 
-      {user && userProfile?.plan==="organisateur" && !orgas.some(o=>o.owner_id===user.id) && !localStorage.getItem('orga_onboard_'+user.id) && (
+      {user && userProfile?.plan==="organisateur" && myOrgas.length===0 && !localStorage.getItem('orga_onboard_'+user.id) && (
         <OrgaOnboarding user={user} orgas={orgas} setOrgas={setOrgas} onClose={()=>setUserProfile(p=>({...p}))}/>
       )}
 
