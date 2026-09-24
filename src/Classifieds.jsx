@@ -13,7 +13,7 @@ const DEFAULT_CATEGORIES=[
 ]
 const CATEGORY_EMOJI={"cours-apprentissage":"🎓","emploi-services":"💼",logement:"🏠",covoiturage:"🚗","vente-don":"🛍️",entraide:"🤝","autres-demandes":"📌"}
 const STATUS={pending:["En attente","#fff3e0","#a34f00"],changes_requested:["À modifier","#fff3e0","#a34f00"],approved:["Publiée","#eaf6ef",GREEN],rejected:["Refusée","#fde8ec",RED],closed:["Clôturée","#f1f1f1","#666"],expired:["Expirée","#f1f1f1","#666"],removed:["Retirée","#fde8ec",RED]}
-const emptyForm={kind:"cherche",title:"",description:"",categoryChoice:"",proposedCategory:"",city:"",department:"",priceLabel:"",files:[],existingImages:[]}
+const emptyForm={kind:"cherche",advertiserType:"particulier",title:"",description:"",categoryChoice:"",proposedCategory:"",city:"",department:"",priceLabel:"",files:[],existingImages:[],rulesAccepted:false}
 const inputStyle={width:"100%",boxSizing:"border-box",border:"1.5px solid #e4e4e4",borderRadius:12,padding:"11px 13px",fontSize:14,outline:"none",background:WHITE}
 const labelStyle={display:"block",fontSize:12,fontWeight:800,color:"#555",marginBottom:6}
 const slugifyCategory=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)
@@ -41,9 +41,10 @@ async function uploadPhotos(files,userId){
 function ClassifiedForm({categories,user,initial,onCancel,onSaved,databaseReady}){
   const [form,setForm]=useState(()=>initial?{
     kind:initial.kind,title:initial.title,description:initial.description,
+    advertiserType:initial.advertiser_type||"particulier",
     categoryChoice:initial.category_id?String(initial.category_id):"__new__",
     proposedCategory:initial.proposed_category||"",city:initial.city,department:initial.department||"",
-    priceLabel:initial.price_label||"",files:[],existingImages:initial.images||[],
+    priceLabel:initial.price_label||"",files:[],existingImages:initial.images||[],rulesAccepted:true,
   }:{...emptyForm})
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState("")
@@ -53,15 +54,16 @@ function ClassifiedForm({categories,user,initial,onCancel,onSaved,databaseReady}
     if(!databaseReady){setError("Le lot Supabase Petites annonces doit être installé avant le premier envoi.");return}
     if(!form.categoryChoice){setError("Choisis une catégorie ou propose-en une nouvelle.");return}
     if(form.categoryChoice==="__new__"&&form.proposedCategory.trim().length<2){setError("Écris le nom de la catégorie proposée.");return}
+    if(!form.rulesAccepted){setError("Tu dois accepter les règles de publication avant l’envoi.");return}
     setSaving(true)
     try{
       const added=await uploadPhotos(form.files,user.id)
       const payload={
-        user_id:user.id,kind:form.kind,title:form.title.trim(),description:form.description.trim(),
+        user_id:user.id,kind:form.kind,advertiser_type:form.advertiserType,title:form.title.trim(),description:form.description.trim(),
         category_id:form.categoryChoice==="__new__"?null:Number(form.categoryChoice),
         proposed_category:form.categoryChoice==="__new__"?form.proposedCategory.trim():null,
         city:form.city.trim(),department:form.department.trim(),price_label:form.priceLabel.trim(),
-        images:[...form.existingImages,...added].slice(0,3),contact_method:"messages",
+        images:[...form.existingImages,...added].slice(0,3),contact_method:"messages",legal_accepted_at:new Date().toISOString(),
       }
       const query=initial
         ? supabase.from("classifieds").update(payload).eq("id",initial.id).select("*").single()
@@ -77,6 +79,7 @@ function ClassifiedForm({categories,user,initial,onCancel,onSaved,databaseReady}
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:18}}><div><h3 style={{fontSize:19,margin:0}}>{initial?"Modifier mon annonce":"Publier une petite annonce"}</h3><p style={{fontSize:12,color:"#888",margin:"4px 0 0"}}>Elle sera vérifiée par l’équipe avant sa publication.</p></div><button type="button" onClick={onCancel} aria-label="Fermer" style={{border:"none",background:"#f2f2f2",borderRadius:99,width:34,height:34,fontSize:18,cursor:"pointer"}}>×</button></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:14}}>
       <label><span style={labelStyle}>Type d’annonce *</span><select value={form.kind} onChange={e=>set("kind",e.target.value)} style={inputStyle}><option value="cherche">🔍 Je cherche</option><option value="propose">📣 Je propose</option></select></label>
+      <label><span style={labelStyle}>Vous publiez comme *</span><select value={form.advertiserType} onChange={e=>set("advertiserType",e.target.value)} style={inputStyle}><option value="particulier">Particulier</option><option value="professionnel">Professionnel</option></select></label>
       <label><span style={labelStyle}>Catégorie *</span><select value={form.categoryChoice} onChange={e=>set("categoryChoice",e.target.value)} style={inputStyle} required><option value="">Choisir…</option>{categories.map(category=><option key={category.id} value={category.id}>{CATEGORY_EMOJI[category.slug]||"📌"} {category.name}</option>)}<option value="__new__">➕ Proposer une nouvelle catégorie</option></select></label>
     </div>
     {form.categoryChoice==="__new__"&&<label style={{display:"block",marginTop:14}}><span style={labelStyle}>Nom de la nouvelle catégorie *</span><input value={form.proposedCategory} onChange={e=>set("proposedCategory",e.target.value)} maxLength={80} placeholder="Ex. Garde d’enfants, traduction…" style={inputStyle} required/></label>}
@@ -90,29 +93,60 @@ function ClassifiedForm({categories,user,initial,onCancel,onSaved,databaseReady}
     <label style={{display:"block",marginTop:14}}><span style={labelStyle}>Photos facultatives — maximum 3</span><input type="file" accept="image/*" multiple disabled={imageCount>=3} onChange={e=>set("files",Array.from(e.target.files||[]).slice(0,Math.max(0,3-form.existingImages.length)))} style={{...inputStyle,padding:8}}/></label>
     {imageCount>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}>{form.existingImages.map((url,index)=><div key={url} style={{position:"relative"}}><img src={url} alt="" style={{width:76,height:62,objectFit:"cover",borderRadius:10}}/><button type="button" onClick={()=>set("existingImages",form.existingImages.filter((_,i)=>i!==index))} style={{position:"absolute",right:-5,top:-5,border:"none",background:RED,color:WHITE,borderRadius:99,width:20,height:20,cursor:"pointer"}}>×</button></div>)}{form.files.map(file=><span key={file.name} style={{fontSize:11,background:"#f2f2f2",padding:"7px 9px",borderRadius:9}}>{file.name}</span>)}</div>}
     <div style={{background:"#f4f8f5",border:"1px solid #dceadf",borderRadius:12,padding:"10px 12px",fontSize:12,color:"#49604f",marginTop:16}}>🔒 Le contact se fait par la messagerie Malagasy Events. Ton téléphone et ton adresse email ne seront pas affichés publiquement.</div>
+    <div style={{background:"#fff8e8",border:"1px solid #eed89c",borderRadius:12,padding:"11px 12px",fontSize:12,color:"#6b5419",lineHeight:1.55,marginTop:10}}><b>Avant de publier :</b> produits ou services illégaux, contrefaçons, discrimination, fausses offres de logement ou d’emploi, travail dissimulé et services réglementés sans qualification sont interdits. Malagasy Events héberge l’annonce mais ne participe ni au paiement ni à la transaction.</div>
+    <label style={{display:"flex",alignItems:"flex-start",gap:9,marginTop:13,fontSize:12,color:"#555",lineHeight:1.5}}><input type="checkbox" checked={form.rulesAccepted} onChange={e=>set("rulesAccepted",e.target.checked)} required style={{marginTop:3}}/><span>Je certifie l’exactitude de l’annonce, disposer des droits sur les photos et accepter les <a href="/cgu" target="_blank" rel="noreferrer" style={{color:GREEN,fontWeight:800}}>CGU</a>, les <a href="/moderation" target="_blank" rel="noreferrer" style={{color:GREEN,fontWeight:800}}>règles de modération</a> et la <a href="/confidentialite" target="_blank" rel="noreferrer" style={{color:GREEN,fontWeight:800}}>politique de confidentialité</a>.</span></label>
     {error&&<p role="alert" style={{color:RED,fontSize:12,fontWeight:700,margin:"12px 0 0"}}>⚠️ {error}</p>}
     <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:18,flexWrap:"wrap"}}><button type="button" onClick={onCancel} style={{border:"none",background:"#f1f1f1",borderRadius:99,padding:"10px 16px",fontWeight:800,cursor:"pointer"}}>Annuler</button><button disabled={saving} style={{border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"10px 18px",fontWeight:900,cursor:"pointer",opacity:saving?.6:1}}>{saving?"Envoi…":initial?"Enregistrer et renvoyer":"Envoyer pour validation"}</button></div>
   </form>
 }
 
-function ClassifiedCard({ad,user,onMessage,onProfileClick,onEdit,onClose}){
+function ClassifiedCard({ad,user,onOpen,onMessage,onEdit,onClose,onReport}){
   const category=ad.classified_categories
   const profile=ad.profiles||{}
   const mine=user?.id===ad.user_id
-  return <article style={{background:WHITE,borderRadius:20,overflow:"hidden",boxShadow:"0 4px 18px rgba(0,0,0,.08)",border:"1px solid #eee",display:"flex",flexDirection:"column"}}>
-    {ad.images?.[0]&&<img src={ad.images[0]} alt="" style={{width:"100%",height:180,objectFit:"cover"}}/>}
-    <div style={{padding:17,display:"flex",flexDirection:"column",gap:10,flex:1}}>
+  const open=()=>onOpen(ad)
+  const stop=callback=>event=>{event.stopPropagation();callback(ad)}
+  return <article onClick={open} style={{height:560,background:WHITE,borderRadius:20,overflow:"hidden",boxShadow:"0 4px 18px rgba(0,0,0,.08)",border:"1px solid #eee",display:"flex",flexDirection:"column",cursor:"pointer"}}>
+    {ad.images?.[0]
+      ?<img src={ad.images[0]} alt="" style={{width:"100%",height:170,objectFit:"cover",flexShrink:0}}/>
+      :<div aria-hidden="true" style={{height:170,flexShrink:0,display:"grid",placeItems:"center",background:"linear-gradient(135deg,#f6f7f6,#eaf4ee)",color:GREEN}}><div style={{textAlign:"center"}}><div style={{fontSize:42,lineHeight:1}}>{CATEGORY_EMOJI[category?.slug]||"📌"}</div><div style={{fontSize:11,fontWeight:900,letterSpacing:.8,marginTop:8}}>{category?.name||ad.proposed_category||"PETITE ANNONCE"}</div></div></div>}
+    <div style={{padding:17,display:"flex",flexDirection:"column",gap:10,flex:1,minHeight:0}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontWeight:900,letterSpacing:.6,color:ad.kind==="cherche"?RED:GREEN}}>{ad.kind==="cherche"?"🔍 JE CHERCHE":"📣 JE PROPOSE"}</span>{mine&&<StatusBadge status={ad.status}/>}</div>
-      <h3 style={{fontSize:18,lineHeight:1.25,margin:0,color:"#202020"}}>{ad.title}</h3>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}><span style={{fontSize:11,background:"#f3f3f3",padding:"5px 8px",borderRadius:99}}>{CATEGORY_EMOJI[category?.slug]||"📌"} {category?.name||ad.proposed_category||"À classer"}</span><span style={{fontSize:11,background:"#f3f3f3",padding:"5px 8px",borderRadius:99}}>📍 {ad.city}{ad.department?` · ${ad.department}`:""}</span>{ad.price_label&&<span style={{fontSize:11,background:"#fff6db",color:"#725600",padding:"5px 8px",borderRadius:99}}>💶 {ad.price_label}</span>}</div>
-      <p style={{fontSize:13,color:"#555",lineHeight:1.55,whiteSpace:"pre-wrap",margin:0,flex:1}}>{ad.description}</p>
-      {ad.moderation_note&&mine&&ad.status!=="approved"&&<div style={{fontSize:12,color:ad.status==="rejected"?RED:"#9a5d00",background:ad.status==="rejected"?"#fff1f3":"#fff8e8",borderRadius:10,padding:"9px 10px"}}><b>Message de la modération :</b> {ad.moderation_note}</div>}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,borderTop:"1px solid #f1f1f1",paddingTop:11,flexWrap:"wrap"}}><button onClick={()=>onProfileClick?.(ad.user_id,profile.username)} style={{border:"none",background:"none",padding:0,fontSize:11,color:"#777",fontWeight:700,cursor:"pointer"}}>@{profile.username||"membre"} · {formatDate(ad.published_at||ad.submitted_at)}</button><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{mine&&["pending","changes_requested","approved"].includes(ad.status)&&<button onClick={()=>onEdit(ad)} style={{border:"none",background:"#f1f1f1",borderRadius:99,padding:"7px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>✏️ Modifier</button>}{mine&&!["closed","rejected","removed","expired"].includes(ad.status)&&<button onClick={()=>onClose(ad)} style={{border:"none",background:"#fde8ec",color:RED,borderRadius:99,padding:"7px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Clôturer</button>}{!mine&&<button onClick={()=>onMessage(ad.user_id,profile.username)} style={{border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"8px 11px",fontSize:11,fontWeight:900,cursor:"pointer"}}>✉️ Envoyer un message</button>}</div></div>
+      <h3 style={{fontSize:18,lineHeight:1.25,margin:0,color:"#202020",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",minHeight:45}}>{ad.title}</h3>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",maxHeight:58,overflow:"hidden"}}><span style={{fontSize:11,background:"#f3f3f3",padding:"5px 8px",borderRadius:99}}>{CATEGORY_EMOJI[category?.slug]||"📌"} {category?.name||ad.proposed_category||"À classer"}</span><span style={{fontSize:11,background:"#f3f3f3",padding:"5px 8px",borderRadius:99}}>📍 {ad.city}{ad.department?` · ${ad.department}`:""}</span><span style={{fontSize:11,background:ad.advertiser_type==="professionnel"?"#eef3ff":"#f3f3f3",padding:"5px 8px",borderRadius:99}}>{ad.advertiser_type==="professionnel"?"🏢 Professionnel":"👤 Particulier"}</span>{ad.price_label&&<span style={{fontSize:11,background:"#fff6db",color:"#725600",padding:"5px 8px",borderRadius:99}}>💶 {ad.price_label}</span>}</div>
+      <p style={{fontSize:13,color:"#555",lineHeight:1.55,whiteSpace:"pre-wrap",margin:0,display:"-webkit-box",WebkitLineClamp:4,WebkitBoxOrient:"vertical",overflow:"hidden",minHeight:81}}>{ad.description}</p>
+      <button type="button" onClick={event=>{event.stopPropagation();open()}} style={{alignSelf:"flex-start",border:"none",background:"transparent",color:GREEN,padding:0,fontSize:12,fontWeight:900,cursor:"pointer"}}>Voir l’annonce complète →</button>
+      {ad.moderation_note&&mine&&ad.status!=="approved"&&<div style={{fontSize:12,color:ad.status==="rejected"?RED:"#9a5d00",background:ad.status==="rejected"?"#fff1f3":"#fff8e8",borderRadius:10,padding:"9px 10px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}><b>Message de la modération :</b> {ad.moderation_note}</div>}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,borderTop:"1px solid #f1f1f1",paddingTop:11,marginTop:"auto",flexWrap:"wrap"}}><span style={{fontSize:11,color:"#777",fontWeight:700}}>Membre de la communauté · {formatDate(ad.published_at||ad.submitted_at)}</span><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{mine&&["pending","changes_requested","approved"].includes(ad.status)&&<button onClick={stop(onEdit)} style={{border:"none",background:"#f1f1f1",borderRadius:99,padding:"7px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>✏️ Modifier</button>}{mine&&!["closed","rejected","removed","expired"].includes(ad.status)&&<button onClick={stop(onClose)} style={{border:"none",background:"#fde8ec",color:RED,borderRadius:99,padding:"7px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Clôturer</button>}{!mine&&<button onClick={stop(onReport)} style={{border:"1px solid #ddd",background:WHITE,color:"#666",borderRadius:99,padding:"7px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>⚑ Signaler</button>}{!mine&&<button onClick={event=>{event.stopPropagation();onMessage(ad.user_id,profile.username)}} style={{border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"8px 11px",fontSize:11,fontWeight:900,cursor:"pointer"}}>✉️ Envoyer un message</button>}</div></div>
     </div>
   </article>
 }
 
-export function ClassifiedsPage({user,onAuthRequired,onMessage,onProfileClick}){
+function ClassifiedDetail({ad,user,onClose,onMessage,onEdit,onCloseAd,onReport}){
+  const category=ad.classified_categories
+  const profile=ad.profiles||{}
+  const mine=user?.id===ad.user_id
+  useEffect(()=>{
+    const closeOnEscape=event=>{if(event.key==="Escape")onClose()}
+    window.addEventListener("keydown",closeOnEscape)
+    return()=>window.removeEventListener("keydown",closeOnEscape)
+  },[onClose])
+  return <div role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}} style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(18,18,18,.72)",display:"grid",placeItems:"center",padding:16}}>
+    <section role="dialog" aria-modal="true" aria-labelledby={`classified-title-${ad.id}`} style={{width:"min(720px,100%)",maxHeight:"90vh",overflowY:"auto",background:WHITE,borderRadius:24,boxShadow:"0 24px 70px rgba(0,0,0,.32)"}}>
+      {ad.images?.[0]&&<img src={ad.images[0]} alt="" style={{display:"block",width:"100%",maxHeight:320,objectFit:"cover",borderRadius:"24px 24px 0 0"}}/>}
+      <div style={{padding:"22px 22px 24px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14}}><div><span style={{fontSize:11,fontWeight:900,letterSpacing:.7,color:ad.kind==="cherche"?RED:GREEN}}>{ad.kind==="cherche"?"🔍 JE CHERCHE":"📣 JE PROPOSE"}</span><h2 id={`classified-title-${ad.id}`} style={{fontSize:25,lineHeight:1.2,margin:"7px 0 0",color:"#202020"}}>{ad.title}</h2></div><button type="button" onClick={onClose} aria-label="Fermer l’annonce" style={{border:"none",background:"#f1f1f1",borderRadius:99,width:38,height:38,fontSize:22,cursor:"pointer",flexShrink:0}}>×</button></div>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}><span style={{fontSize:12,background:"#f3f3f3",padding:"6px 9px",borderRadius:99}}>{CATEGORY_EMOJI[category?.slug]||"📌"} {category?.name||ad.proposed_category||"À classer"}</span><span style={{fontSize:12,background:"#f3f3f3",padding:"6px 9px",borderRadius:99}}>📍 {ad.city}{ad.department?` · ${ad.department}`:""}</span><span style={{fontSize:12,background:ad.advertiser_type==="professionnel"?"#eef3ff":"#f3f3f3",padding:"6px 9px",borderRadius:99}}>{ad.advertiser_type==="professionnel"?"🏢 Professionnel":"👤 Particulier"}</span>{ad.price_label&&<span style={{fontSize:12,background:"#fff6db",color:"#725600",padding:"6px 9px",borderRadius:99}}>💶 {ad.price_label}</span>}</div>
+        <p style={{fontSize:15,color:"#3e3e3e",lineHeight:1.7,whiteSpace:"pre-wrap",margin:"20px 0"}}>{ad.description}</p>
+        {ad.moderation_note&&mine&&ad.status!=="approved"&&<div style={{fontSize:13,color:ad.status==="rejected"?RED:"#8a5700",background:ad.status==="rejected"?"#fff1f3":"#fff8e8",borderRadius:12,padding:"11px 12px",lineHeight:1.55,marginBottom:18}}><b>Message de la modération :</b> {ad.moderation_note}</div>}
+        {ad.images?.length>1&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:9,marginBottom:18}}>{ad.images.slice(1).map(url=><img key={url} src={url} alt="Photo de l’annonce" style={{width:"100%",height:130,objectFit:"cover",borderRadius:14}}/>)}</div>}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderTop:"1px solid #eee",paddingTop:16,flexWrap:"wrap"}}><span style={{fontSize:12,color:"#777",fontWeight:700}}>Membre de la communauté · {formatDate(ad.published_at||ad.submitted_at)}</span><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{mine&&["pending","changes_requested","approved"].includes(ad.status)&&<button onClick={()=>{onClose();onEdit(ad)}} style={{border:"none",background:"#f1f1f1",borderRadius:99,padding:"9px 13px",fontSize:12,fontWeight:800,cursor:"pointer"}}>✏️ Modifier</button>}{mine&&!["closed","rejected","removed","expired"].includes(ad.status)&&<button onClick={()=>{onClose();onCloseAd(ad)}} style={{border:"none",background:"#fde8ec",color:RED,borderRadius:99,padding:"9px 13px",fontSize:12,fontWeight:800,cursor:"pointer"}}>Clôturer</button>}{!mine&&<button onClick={()=>onReport(ad)} style={{border:"1px solid #ddd",background:WHITE,color:"#666",borderRadius:99,padding:"9px 13px",fontSize:12,fontWeight:800,cursor:"pointer"}}>⚑ Signaler</button>}{!mine&&<button onClick={()=>onMessage(ad.user_id,profile.username)} style={{border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"10px 14px",fontSize:12,fontWeight:900,cursor:"pointer"}}>✉️ Envoyer un message</button>}</div></div>
+      </div>
+    </section>
+  </div>
+}
+
+export function ClassifiedsPage({user,onAuthRequired,onMessage}){
   const [categories,setCategories]=useState(DEFAULT_CATEGORIES)
   const [ads,setAds]=useState([])
   const [loading,setLoading]=useState(true)
@@ -124,6 +158,7 @@ export function ClassifiedsPage({user,onAuthRequired,onMessage,onProfileClick}){
   const [mineOnly,setMineOnly]=useState(false)
   const [showForm,setShowForm]=useState(false)
   const [editing,setEditing]=useState(null)
+  const [selectedAd,setSelectedAd]=useState(null)
   const [notice,setNotice]=useState("")
   const load=useCallback(async()=>{
     setLoading(true);setLoadError("")
@@ -148,14 +183,25 @@ export function ClassifiedsPage({user,onAuthRequired,onMessage,onProfileClick}){
   const saveDone=(saved,wasEdit)=>{setShowForm(false);setEditing(null);setNotice(wasEdit?"Ton annonce a été renvoyée à la modération.":"Annonce envoyée ! L’admin vient d’être notifié.");load();setMineOnly(true)}
   const closeAd=async ad=>{if(!window.confirm("Clôturer cette annonce ? Elle ne sera plus visible publiquement."))return;const {error}=await supabase.from("classifieds").update({status:"closed"}).eq("id",ad.id);if(error)alert("⚠️ "+error.message);else{setNotice("Annonce clôturée.");load()}}
   const messageAuthor=(id,name)=>{if(!user){onAuthRequired();return}onMessage(id,name)}
+  const reportAd=async ad=>{
+    if(!user){window.location.href=`/mes-droits?type=content&subject=${encodeURIComponent(`Petite annonce n°${ad.id}`)}`;return}
+    const reason=window.prompt("Pourquoi signalez-vous cette annonce ? N’indiquez pas de données sensibles.")
+    if(!reason?.trim())return
+    const {error}=await supabase.from("reports").insert({target_type:"classified",target_id:ad.id,target_excerpt:`${ad.title} — ${ad.city}`.slice(0,140),reason:reason.trim().slice(0,500),reporter_id:user.id})
+    if(error)alert("⚠️ Signalement impossible : "+error.message)
+    else setNotice("Signalement reçu. L’équipe va examiner cette annonce rapidement.")
+  }
   return <main style={{maxWidth:1180,margin:"0 auto",padding:"30px 16px 80px"}}>
     <section style={{background:"linear-gradient(125deg,#8f0e22,#C8102E 45%,#007A3D 125%)",borderRadius:26,padding:"30px 24px",color:WHITE,boxShadow:"0 10px 30px rgba(0,0,0,.14)",marginBottom:22}}><div style={{maxWidth:760}}><p style={{fontSize:11,fontWeight:900,letterSpacing:1.5,margin:"0 0 7px"}}>ENTRAIDE · SERVICES · OPPORTUNITÉS</p><h2 style={{fontSize:34,lineHeight:1.05,margin:"0 0 10px"}}>📌 Petites annonces</h2><p style={{fontSize:15,lineHeight:1.55,margin:"0 0 20px",color:"rgba(255,255,255,.9)"}}>Trouvez un cours, un service, un logement, un covoiturage ou proposez votre aide à la communauté malagasy.</p><button onClick={requestPublish} style={{background:WHITE,color:RED,border:"none",borderRadius:99,padding:"12px 18px",fontSize:13,fontWeight:900,cursor:"pointer"}}>＋ Publier une annonce gratuitement</button></div></section>
+    <section style={{background:"#fff8e8",border:"1px solid #eed89c",borderRadius:16,padding:"13px 15px",fontSize:12,color:"#6b5419",lineHeight:1.55,marginBottom:18}}><b>Service de mise en relation :</b> Malagasy Events héberge les annonces mais n’est ni vendeur, ni employeur, ni bailleur, ni partie à la transaction. Vérifiez l’identité et les justificatifs utiles, échangez dans la messagerie et ne transmettez jamais de code bancaire. <a href="/moderation" style={{color:GREEN,fontWeight:900}}>Règles et sécurité</a></section>
     {!databaseReady&&<div style={{background:"#fff8e8",border:"1px solid #eed89c",color:"#6b5419",borderRadius:14,padding:"12px 14px",fontSize:12,marginBottom:18}}>🧩 L’interface est prête. Le lot Supabase isolé doit encore être installé pour enregistrer les annonces.</div>}
     {notice&&<div role="status" style={{background:"#eaf6ef",border:"1px solid #cfe5d5",color:GREEN,borderRadius:14,padding:"12px 14px",fontSize:13,fontWeight:800,marginBottom:18}}>{notice}</div>}
-    {showForm&&<ClassifiedForm categories={categories} user={user} initial={editing} databaseReady={databaseReady} onCancel={()=>{setShowForm(false);setEditing(null)}} onSaved={saveDone}/>}    
+    {showForm&&<ClassifiedForm categories={categories} user={user} initial={editing} databaseReady={databaseReady} onCancel={()=>{setShowForm(false);setEditing(null)}} onSaved={saveDone}/>}
     <section style={{background:WHITE,borderRadius:18,padding:14,boxShadow:"0 3px 14px rgba(0,0,0,.06)",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:9,marginBottom:14}}><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher une annonce, une ville…" style={inputStyle}/><select value={kind} onChange={e=>setKind(e.target.value)} style={inputStyle}><option value="all">Tous les types</option><option value="cherche">Je cherche</option><option value="propose">Je propose</option></select><select value={category} onChange={e=>setCategory(e.target.value)} style={inputStyle}><option value="all">Toutes les catégories</option>{categories.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></section>
     {user&&<div style={{display:"flex",gap:8,marginBottom:18}}><button onClick={()=>setMineOnly(false)} style={{border:"none",borderRadius:99,padding:"8px 12px",fontSize:12,fontWeight:800,cursor:"pointer",background:mineOnly?"#f1f1f1":GREEN,color:mineOnly?"#555":WHITE}}>Annonces publiées</button><button onClick={()=>setMineOnly(true)} style={{border:"none",borderRadius:99,padding:"8px 12px",fontSize:12,fontWeight:800,cursor:"pointer",background:mineOnly?GREEN:"#f1f1f1",color:mineOnly?WHITE:"#555"}}>Mes annonces</button></div>}
-    {loading?<p style={{textAlign:"center",color:"#999",padding:40}}>Chargement des annonces…</p>:loadError?<div style={{textAlign:"center",padding:35}}><p style={{color:RED,fontWeight:700}}>{loadError}</p><button onClick={load} style={{border:"none",background:RED,color:WHITE,borderRadius:99,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Réessayer</button></div>:visible.length===0?<div style={{background:WHITE,borderRadius:18,padding:"42px 20px",textAlign:"center",boxShadow:"0 3px 14px rgba(0,0,0,.06)"}}><p style={{fontSize:34,margin:"0 0 8px"}}>📌</p><p style={{fontWeight:900,margin:0}}>{mineOnly?"Tu n’as pas encore soumis d’annonce.":"Aucune annonce ne correspond à ta recherche."}</p><button onClick={requestPublish} style={{marginTop:14,border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Publier la première annonce</button></div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:16}}>{visible.map(ad=><ClassifiedCard key={ad.id} ad={ad} user={user} onMessage={messageAuthor} onProfileClick={onProfileClick} onEdit={item=>{setEditing(item);setShowForm(true);window.scrollTo({top:0,behavior:"smooth"})}} onClose={closeAd}/>)}</div>}
+    {loading?<p style={{textAlign:"center",color:"#999",padding:40}}>Chargement des annonces…</p>:loadError?<div style={{textAlign:"center",padding:35}}><p style={{color:RED,fontWeight:700}}>{loadError}</p><button onClick={load} style={{border:"none",background:RED,color:WHITE,borderRadius:99,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Réessayer</button></div>:visible.length===0?<div style={{background:WHITE,borderRadius:18,padding:"42px 20px",textAlign:"center",boxShadow:"0 3px 14px rgba(0,0,0,.06)"}}><p style={{fontSize:34,margin:"0 0 8px"}}>📌</p><p style={{fontWeight:900,margin:0}}>{mineOnly?"Tu n’as pas encore soumis d’annonce.":"Aucune annonce ne correspond à ta recherche."}</p><button onClick={requestPublish} style={{marginTop:14,border:"none",background:GREEN,color:WHITE,borderRadius:99,padding:"9px 14px",fontWeight:800,cursor:"pointer"}}>Publier la première annonce</button></div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:16}}>{visible.map(ad=><ClassifiedCard key={ad.id} ad={ad} user={user} onOpen={setSelectedAd} onMessage={messageAuthor} onEdit={item=>{setEditing(item);setShowForm(true);window.scrollTo({top:0,behavior:"smooth"})}} onClose={closeAd} onReport={reportAd}/>)}</div>}
+    {selectedAd&&<ClassifiedDetail ad={selectedAd} user={user} onClose={()=>setSelectedAd(null)} onMessage={messageAuthor} onEdit={item=>{setEditing(item);setShowForm(true);window.scrollTo({top:0,behavior:"smooth"})}} onCloseAd={closeAd} onReport={reportAd}/>}
+    <nav aria-label="Informations légales des petites annonces" style={{display:"flex",justifyContent:"center",gap:"8px 16px",flexWrap:"wrap",marginTop:24,fontSize:11,fontWeight:800}}><a href="/cgu" style={{color:GREEN}}>CGU</a><a href="/confidentialite" style={{color:GREEN}}>Confidentialité</a><a href="/moderation" style={{color:GREEN}}>Modération et signalement</a><a href="/mes-droits" style={{color:GREEN}}>Supprimer mon compte ou mes données</a></nav>
   </main>
 }
 

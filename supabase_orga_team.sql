@@ -10,6 +10,29 @@
 alter table public.organisateurs
   add column if not exists is_partner boolean not null default false;
 
+-- Partenaires confirmés par Malagasy Events : visibilité graphique uniquement.
+-- Ce statut n'entre jamais dans le calcul de popularité.
+update public.organisateurs
+set is_partner = true
+where lower(name) in (
+  lower('RNS — Rencontre Nationale Sportive'),
+  lower('RNS - Rencontre Nationale Sportive'),
+  lower('Sehatra Ba Gasy France')
+);
+
+insert into public.organisateurs (name,type,city,region,followers,note,fb,insta,site,contact,is_partner)
+select
+  'Sehatra Ba Gasy France',
+  'Association culturelle',
+  'Châtillon',
+  'Île-de-France',
+  '',
+  'Partenaire Malagasy Events et organisateur du théâtre musical Tana–Paris–Tana.',
+  '', '', '', '', true
+where not exists (
+  select 1 from public.organisateurs where lower(name)=lower('Sehatra Ba Gasy France')
+);
+
 -- Mafana_vibes : fiche partenaire historique gérée par @james_rsl.
 update public.organisateurs
 set is_partner = true

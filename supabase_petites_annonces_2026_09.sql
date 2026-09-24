@@ -35,6 +35,7 @@ create table if not exists public.classifieds (
   id bigint generated always as identity primary key,
   user_id uuid not null references public.profiles(id) on delete restrict,
   kind text not null check (kind in ('cherche','propose')),
+  advertiser_type text not null default 'particulier' check (advertiser_type in ('particulier','professionnel')),
   title text not null check (char_length(btrim(title)) between 5 and 120),
   description text not null check (char_length(btrim(description)) between 20 and 4000),
   category_id bigint references public.classified_categories(id) on delete restrict,
@@ -44,6 +45,7 @@ create table if not exists public.classifieds (
   price_label text not null default '',
   images text[] not null default '{}',
   contact_method text not null default 'messages' check (contact_method='messages'),
+  legal_accepted_at timestamptz,
   status text not null default 'pending'
     check (status in ('pending','changes_requested','approved','rejected','closed','expired','removed')),
   moderation_note text not null default '',
@@ -60,6 +62,13 @@ create table if not exists public.classifieds (
   ),
   constraint classifieds_images_limit check (cardinality(images) <= 3)
 );
+
+alter table public.classifieds add column if not exists advertiser_type text not null default 'particulier';
+alter table public.classifieds add column if not exists legal_accepted_at timestamptz;
+do $$ begin
+  alter table public.classifieds add constraint classifieds_advertiser_type_check
+    check (advertiser_type in ('particulier','professionnel'));
+exception when duplicate_object then null; end $$;
 
 create index if not exists classifieds_public_idx
   on public.classifieds (published_at desc)
@@ -154,10 +163,12 @@ begin
   new.city := btrim(new.city);
   new.department := btrim(coalesce(new.department,''));
   new.price_label := btrim(coalesce(new.price_label,''));
+  new.advertiser_type := btrim(coalesce(new.advertiser_type,'particulier'));
   new.proposed_category := nullif(btrim(coalesce(new.proposed_category,'')),'');
   new.updated_at := now();
 
   if cardinality(new.images)>3 then raise exception 'Maximum 3 photos'; end if;
+  if new.advertiser_type not in ('particulier','professionnel') then raise exception 'Type d’annonceur invalide'; end if;
   if exists(select 1 from unnest(new.images) u where u !~ '^https://') then
     raise exception 'Les photos doivent utiliser des liens HTTPS';
   end if;
@@ -168,6 +179,7 @@ begin
   if tg_op='INSERT' then
     if auth.uid() is null then raise exception 'Authentification requise'; end if;
     if not v_admin and new.user_id is distinct from auth.uid() then raise exception 'Auteur invalide'; end if;
+    if not v_admin and new.legal_accepted_at is null then raise exception 'Acceptation des règles requise'; end if;
     if not v_admin then
       new.status := 'pending';new.moderation_note := '';new.moderator_id := null;
       new.published_at := null;new.expires_at := null;new.closed_at := null;

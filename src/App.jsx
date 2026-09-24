@@ -768,6 +768,23 @@ const nextFridayDate = () => {
 
 const supplementalEvents = [
   {
+    id:"messe-ccmgr-echirolles-20-septembre-2026",
+    title:"Messe du 4e dimanche — CCMGr Grenoble",
+    date:"2026-09-20",
+    location:"Église Saint-Jacques, 2 place Louis-Baillé-Barrelle, 38130 Échirolles",
+    address:"2 place Louis-Baillé-Barrelle, 38130 Échirolles",
+    city:"Échirolles",
+    category:"Religion",
+    image:"",
+    price:"",
+    organizer:"Communauté catholique malgache de Grenoble (CCMGr)",
+    ticketUrl:"https://catholique-malgache-grenoble.fr/",
+    official_source_url:"https://catholique-malgache-grenoble.fr/",
+    updates_url:"https://catholique-malgache-grenoble.fr/",
+    description:"La Communauté catholique malgache de Grenoble annonce sa messe du quatrième dimanche le 20 septembre 2026, de 10 h à 18 h, au quartier Saint-Joseph, à l’église Saint-Jacques d’Échirolles. La date, l’horaire et l’adresse ont été contrôlés le 13 septembre 2026 sur le calendrier officiel de la CCMGr.",
+    mediaUrls:[],createdAt:"2026-09-13T00:00:00.000Z",
+  },
+  {
     id:"jeunesse-doree-red-island-2026",
     title:"Jeunesse Dorée — Red Island",
     date:"2026-09-18",
@@ -1185,7 +1202,7 @@ const initialGastro = [
 const VERIFIED_GASY_GASTRO_NAMES = new Set(initialGastro.map(item=>normalizedDirectoryName(item.name)))
 
 const initialOrgas = [
-  {id:1,name:"RNS — Rencontre Nationale Sportive",type:"Association sportive",city:"National (Vichy)",region:"",followers:"84 000",note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre.",fb:"https://www.facebook.com/rns.cen",insta:"https://www.instagram.com/rns_cen/",site:"https://www.rns-cen.com",contact:"",logo_url:"/images/rns-cen-logo.jpg"},
+  {id:1,name:"RNS — Rencontre Nationale Sportive",type:"Association sportive",city:"National (Vichy)",region:"",followers:"84 000",note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre.",fb:"https://www.facebook.com/rns.cen",insta:"https://www.instagram.com/rns_cen/",site:"https://www.rns-cen.com",contact:"",logo_url:"/images/rns-cen-logo.jpg",is_partner:true},
   {id:2,name:"Collectif Sport Malagasy — CSM",type:"Association sportive",city:"National",region:"",followers:"14 000",note:"Organise le Tournoi de la Solidarité (foot & basket) chaque week-end de la Toussaint à Villebon-sur-Yvette, et un tournoi de printemps.",fb:"https://www.facebook.com/profile.php?id=100064795630232",insta:"",site:"",contact:""},
   {id:3,name:"ASM Paris",type:"Association sportive",city:"Paris",region:"Île-de-France",followers:"7 100",note:"Association Sportive Malgache historique, depuis 1986. Tournoi de l'amitié.",fb:"https://www.facebook.com/profile.php?id=100064645391225",insta:"",site:"",contact:""},
   {id:4,name:"Ligue Clichy Madagascar",type:"Association sportive",city:"Clichy",region:"Île-de-France",followers:"3 800",note:"Ligue basket de la communauté malgache. Tournoi de Noël chaque fin d'année.",fb:"https://www.facebook.com/profile.php?id=100063642368550",insta:"",site:"",contact:""},
@@ -1224,6 +1241,7 @@ const initialOrgas = [
   {id:37,name:"Saomavibe",type:"Organisateur",city:"Lyon",region:"Auvergne-Rhône-Alpes",followers:"",note:"Nouvel organisateur de soirées malagasy à Lyon.",fb:"",insta:"https://www.instagram.com/saomavibe_/",site:"",contact:""},
   {id:38,name:"BEB’S — Sakafo",type:"Organisateur",city:"Évry-Courcouronnes",region:"Île-de-France",followers:"",note:"Cuisine et rendez-vous sakafo pour la communauté malagasy à Évry-Courcouronnes.",fb:"",insta:"",site:"",contact:""},
   {id:39,name:"Ny Aina VoaArinavalona",type:"DJ & artistes",city:"Paris",region:"Île-de-France",followers:"7 322",note:"DJ basé à Paris, présent notamment au Duplex, au Barapapa et au Balajo.",fb:"",insta:"https://www.instagram.com/nyaina_vrn/",site:"https://www.nyainavrn.com",contact:""},
+  {id:40,name:"Sehatra Ba Gasy France",type:"Association culturelle",city:"Châtillon",region:"Île-de-France",followers:"",note:"Partenaire Malagasy Events et organisateur du théâtre musical Tana–Paris–Tana.",fb:"",insta:"",site:"",contact:"",is_partner:true},
 ]
 
 const CAT_COLORS = {Soirée:{bg:"#fde8ec",color:RED},Culture:{bg:"#e6f4ed",color:GREEN},Gastronomie:{bg:"#fff3e0",color:"#e65100"},Sport:{bg:"#e3f2fd",color:"#1565c0"},Religion:{bg:"#fff8e1",color:"#f57f17"},Autre:{bg:"#f5f5f5",color:"#555"}}
@@ -3584,6 +3602,103 @@ function OrgaTeam({ orga, user, isOwner, isAdmin, onAuthRequired }) {
   )
 }
 
+function getReputation(item={},kind="orga") {
+  const rawRating = Number(item.rating_average ?? item.rating)
+  const rawReviews = Number(item.review_count ?? item.reviews_count)
+  const rawViews = Number(item.view_count ?? item.views)
+  const rawAudience = item.audience_verified
+    ? Number(item.audience_total||0)
+    : 0
+  const rating = Number.isFinite(rawRating) && rawRating>0 ? rawRating : 0
+  const reviews = Number.isFinite(rawReviews) && rawReviews>=0 ? rawReviews : 0
+  const views = Number.isFinite(rawViews) && rawViews>=0 ? rawViews : 0
+  const audience = Number.isFinite(rawAudience) && rawAudience>=0 ? rawAudience : 0
+  // Les vues du site restent prioritaires. L'audience publique évite qu'une institution
+  // déjà reconnue disparaisse au lancement, sans pouvoir bloquer le classement à vie.
+  const viewSignal = Math.log1p(views)/Math.log(10)
+  const audienceSignal = Math.log1p(audience)/Math.log(10)
+  const score = viewSignal*.65+audienceSignal*.35
+  return {rating:Math.min(5,rating),reviews,views,audience,score}
+}
+
+function sortByReputation(items,sortMode,kind) {
+  return [...items].sort((a,b)=>{
+    const ar=getReputation(a,kind), br=getReputation(b,kind)
+    if(sortMode==="alphabetique") return String(a.name||a.title).localeCompare(String(b.name||b.title),"fr")
+    return br.score-ar.score || br.views-ar.views || String(a.name||a.title).localeCompare(String(b.name||b.title),"fr")
+  })
+}
+
+function usePagePopularity() {
+  const [counts,setCounts]=useState({})
+  useEffect(()=>{
+    let active=true
+    supabase.from("page_popularity").select("page_path,view_count").then(({data,error})=>{
+      if(!active||error)return
+      setCounts(Object.fromEntries((data||[]).map(row=>[row.page_path,Number(row.view_count)||0])))
+    }).catch(()=>{})
+    return()=>{active=false}
+  },[])
+  return counts
+}
+
+function ReputationSort({value,onChange,isMobile}) {
+  return <div style={{background:"#fffaf0",border:"1px solid #eadfbd",borderRadius:16,padding:isMobile?10:12,margin:"0 0 18px"}}>
+    <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
+      <span style={{fontSize:11,fontWeight:900,color:"#755c16",marginRight:3}}>CLASSEMENT DE LA COMMUNAUTÉ</span>
+      <button type="button" onClick={()=>onChange("recommandes")} aria-pressed={value==="recommandes"} style={{border:"1px solid #26215C",background:value==="recommandes"?"#26215C":WHITE,color:value==="recommandes"?WHITE:"#26215C",borderRadius:99,padding:"7px 11px",fontSize:11.5,fontWeight:800,cursor:"pointer"}}>📈 Les plus visibles</button>
+      <button type="button" onClick={()=>onChange("alphabetique")} aria-pressed={value==="alphabetique"} style={{border:"1px solid #d7c895",background:value==="alphabetique"?"#755c16":WHITE,color:value==="alphabetique"?WHITE:"#755c16",borderRadius:99,padding:"7px 11px",fontSize:11.5,fontWeight:800,cursor:"pointer"}}>A–Z</button>
+    </div>
+    <p style={{fontSize:10.5,color:"#85795d",lineHeight:1.45,margin:"8px 2px 0"}}>{value==="alphabetique"?"Toutes les fiches sont classées par ordre alphabétique.":"Le classement combine les visiteurs uniques des fiches Malagasy Events (prioritaires) et l’audience publique des réseaux vérifiée. Les partenaires sont signalés visuellement, sans modifier le calcul."}</p>
+  </div>
+}
+
+function ReputationBadges({item,kind,rank}) {
+  const rep=getReputation(item,kind)
+  return <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+    {rank&&rank<=3&&(rep.views>0||rep.audience>0)&&<span style={{background:rank===1?"#f5c542":"#eee6d1",color:"#4d3b00",fontSize:10.5,fontWeight:900,padding:"4px 8px",borderRadius:99}}>#{rank}</span>}
+    {rep.reviews>0
+      ? <span style={{background:"#fff6d8",color:"#805d00",fontSize:10.5,fontWeight:800,padding:"4px 8px",borderRadius:99}}>★ {rep.rating.toFixed(1).replace(".",",")} <span style={{fontWeight:600}}>({rep.reviews})</span></span>
+      : <span style={{background:"#fff6d8",color:"#805d00",fontSize:10.5,fontWeight:800,padding:"4px 8px",borderRadius:99}}>☆ Soyez le premier à noter</span>}
+    <span title="Visiteurs uniques par jour sur cette fiche Malagasy Events" style={{background:"#f1f3f5",color:"#62666c",fontSize:10.5,fontWeight:700,padding:"4px 8px",borderRadius:99}}>👀 {rep.views.toLocaleString("fr-FR")} visite{rep.views>1?"s":""} unique{rep.views>1?"s":""}</span>
+    {rep.audience>0&&<span title="Audience publique constatée sur les réseaux" style={{background:"#edf7f1",color:"#18653c",fontSize:10.5,fontWeight:700,padding:"4px 8px",borderRadius:99}}>📣 {rep.audience.toLocaleString("fr-FR")} réseaux</span>}
+  </div>
+}
+
+function ReviewPreview({kind="event",entity={},locked=false}) {
+  const [open,setOpen]=useState(false)
+  const [rating,setRating]=useState(0)
+  const [hovered,setHovered]=useState(0)
+  const [notice,setNotice]=useState("")
+  const reputation=getReputation(entity,kind)
+  const config={
+    event:{criteria:[["Organisation","4,7"],["Ambiance","4,8"],["Qualité-prix","4,2"]]},
+    gastro:{criteria:[["Accueil","4,6"],["Cuisine","4,5"],["Qualité-prix","4,1"]]},
+    orga:{criteria:[["Communication","4,4"],["Fiabilité","4,7"],["Organisation","4,5"]]},
+  }[kind]
+  const submit=e=>{e.preventDefault();if(!rating){setNotice("Choisis d’abord une note.");return}setNotice("Aperçu uniquement : cet avis n’a pas été enregistré.")}
+  return <section style={{border:"1px solid #eadfbd",background:"linear-gradient(135deg,#fffdf7,#fff8e7)",borderRadius:16,padding:16,margin:"16px 0"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+      <div><p style={{fontSize:11,fontWeight:900,letterSpacing:.7,color:"#8a6700",margin:"0 0 5px"}}>AVIS DE LA COMMUNAUTÉ · APERÇU TEST</p>{reputation.reviews>0?<div style={{display:"flex",alignItems:"baseline",gap:7}}><strong style={{fontSize:28,color:"#211f26"}}>{reputation.rating.toFixed(1).replace(".",",")}</strong><span style={{color:"#e5a600",fontSize:18,letterSpacing:1}}>★★★★★</span><span style={{fontSize:12,color:"#777"}}>{reputation.reviews} avis{reputation.views>0?` · ${reputation.views.toLocaleString("fr-FR")} consultations`:""}</span></div>:<><strong style={{display:"block",fontSize:19,color:"#211f26",marginBottom:4}}>Aucun avis pour le moment</strong><span style={{fontSize:12,color:"#777"}}>Vous connaissez cette adresse ou cet organisateur ? Votre expérience aidera la communauté.</span></>}</div>
+      <span style={{background:WHITE,border:"1px solid #eadfbd",borderRadius:99,padding:"6px 9px",fontSize:10,fontWeight:800,color:"#755c16"}}>Note indépendante</span>
+    </div>
+    {reputation.reviews>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,margin:"12px 0"}}>{config.criteria.map(([label,value])=><div key={label} style={{background:"rgba(255,255,255,.75)",borderRadius:10,padding:"8px 6px",textAlign:"center"}}><strong style={{display:"block",fontSize:14,color:"#333"}}>{value}/5</strong><span style={{fontSize:10,color:"#777"}}>{label}</span></div>)}</div>}
+    <p style={{fontSize:11,color:"#7a6a42",lineHeight:1.45,margin:"10px 0 11px"}}>Seuls les avis réellement déposés par les membres seront affichés. Malagasy Events ne crée aucune note. Les partenariats n’influencent jamais le résultat.</p>
+    {locked?<div style={{background:"#f4f4f4",borderRadius:10,padding:"9px 11px",fontSize:12,color:"#777",fontWeight:700}}>🔒 Les avis ouvriront après la date de l’événement.</div>:<>
+      <button onClick={()=>setOpen(v=>!v)} style={{width:"100%",border:"none",background:open?"#f0ead8":"#26215C",color:open?"#5f512b":WHITE,borderRadius:11,padding:"12px 13px",fontWeight:900,cursor:"pointer"}}>{open?"Fermer":"⭐ Partager mon expérience"}</button>
+      {open&&<form onSubmit={submit} style={{marginTop:11,background:WHITE,borderRadius:12,padding:12}}>
+        <p style={{fontSize:12,fontWeight:800,color:"#444",margin:"0 0 7px"}}>Votre note générale</p>
+        <div style={{display:"flex",gap:3,marginBottom:10}}>{[1,2,3,4,5].map(star=><button type="button" key={star} aria-label={`${star} étoile${star>1?"s":""}`} onMouseEnter={()=>setHovered(star)} onMouseLeave={()=>setHovered(0)} onClick={()=>setRating(star)} style={{border:"none",background:"none",padding:1,fontSize:29,color:star<=(hovered||rating)?"#e5a600":"#d8d8d8",cursor:"pointer"}}>★</button>)}</div>
+        <textarea rows={3} placeholder="Partagez une expérience précise et utile…" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:10,padding:10,fontSize:12,fontFamily:"inherit",resize:"vertical"}}/>
+        <label style={{display:"flex",gap:7,alignItems:"center",fontSize:11,color:"#666",margin:"9px 0"}}><input type="checkbox"/> Je confirme avoir participé ou avoir été client.</label>
+        <button style={{border:"none",background:GREEN,color:WHITE,borderRadius:10,padding:"9px 13px",fontWeight:800,cursor:"pointer"}}>Publier mon avis</button>
+        {notice&&<p role="status" style={{fontSize:11,color:RED,fontWeight:700,margin:"8px 0 0"}}>{notice}</p>}
+      </form>}
+    </>}
+    <p style={{fontSize:10.5,color:"#999",margin:"10px 0 0"}}>Avis modérés · Un avis par compte · La structure peut répondre, jamais supprimer un avis.</p>
+  </section>
+}
+
 function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, managedOrgaIds = [], events, onOpenEvent, onClose, onUpdated, onAuthRequired }) {
   const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
   const brandColor = safeHexColor(o.brand_color)||col.color
@@ -3697,6 +3812,7 @@ function OrgaDetail({ o, isMobile, user, userProfile, isAdmin, managedOrgaIds = 
             </div>
             {o.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{o.note}</p>}
             {!isOwner && <div style={{margin:"0 0 16px"}}><OrgaFollowButton orgaId={o.id} currentUser={user} onAuthRequired={onAuthRequired} onChange={d=>setFollowerCount(c=>Math.max(0,c+d))}/></div>}
+            <ReviewPreview kind="orga" entity={o}/>
             {isOwner && <div style={{background:'#f7faf8',border:'1px solid #dcefe3',borderRadius:14,padding:'12px 14px',margin:'0 0 16px'}}>
               <button onClick={()=>setShowFollowers(v=>!v)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',padding:0,cursor:'pointer',fontWeight:800,fontSize:13,color:GREEN}}><span>👥 Tes abonnés · {followerCount}</span><span>{showFollowers?'▲':'▼'}</span></button>
               {showFollowers && <div style={{marginTop:10}}>{followers.length?followers.map(p=><div key={p.id} style={{display:'flex',alignItems:'center',gap:9,padding:'7px 0',borderTop:'1px solid #e6eee9'}}><div style={{width:30,height:30,borderRadius:'50%',background:'#e6f4ed',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',color:GREEN,fontWeight:800}}>{p.avatar_url?<img src={p.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:(p.username||'?')[0].toUpperCase()}</div><div><p style={{fontSize:12.5,fontWeight:700,margin:0,color:'#333'}}>{p.username||'Membre'}</p>{p.code_postal&&<p style={{fontSize:10.5,color:'#999',margin:'1px 0 0'}}>📍 {p.code_postal}</p>}</div></div>):<p style={{fontSize:12,color:'#888',margin:'8px 0 0'}}>Pas encore d’abonné. Partage ta fiche pour lancer ta communauté.</p>}</div>}
@@ -3995,19 +4111,20 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, managed
   const totalPros = publicOrgas.length + gastro.length + lieux.length
   const [filter,setFilter] = useState(sportOnly ? "Association sportive" : "Tous")
   const [q,setQ] = useState(initialSearch)
+  const [sortMode,setSortMode] = useState("recommandes")
   const [selected,setSelected] = useState(null)
+  const pagePopularity=usePagePopularity()
   const types = ["Tous",...Object.keys(ORGA_COLORS)]
   const nq = q.trim().toLowerCase()
   const base = publicOrgas.filter(o=>{
     const typeOk = (sportOnly ? o.type==="Association sportive" : true) && (filter==="Tous" || o.type===filter)
     const qOk = !nq || [o.name,o.city,o.region,o.note].some(v=>(v||"").toLowerCase().includes(nq))
     return typeOk && qOk
-  })
-  // Épinglés puis fiches Pro en tête de l'annuaire
+  }).map(o=>({...o,view_count:pagePopularity[`${sportOnly?"/sportif/":"/professionnel/"}${slugify(o.name)}`]||0}))
   const today = new Date().toISOString().slice(0,10)
   const isProOrga = o => o.plan==='pro' && (!o.plan_until||o.plan_until>=today)
-  const rank = o => (o.featured?2:0)+(isProOrga(o)?1:0)
-  const list = [...base].sort((a,b)=>rank(b)-rank(a))
+  const list = sortByReputation(base,sortMode,"orga")
+  const partnerOrgas = base.filter(o=>o.is_partner&&o.logo_url)
   const sportEvents = events
     .filter(e=>e.category==="Sport"&&!isPast(e.date))
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)))
@@ -4092,10 +4209,19 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, managed
           </button>
         ))}
       </div>}
+      {partnerOrgas.length>0 && <section aria-label="Partenaires Malagasy Events" style={{margin:"0 0 18px"}}>
+        <p style={{fontSize:10.5,fontWeight:900,color:"#777",letterSpacing:.8,margin:"0 0 8px"}}>NOS PARTENAIRES</p>
+        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          {partnerOrgas.map(o=><button key={`partner-${o.id}`} type="button" title={`Voir la fiche de ${o.name}`} aria-label={`Voir la fiche partenaire de ${o.name}`} onClick={()=>{setSelected(o);trackVisitEvent("page_view",{page_path:`${sportOnly?"/sportif/":"/professionnel/"}${slugify(o.name)}`,page_title:o.name})}} style={{width:isMobile?56:64,height:isMobile?56:64,background:WHITE,border:"1px solid #e5e5e5",borderRadius:14,padding:6,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)",overflow:"hidden"}}>
+            <img src={o.logo_url} alt={`Logo ${o.name}`} style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+          </button>)}
+        </div>
+      </section>}
+      <ReputationSort value={sortMode} onChange={setSortMode} isMobile={isMobile}/>
       {list.length===0 && <p style={{color:"#bbb",fontSize:13,textAlign:"center",padding:"30px 0"}}>Aucun résultat pour « {q} »</p>}
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(270px, 1fr))",gap:14}}>
-        {list.map(o=>{
+        {list.map((o,index)=>{
           const col = ORGA_COLORS[o.type]||{bg:"#f5f5f5",color:"#555"}
           const grad = ORGA_GRAD[o.type]||"linear-gradient(135deg,#555,#333)"
           const brandColor = safeHexColor(o.brand_color)
@@ -4103,21 +4229,22 @@ function OrgaPage({ isMobile, orgas, events, user, userProfile, isAdmin, managed
           const isPro = o.plan==='pro' && (!o.plan_until || o.plan_until >= new Date().toISOString().slice(0,10))
           const count = events.filter(e=>eventBelongsToOrga(e,o)).length
           return (
-            <div key={`${normalizedDirectoryName(o.name)}:${o.id}`} onClick={()=>setSelected(o)} style={{background:WHITE,borderRadius:18,boxShadow:o.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:o.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
+            <div key={`${normalizedDirectoryName(o.name)}:${o.id}`} onClick={()=>{setSelected(o);trackVisitEvent("page_view",{page_path:`${sportOnly?"/sportif/":"/professionnel/"}${slugify(o.name)}`,page_title:o.name})}} style={{background:WHITE,borderRadius:18,boxShadow:o.is_partner?"0 6px 22px rgba(0,122,61,0.16)":o.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:o.is_partner?"2px solid #007A3D":o.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
               <div style={{height:70,background:cardGrad,position:"relative",display:"flex",alignItems:"center",padding:"0 16px"}}>
                 <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,0.92)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,overflow:'hidden',color:brandColor||col.color,fontWeight:900}}>{o.logo_url?<img src={o.logo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:(ORGA_EMOJI[o.type]||"🎪")}</div>
                 {o.featured && <span style={{position:"absolute",top:8,right:8,background:"rgba(255,255,255,0.95)",color:"#b8860b",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ À LA UNE</span>}
-                {isPro && !o.featured && <span style={{position:"absolute",top:8,right:8,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
+                {o.is_partner && !o.featured && <span style={{position:"absolute",top:8,right:8,background:"rgba(255,255,255,0.96)",color:GREEN,fontSize:10,fontWeight:900,padding:"3px 9px",borderRadius:99}}>🤝 PARTENAIRE</span>}
+                {isPro && !o.featured && !o.is_partner && <span style={{position:"absolute",top:8,right:8,background:"linear-gradient(135deg,#b8860b,#e6b31e)",color:WHITE,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99}}>⭐ PRO</span>}
               </div>
               <div style={{padding:"12px 16px 14px",display:"flex",flexDirection:"column",gap:8,flex:1}}>
                 <p style={{fontWeight:800,fontSize:15.5,color:"#111",margin:0,lineHeight:1.25}}>{o.name}</p>
+                <ReputationBadges item={o} kind="orga" rank={index+1}/>
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                   <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:99}}>{ORGA_EMOJI[o.type]||""} {o.type}</span>
                   {o.city && <span style={{fontSize:12,color:"#888",fontWeight:600}}>📍 {o.city}</span>}
                 </div>
                 {o.note && <p style={{fontSize:12.5,color:"#777",margin:0,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{o.note}</p>}
                 <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:"auto",paddingTop:4}}>
-                  {o.followers && <span style={{fontSize:12,color:"#999",fontWeight:600}}>👥 {o.followers}</span>}
                   {count>0 && <span style={{fontSize:11,fontWeight:700,background:"#fde8ec",color:RED,padding:"3px 10px",borderRadius:99}}>🎪 {count} évén.{count>1?"s":""}</span>}
                   {o.owner_id && <span style={{fontSize:11,fontWeight:700,background:"#e6f4ed",color:GREEN,padding:"3px 8px",borderRadius:99}}>✓ orga</span>}
                   <span style={{marginLeft:"auto",fontSize:12,fontWeight:800,color:col.color}}>Voir →</span>
@@ -4158,6 +4285,7 @@ function GastroDetail({ g, isMobile, onClose }) {
             {g.city && <span style={{fontSize:13,color:"#666",fontWeight:600}}>📍 {g.city}</span>}
           </div>
           {g.note && <p style={{fontSize:14,color:"#555",lineHeight:1.6,margin:"0 0 16px"}}>{g.note}</p>}
+          <ReviewPreview kind="gastro" entity={g}/>
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:18}}>
             {g.address && (
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.address)}`} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,background:"#f7f7f7",borderRadius:12,padding:"10px 14px",fontSize:13,color:"#333",textDecoration:"none",fontWeight:600}}>
@@ -4191,18 +4319,21 @@ function GastroPage({ isMobile, gastro = initialGastro, initialSearch="" }) {
   const [filter,setFilter] = useState("Tous")
   const [regionFilter,setRegionFilter] = useState("Toutes")
   const [q,setQ] = useState(initialSearch)
+  const [sortMode,setSortMode] = useState("recommandes")
   const [selected,setSelected] = useState(null)
+  const pagePopularity=usePagePopularity()
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const types = ["Tous","Restaurant","Traiteur","Food truck"]
   const regions = ["Toutes",...[...new Set(gastro.map(g=>g.region).filter(Boolean))].sort()]
   const nq = q.trim().toLowerCase()
-  const list = gastro.filter(g=>{
+  const filteredGastro = gastro.filter(g=>{
     const typeOk   = filter==="Tous" || g.type===filter
     const regionOk = regionFilter==="Toutes" || g.region===regionFilter
     const qOk = !nq || [g.name,g.city,g.region,g.type,g.note,g.address].some(v=>(v||"").toLowerCase().includes(nq))
     return typeOk && regionOk && qOk
-  }).sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)) // épinglés en tête
+  }).map(g=>({...g,view_count:pagePopularity[`${g.type==="Traiteur"?"/traiteur/":"/restaurant/"}${slugify(g.name)}`]||0}))
+  const list = sortByReputation(filteredGastro,sortMode,"gastro")
   const located = gastro.filter(g=>g.lat&&g.lng)
 
   useEffect(()=>{
@@ -4261,6 +4392,7 @@ function GastroPage({ isMobile, gastro = initialGastro, initialSearch="" }) {
           </button>
         ))}
       </div>
+      <ReputationSort value={sortMode} onChange={setSortMode} isMobile={isMobile}/>
       {list.length===0 && (
         <div style={{textAlign:"center",padding:"32px 24px",background:WHITE,borderRadius:16,color:"#bbb",marginBottom:14}}>
           <p style={{fontWeight:700,margin:0}}>{q?`Aucun résultat pour « ${q} »`:"Aucune adresse pour ces filtres"}</p>
@@ -4269,11 +4401,11 @@ function GastroPage({ isMobile, gastro = initialGastro, initialSearch="" }) {
 
       {/* Cartes */}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill, minmax(260px, 1fr))",gap:14}}>
-        {list.map(g=>{
+        {list.map((g,index)=>{
           const col = GASTRO_COLORS[g.type]||{bg:"#f5f5f5",color:"#555"}
           const grad = GASTRO_GRAD[g.type]||"linear-gradient(135deg,#555,#333)"
           return (
-            <div key={g.id} onClick={()=>setSelected(g)} style={{background:WHITE,borderRadius:18,boxShadow:g.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:g.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
+            <div key={g.id} onClick={()=>{const pagePath=`${g.type==="Traiteur"?"/traiteur/":"/restaurant/"}${slugify(g.name)}`;setSelected(g);trackVisitEvent("page_view",{page_path:pagePath,page_title:g.name})}} style={{background:WHITE,borderRadius:18,boxShadow:g.featured?"0 4px 18px rgba(184,134,11,0.3)":"0 3px 14px rgba(0,0,0,0.07)",border:g.featured?"1.5px solid #e6b31e":"1px solid #f0f0f0",overflow:"hidden",cursor:"pointer",display:"flex",flexDirection:"column"}}>
               <div style={{height:70,background:grad,position:"relative",display:"flex",alignItems:"center",padding:"0 16px",gap:12}}>
                 <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,0.92)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{GASTRO_EMOJI[g.type]||"🍽️"}</div>
                 {g.lat && <span style={{background:"rgba(255,255,255,0.22)",color:WHITE,fontSize:10,fontWeight:800,padding:"3px 9px",borderRadius:99}}>🗺️ SUR LA CARTE</span>}
@@ -4281,6 +4413,7 @@ function GastroPage({ isMobile, gastro = initialGastro, initialSearch="" }) {
               </div>
               <div style={{padding:"12px 16px 14px",display:"flex",flexDirection:"column",gap:8,flex:1}}>
                 <p style={{fontWeight:800,fontSize:15.5,color:"#111",margin:0,lineHeight:1.25}}>{g.name}</p>
+                <ReputationBadges item={g} kind="gastro" rank={index+1}/>
                 <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                   <span style={{background:col.bg,color:col.color,fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:99}}>{GASTRO_EMOJI[g.type]} {g.type}</span>
                   {g.city && <span style={{fontSize:12,color:"#888",fontWeight:600}}>📍 {g.city}</span>}
@@ -4995,6 +5128,7 @@ function EventDetail({ event, onClose, user, onAuthRequired, isAdmin, onUpdated,
 
             {/* Description */}
             {event.description && <p style={{fontSize:14,color:"#555",lineHeight:1.6,marginBottom:20}}>{event.description}</p>}
+            <ReviewPreview kind="event" entity={event} locked={!isPast(event.date)}/>
 
             {officialPartnerPosters.length>1 && (
               <div style={{marginBottom:20}}>
@@ -6560,11 +6694,11 @@ function GuidePage({isMobile}) {
     },
     famille:{
       audience:"Familles vivant entre France et Madagascar",timing:"Avant toute démarche internationale",cost:"Variable selon les actes",
-      intro:"Identifier la bonne procédure pour la venue d’un proche, l’état civil ou la scolarité sans mélanger des démarches différentes.",
-      steps:[["Qualifier la situation","Nationalité, lien familial, pays du mariage ou de la naissance et statut en France changent la procédure."],["Identifier l’autorité","Selon le cas : mairie, préfecture, Ofii, consulat ou service central d’état civil."],["Réunir les actes recevables","Vérifie si une copie intégrale, une traduction ou une légalisation est demandée."],["Suivre les deux pays","Une démarche française ne met pas automatiquement à jour l’état civil malgache, et inversement."]],
+      intro:"Identifier la bonne procédure pour la venue d’un proche, l’état civil ou la scolarité sans mélanger regroupement familial, réunification familiale et visa de membre de famille.",
+      steps:[["Qualifier la personne en France","Sa nationalité et son titre déterminent le parcours : Français, étranger en séjour régulier ou personne protégée."],["Qualifier le proche","Conjoint, enfant et parent ne relèvent pas automatiquement de la même procédure."],["Choisir le bon parcours","Regroupement familial auprès de l’Ofii, réunification familiale par demande de visa, ou visa de famille de Français selon la situation."],["Réunir les actes recevables","Vérifie filiation, mariage, autorité parentale, traduction, légalisation ou transcription demandées."],["Contrôler les conditions","Ressources et logement peuvent être exigés pour le regroupement familial, mais pas pour la réunification d’une personne protégée."],["Déposer auprès du bon service","Utilise l’Ofii, France-Visas, le consulat ou la préfecture indiqués par la fiche officielle correspondant exactement au cas."]],
       docs:["Actes d’état civil correspondant à la demande","Passeports des personnes concernées","Justificatifs de domicile et de ressources — selon procédure","Preuve du lien familial","Traduction ou légalisation — seulement si exigée"],
-      links:[["Regroupement familial — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F11166"],["État civil français à l’étranger","https://www.diplomatie.gouv.fr/fr/services-aux-francais/etat-civil-et-nationalite-francaise/etat-civil/"],["Inscription à l’école primaire","https://www.service-public.fr/particuliers/vosdroits/F1864"]],
-      note:"Le regroupement familial, la réunification familiale et le visa de conjoint sont des procédures différentes."
+      links:[["Choisir le motif familial — France-Visas","https://www.france-visas.gouv.fr/motif-familial"],["Regroupement familial — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F11166"],["Réunification familiale — Ofpra","https://www.ofpra.gouv.fr/la-reunification-familiale"],["Conjoint, enfant ou parent d’un Français — France-Visas","https://www.france-visas.gouv.fr/famille-de-francais"],["Conjoint étranger d’un Français — Service-Public","https://www.service-public.fr/particuliers/vosdroits/F1764"]],
+      note:"Le regroupement familial concerne en principe le conjoint majeur et les enfants mineurs d’un étranger en séjour régulier, pas ses parents. La réunification familiale répond à des règles propres aux réfugiés, apatrides et bénéficiaires de la protection subsidiaire. Liens recontrôlés le 13 septembre 2026."
     },
     droits:{
       audience:"Toute personne confrontée à un litige",timing:"Dès le premier blocage",cost:"Première orientation gratuite",
@@ -6620,7 +6754,7 @@ function GuidePage({isMobile}) {
     "Créer une association":"Définir l’objet, les responsables, les statuts et la déclaration officielle.",
     "Choisir son statut":"Comparer les risques, les charges et la façon de travailler avant de choisir.",
     "Trouver les aides à la création":"Chercher les aides adaptées avant d’engager les premières dépenses.",
-    "Faire venir sa famille":"Identifier la bonne procédure selon son titre et le lien familial.",
+    "Faire venir sa famille":"Distinguer regroupement familial, réunification familiale et visa de famille selon le statut de la personne en France et le lien avec le proche.",
     "Déclarer une naissance":"Déclarer d’abord la naissance, puis mettre à jour les organismes concernés.",
     "Inscrire un enfant à l’école":"Contacter le bon service et préparer les documents demandés.",
     "Faire reconnaître un mariage":"Vérifier si une transcription ou une légalisation est nécessaire.",
@@ -6677,7 +6811,7 @@ function GuidePage({isMobile}) {
     "Créer une association":"Définis l’objet, les dirigeants, le siège et les règles dans les statuts. La déclaration officielle vient ensuite ; une association n’est pas destinée à partager des bénéfices entre ses membres.",
     "Choisir son statut":"Compare responsabilité, associés, protection sociale, fiscalité et besoin d’investissement. Le statut le plus simple n’est pas forcément le plus adapté au projet.",
     "Trouver les aides à la création":"Recherche les aides selon la ville, le profil et le stade du projet. Vérifie les conditions avant l’immatriculation car certains dispositifs exigent une demande préalable.",
-    "Faire venir sa famille":"Commence par identifier la procédure exacte : regroupement familial, réunification familiale ou visa de membre de famille. Elles ne concernent pas les mêmes personnes.",
+    "Faire venir sa famille":"Commence par le statut de la personne déjà en France, puis le lien avec le proche. Le regroupement familial vise en principe le conjoint majeur et les enfants mineurs d’un étranger en séjour régulier ; la réunification concerne certains proches d’une personne protégée ; conjoint, enfant ou parent d’un Français suivent les parcours France-Visas propres à leur situation. Informations recontrôlées le 13 septembre 2026.",
     "Déclarer une naissance":"La déclaration auprès de l’état civil du lieu de naissance est prioritaire. Vérifie ensuite les démarches consulaires ou de transcription liées aux nationalités des parents.",
     "Inscrire un enfant à l’école":"Contacte d’abord la mairie pour le primaire, avec identité, domicile et vaccinations ; pour le collège ou le lycée, l’affectation suit une autre procédure.",
     "Faire reconnaître un mariage":"Le pays du mariage et la nationalité de chaque époux déterminent s’il faut une transcription ou une autre formalité. Ne confonds pas reconnaissance de l’acte et droit au séjour.",
@@ -6727,7 +6861,7 @@ function GuidePage({isMobile}) {
     "Créer une association":["L’objet de l’association est clair et réellement non lucratif","Les fondateurs ont choisi les dirigeants et l’adresse du siège","Les statuts précisent décisions, adhésions, ressources et dissolution","La déclaration a été faite sur le portail officiel","J’ai organisé compte bancaire, assurance et registre des décisions selon les besoins"],
     "Choisir son statut":["J’ai chiffré revenu, dépenses, investissements et risques du projet","J’ai décidé si je travaille seul ou avec des associés","J’ai comparé responsabilité, fiscalité et protection sociale","J’ai vérifié la compatibilité du statut avec mon titre de séjour et l’activité","J’ai fait relire le choix si les enjeux financiers ou juridiques sont importants"],
     "Trouver les aides à la création":["J’ai défini le besoin exact : financement, accompagnement, exonération ou local","J’ai recherché selon mon profil, ma ville et le secteur d’activité","J’ai vérifié si la demande doit être faite avant l’immatriculation","J’ai préparé budget, plan de financement et justificatifs demandés","Je n’engage aucune dépense en supposant l’aide obtenue avant la décision"],
-    "Faire venir sa famille":["J’ai identifié la procédure correspondant à mon statut et au lien familial","J’ai vérifié durée de séjour, ressources et logement éventuellement exigés","J’ai réuni actes d’état civil et preuves du lien familial","J’ai contrôlé traduction, légalisation ou transcription nécessaires","J’ai déposé auprès de l’OFII, du consulat ou du portail indiqué pour cette procédure"],
+    "Faire venir sa famille":["J’ai identifié le statut de la personne déjà en France : Français, étranger en séjour régulier ou personne protégée","J’ai identifié le lien du proche : conjoint, enfant ou parent","J’ai vérifié si le dossier relève du regroupement familial, de la réunification familiale ou d’un visa de famille de Français","J’ai contrôlé les conditions de séjour, de ressources et de logement réellement applicables à ce parcours","J’ai réuni les actes d’état civil, preuves de filiation ou de mariage et autorisations parentales demandées","J’ai déposé auprès de l’Ofii, de France-Visas, du consulat ou de la préfecture indiqués par la source officielle"],
     "Déclarer une naissance":["La naissance a été déclarée dans le délai auprès de l’état civil du lieu de naissance","J’ai obtenu plusieurs copies de l’acte de naissance","J’ai informé Assurance Maladie, CAF et employeur selon ma situation","J’ai vérifié les démarches consulaires liées aux nationalités des parents","J’ai mis à jour titre de séjour ou document de voyage de l’enfant si nécessaire"],
     "Inscrire un enfant à l’école":["J’ai identifié l’école ou le service d’affectation selon l’âge","J’ai contacté la mairie pour le primaire ou l’Éducation nationale pour le secondaire","J’ai préparé identité, domicile et vaccinations disponibles","J’ai obtenu le certificat d’inscription ou la décision d’affectation","J’ai pris rendez-vous avec l’établissement pour finaliser l’admission"],
     "Faire reconnaître un mariage":["J’ai identifié le pays du mariage et la nationalité de chaque époux","J’ai vérifié si une transcription française est nécessaire","J’ai obtenu une copie complète et récente de l’acte","J’ai contrôlé les exigences de traduction ou de légalisation","J’ai traité séparément la reconnaissance de l’acte et la demande de séjour éventuelle"],
@@ -6949,7 +7083,9 @@ function LegalDocumentPage({kind,isMobile}) {
       eyebrow:"Règles de la communauté", title:"Conditions générales d’utilisation",
       intro:"En utilisant Malagasy Events, vous acceptez les règles suivantes.",
       sections:[
-        ["Objet du service","La plateforme propose un agenda, des annuaires, des fiches de structures et des fonctions communautaires. La consultation est gratuite ; certaines fonctions nécessitent un compte."],
+        ["Objet du service","La plateforme propose un agenda, des annuaires, des fiches de structures, des petites annonces et des fonctions communautaires. La consultation est gratuite ; certaines fonctions nécessitent un compte."],
+        ["Petites annonces et rôle de la plateforme","Malagasy Events fournit un service d’hébergement et de mise en relation. La plateforme n’est ni vendeur, ni acheteur, ni employeur, ni candidat, ni bailleur, ni locataire et ne reçoit aucun paiement lié aux annonces. Le contrat éventuel est conclu directement entre les utilisateurs, qui doivent vérifier l’identité, les pouvoirs, qualifications, assurances, prix et conditions de leur interlocuteur."],
+        ["Règles propres aux petites annonces","Chaque annonce doit indiquer si son auteur agit comme particulier ou professionnel. Sont notamment interdits les produits ou services illégaux, contrefaçons, contenus discriminatoires, fausses offres de logement ou d’emploi, travail dissimulé, demandes de paiement frauduleuses et services réglementés proposés sans les qualifications ou autorisations nécessaires. Un professionnel reste responsable de toutes ses obligations d’information précontractuelle, fiscales et sociales."],
         ["Exactitude et vérification","Les informations sont indicatives et peuvent évoluer. Avant tout déplacement ou paiement, l’utilisateur doit vérifier la date, le lieu, le tarif et le lien auprès de l’organisateur ou de la billetterie officielle."],
         ["Publications autorisées","L’utilisateur ne publie que des contenus exacts, licites et pour lesquels il dispose des droits nécessaires. Sont interdits : usurpation, faux événements, spam, contenus haineux, injurieux, diffamatoires, trompeurs, violents, sexuels, discriminatoires ou portant atteinte à la vie privée, aux données personnelles, aux marques, au droit d’auteur ou au droit à l’image."],
         ["Garantie de droits","En envoyant un texte, une photographie, un logo ou une affiche, l’utilisateur garantit être titulaire des droits ou disposer d’une autorisation écrite couvrant la diffusion sur la plateforme et ses réseaux. Il conserve ses droits et accorde une licence non exclusive limitée au fonctionnement et à la promotion du service."],
@@ -6964,7 +7100,7 @@ function LegalDocumentPage({kind,isMobile}) {
       intro:"Cette politique explique les traitements de données effectués par Malagasy Events.",
       sections:[
         ["Responsable et contact","Le responsable du traitement est l’exploitant de Malagasy Events. Contact données personnelles : "+LEGAL_CONTACT+". Les informations d’identité complètes du responsable doivent être ajoutées dans les mentions légales."],
-        ["Données traitées","Compte : e-mail, identifiant technique, pseudonyme et authentification. Profil : avatar, code postal, centres d’intérêt et type de compte. Service : publications, commentaires, abonnements, messages, événements, signalements, demandes de revendication et rappels. Sécurité : journaux techniques et données nécessaires à la prévention des abus."],
+        ["Données traitées","Compte : e-mail, identifiant technique, pseudonyme et authentification. Profil : avatar, code postal, centres d’intérêt et type de compte. Service : publications, petites annonces, statut particulier ou professionnel, acceptation des règles, commentaires, abonnements, messages, événements, signalements, demandes de revendication et rappels. Sécurité : journaux techniques et données nécessaires à la prévention des abus. Le téléphone, l’adresse e-mail et l’adresse postale ne sont pas affichés dans les petites annonces par défaut."],
         ["Finalités et bases légales","Compte, publications, messagerie et abonnements : exécution des CGU. Modération, sécurité et prévention de la fraude : intérêt légitime et obligations légales. Facturation : contrat et obligations comptables. Communications facultatives : consentement. Annuaire professionnel : intérêt légitime après mise en balance, information et possibilité d’opposition."],
         ["Sources des annuaires","Les fiches peuvent provenir de données professionnelles rendues publiques par la structure ou de sources ouvertes. Aucune donnée personnelle sans lien direct avec l’activité n’est volontairement ajoutée. Toute personne peut demander la source, la correction, l’opposition ou l’effacement selon sa situation."],
         ["Destinataires et prestataires","Accès limité à l’équipe habilitée et aux prestataires nécessaires, notamment Supabase et Vercel. Les contenus publics sont visibles des visiteurs. Les transferts éventuels hors EEE doivent reposer sur une décision d’adéquation ou des garanties contractuelles appropriées."],
@@ -6987,7 +7123,8 @@ function LegalDocumentPage({kind,isMobile}) {
       eyebrow:"Sécurité", title:"Modération et signalement",
       intro:"Procédure applicable aux contenus, fiches, avis et comptes.",
       sections:[
-        ["Signaler","Toute personne, même non inscrite, peut utiliser « Exercer mes droits » pour identifier le contenu, son URL, le motif, les droits concernés et joindre les informations utiles. Les urgences manifestes sont traitées en priorité."],
+        ["Signaler","Chaque petite annonce possède un bouton « Signaler ». Une personne non connectée peut utiliser « Exercer mes droits » pour indiquer l’annonce, son URL, le motif et les informations utiles. Un accusé de réception est affiché après l’envoi et les urgences manifestes sont traitées en priorité."],
+        ["Petites annonces interdites","Sont retirées ou refusées les annonces proposant des produits ou services illégaux, des contrefaçons, une discrimination, un logement ou un emploi frauduleux, du travail dissimulé, une collecte abusive de données ou un service réglementé sans qualification. Une annonce suspecte peut être masquée pendant son examen."],
         ["Examen","La plateforme vérifie la précision du signalement, peut masquer le contenu à titre conservatoire, contacte l’auteur si nécessaire et conserve une trace de la décision. Un retrait n’implique pas la reconnaissance d’une faute."],
         ["Décisions","Mesures possibles : correction, restriction, déréférencement, retrait, avertissement, suspension ou fermeture du compte. La personne concernée reçoit le motif lorsque cela est possible et peut contester la décision."],
         ["Priorités","Retrait rapide des contenus manifestement illicites, atteintes à la sécurité, usurpations, données privées, menaces, haine, contenus sexuels non consentis et violations documentées de propriété intellectuelle."],
@@ -7012,7 +7149,7 @@ function LegalDocumentPage({kind,isMobile}) {
       <p style={{color:RED,fontWeight:900,fontSize:12,letterSpacing:1.4,textTransform:"uppercase",margin:"0 0 8px"}}>{doc.eyebrow}</p>
       <h1 style={{color:"#26215C",fontSize:isMobile?28:40,lineHeight:1.12,margin:"0 0 12px"}}>{doc.title}</h1>
       <p style={{color:"#666",fontSize:15,lineHeight:1.65,maxWidth:720,margin:"0 auto"}}>{doc.intro}</p>
-      <p style={{fontSize:12,color:"#999",margin:"10px 0 0"}}>Version du 7 août 2026</p>
+      <p style={{fontSize:12,color:"#999",margin:"10px 0 0"}}>Version du 21 septembre 2026</p>
     </header>
     <section style={{display:"grid",gap:12}}>
       {doc.sections.map(([title,text])=><article key={title} style={legalSectionStyle}><h2 style={{color:"#26215C",fontSize:18,margin:0}}>{title}</h2><p style={legalTextStyle}>{text}</p></article>)}
@@ -7382,7 +7519,8 @@ export default function App() {
     if (!og.error && og.data?.length) {
       const verifiedOrgas = og.data.map(item=>{
         const name=String(item.name||"").trim().toLowerCase()
-        if(name==="rns — rencontre nationale sportive" || name==="rns - rencontre nationale sportive") return {...item,logo_url:"/images/rns-cen-logo.jpg",insta:"https://www.instagram.com/rns_cen/",note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre."}
+        if(name==="rns — rencontre nationale sportive" || name==="rns - rencontre nationale sportive") return {...item,logo_url:"/images/rns-cen-logo.jpg",insta:"https://www.instagram.com/rns_cen/",is_partner:true,note:"Partenaire Malagasy Events. Le plus grand événement sportif et culturel de la diaspora malagasy, depuis 1975. Organise la RNS de Pâques à Vichy et le Madadiaspora Foot en décembre."}
+        if(name==="sehatra ba gasy france") return {...item,is_partner:true,note:item.note||"Partenaire Malagasy Events et organisateur du théâtre musical Tana–Paris–Tana."}
         if(name==="gas'paname sport") return {...item,followers:"2 800",insta:"https://www.instagram.com/gas_paname_sport/",note:"Communauté sportive malagasy de Paris : Gaspaname Game, Coupe du Monde Gas’Paname, basket et foot inter-lycées de Tana Alumni France."}
         if(name==="malagasy en france 2.0") return {...item,site:"",note:"Émission web d'actualités de la diaspora malagasy en France. Ancien domaine indisponible au contrôle du 26 août 2026."}
         return item

@@ -203,3 +203,24 @@ where not exists (
   select 1 from public.events
   where lower(title) = lower('Jeunesse Dorée — Red Island') and date = '2026-09-18'
 );
+
+-- Veille vérifiée du 13 septembre : la source concurrente indiquait le
+-- 27 septembre, mais le calendrier officiel de la CCMGr confirme le 20.
+insert into public.events
+  (title, date, location, address, city, category, image, price, organizer,
+   "ticketUrl", official_source_url, updates_url, description, "mediaUrls", "createdAt")
+select
+  'Messe du 4e dimanche — CCMGr Grenoble', '2026-09-20',
+  'Église Saint-Jacques, 2 place Louis-Baillé-Barrelle, 38130 Échirolles',
+  '2 place Louis-Baillé-Barrelle, 38130 Échirolles', 'Échirolles', 'Religion', '', '',
+  'Communauté catholique malgache de Grenoble (CCMGr)',
+  'https://catholique-malgache-grenoble.fr/',
+  'https://catholique-malgache-grenoble.fr/',
+  'https://catholique-malgache-grenoble.fr/',
+  'La Communauté catholique malgache de Grenoble annonce sa messe du quatrième dimanche le 20 septembre 2026, de 10 h à 18 h, au quartier Saint-Joseph, à l’église Saint-Jacques d’Échirolles. La date, l’horaire et l’adresse ont été contrôlés le 13 septembre 2026 sur le calendrier officiel de la CCMGr.',
+  '[]'::jsonb, '2026-09-13T00:00:00.000Z'
+where not exists (
+  select 1 from public.events
+  where lower(title) = lower('Messe du 4e dimanche — CCMGr Grenoble')
+    and date = '2026-09-20'
+);

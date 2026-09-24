@@ -16,6 +16,10 @@ exports
 dist
 node_modules
 
+# Projets natifs Capacitor — non utilisés par l’hébergement web Vercel
+android
+ios
+
 # Sauvegardes locales
 _sauvegarde-*
 

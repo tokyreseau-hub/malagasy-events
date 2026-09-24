@@ -1,0 +1,13 @@
+{
+  "appId": "com.malagasy.events",
+  "appName": "Malagasy Events",
+  "webDir": "dist",
+  "backgroundColor": "#ffffff",
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile"
+  },
+  "android": {
+    "backgroundColor": "#ffffff"
+  }
+}
